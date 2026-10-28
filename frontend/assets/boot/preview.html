@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>莱茵生命 · 开机动画预览</title>
+  <link rel="icon" href="./mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./boot.css">
+  <style>
+    :root { color-scheme: light; font-family: "Microsoft YaHei","PingFang SC",sans-serif; color: #242522; background: #f5f4f0; }
+    body { margin: 0; }
+    .demo { max-width: 1080px; margin: auto; padding: 48px 24px; }
+    .demo .eyebrow { font: 12px/1.8 Consolas,monospace; letter-spacing: .18em; color: #695a43; }
+    .demo h1 { font-size: clamp(28px,5vw,48px); font-weight: 500; margin: 16px 0; }
+    .demo .intro { color: #545650; line-height: 1.8; max-width: 680px; }
+    .demo form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; margin-top: 32px; }
+    .demo label { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+    .demo input,.demo select { min-width: 0; width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px 12px; font: inherit; border: 1px solid #85867f; border-radius: 2px; background: #fff; color: #242522; }
+    .demo button { min-height: 44px; padding: 12px 24px; font: inherit; background: #232420; color: #fff; border: 1px solid #232420; cursor: pointer; }
+    .demo :is(button,input,select):focus-visible { outline: 3px solid #954400; outline-offset: 3px; }
+    .demo .actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-top: 28px; }
+    .demo output { display: block; font-size: 13px; line-height: 1.8; overflow-wrap: anywhere; }
+    .demo .notes { margin-top: 56px; padding-top: 24px; border-top: 1px solid #ccccc5; color: #545650; line-height: 1.9; }
+    .demo a { color: #7f3900; }
+    @media(max-width:600px) { .demo { padding: 28px 16px; } .demo form { grid-template-columns: minmax(0,1fr); } }
+  </style>
+</head>
+<body>
+  <main class="demo">
+    <p class="eyebrow">RHINE LAB / RESEARCH TERMINAL</p>
+    <h1>一段进入研究工作区的仪式</h1>
+    <p class="intro">暖灰档案底板、等宽读数与克制橙色。可切换暗墨主题；默认保留两次确认，中文语音与音效开启。首次自动开场点击动画即可启用播放。开场结束后，回到这里再次体验。</p>
+    <form id="demo-form">
+      <label>主题<select name="theme"><option value="light">暖灰</option><option value="dark">暗墨</option></select></label>
+      <label>推进方式<select name="interaction"><option value="manual">两次手动确认</option><option value="auto">全自动</option></select></label>
+      <label>身份名称<input name="identity" value="访客" maxlength="128"></label>
+      <label>身份编号<input name="code" value="OPERATOR" maxlength="128"></label>
+      <label>播放速度<select name="speed"><option value="1">1×（标准）</option><option value="0.5">0.5×</option><option value="2">2×</option><option value="3">3×</option></select></label>
+      <label>应用初始化<select name="ready"><option value="none">仅展示完整流程</option><option value="resolve">读取阶段等待 2 秒后就绪</option><option value="reject">读取阶段报告初始化失败</option><option value="timeout">未就绪，3 秒后超时演示</option></select></label>
+      <label>动效<select name="motion"><option value="auto">跟随系统偏好</option><option value="reduce">减少动态效果</option></select></label>
+    </form>
+    <div class="actions"><button type="submit" form="demo-form" id="launch">重新播放开场</button><output id="result" aria-live="polite">等待启动</output></div>
+    <div class="notes">
+      <p>本例中的“授权”和“核验”只展示启动序列，不代表真实身份认证。正式业务由接入项目负责鉴权及错误页面。</p>
+      <p>可按 Enter / 空格确认，Esc 随时跳过。长资料可在内容区滚动，操作命中区至少 44px。</p>
+      <p><a href="./README.md">接入与复刻说明</a> · <a href="./preset.json">完整参数</a> · <a href="./SOURCE.md">来源说明</a></p>
+    </div>
+  </main>
+  <div id="boot-host"></div>
+  <script src="./boot.js"></script>
+  <script>
+    (function () {
+      const form = document.getElementById('demo-form');
+      const launch = document.getElementById('launch');
+      const result = document.getElementById('result');
+      let instance = null;
+      function play() {
+        if (instance) instance.destroy();
+        const fields = new FormData(form);
+        const readyMode = fields.get('ready');
+        let settleReady = null, failReady = null, pendingTimer = null;
+        const options = {
+          theme: fields.get('theme'), interaction: fields.get('interaction'),
+          speed: Number(fields.get('speed')), reducedMotion: fields.get('motion'),
+          identity: {name:fields.get('identity'),code:fields.get('code')},
+          returnFocus: launch,
+          onStageChange(stage) {
+            result.textContent = '启动序列 ' + (stage.index + 1) + ' / ' + stage.total;
+            if (stage.id === 'read') {
+              if (readyMode === 'resolve') pendingTimer = setTimeout(() => settleReady(), 2000);
+              if (readyMode === 'reject') pendingTimer = setTimeout(() => failReady(new Error('预览初始化失败')), 500);
+            }
+          }
+        };
+        if (readyMode !== 'none') options.ready = new Promise((resolve,reject) => { settleReady=resolve; failReady=reject; });
+        if (readyMode === 'timeout') options.readyTimeout = 3000;
+        instance = RhineLabBoot.mount(document.getElementById('boot-host'),options);
+        instance.finished.then(value => {
+          clearTimeout(pendingTimer);
+          const names = {completed:'已完成',skipped:'已跳过',destroyed:'已销毁',failed:'初始化失败',timeout:'等待超时'};
+          result.textContent = names[value.status] + ' · ' + value.stage;
+        });
+      }
+      form.addEventListener('submit',event => { event.preventDefault(); play(); });
+      launch.focus({preventScroll:true});
+      play();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+name: lingxi
+services:
+  db:
+    build:
+      context: .
+      dockerfile: deploy/postgres.Dockerfile
+    environment:
+      POSTGRES_USER: lingxi
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Run configure first}
+      POSTGRES_DB: lingxi
+      HINDSIGHT_DB_PASSWORD: ${HINDSIGHT_DB_PASSWORD:?Run configure first}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U lingxi -d lingxi']
+      interval: 5s
+      retries: 30
+    restart: unless-stopped
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    command: [alembic, -c, backend/alembic.ini, upgrade, head]
+    depends_on:
+      db: {condition: service_healthy}
+  core:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    volumes:
+      - deletion-ledger:/app/runtime
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+  worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file: .env
+    command: [python, -m, lingxi.worker]
+    volumes:
+      - deletion-ledger:/app/runtime
+    depends_on:
+      core: {condition: service_healthy}
+    restart: unless-stopped
+  hindsight:
+    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:1.1.0-slim}
+    environment:
+      HINDSIGHT_ENABLE_CP: 'false'
+      HINDSIGHT_API_WORKER_ID: lingxi-hindsight
+      HINDSIGHT_API_DATABASE_URL: postgresql://hindsight:${HINDSIGHT_DB_PASSWORD}@db:5432/hindsight
+      HINDSIGHT_API_VECTOR_EXTENSION: pgvector
+      HINDSIGHT_API_TEXT_SEARCH_EXTENSION: pgroonga
+      HINDSIGHT_API_LLM_PROVIDER: openai
+      HINDSIGHT_API_LLM_BASE_URL: http://core:8000/internal/model/v1
+      HINDSIGHT_API_LLM_MODEL: lingxi-extraction
+      HINDSIGHT_API_LLM_API_KEY: ${LINGXI_MEMORY_GATEWAY_TOKEN:?Run configure first}
+      HINDSIGHT_API_SKIP_LLM_VERIFICATION: 'true'
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: openai
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL: http://core:8000/internal/model/v1
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL: lingxi-embedding
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_API_KEY: ${LINGXI_MEMORY_GATEWAY_TOKEN}
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_DIMENSIONS: ${LINGXI_MEMORY_EMBEDDING_DIMENSIONS:-1024}
+      HINDSIGHT_API_RERANKER_PROVIDER: siliconflow
+      HINDSIGHT_API_RERANKER_SILICONFLOW_BASE_URL: http://core:8000/internal/model/v1
+      HINDSIGHT_API_RERANKER_SILICONFLOW_MODEL: lingxi-rerank
+      HINDSIGHT_API_RERANKER_SILICONFLOW_API_KEY: ${LINGXI_MEMORY_GATEWAY_TOKEN}
+    healthcheck:
+      test: [CMD, python3, -m, hindsight_api.http_probe, 'http://127.0.0.1:8888/health/ready', '5']
+      interval: 15s
+      start_period: 60s
+      retries: 5
+    stop_grace_period: 40s
+    volumes:
+      - model-cache:/root/.cache
+    depends_on:
+      db: {condition: service_healthy}
+      core: {condition: service_healthy}
+    restart: unless-stopped
+  web:
+    build:
+      context: .
+      dockerfile: deploy/web.Dockerfile
+    ports:
+      - '${WEB_BIND:-127.0.0.1:8080}:80'
+    depends_on:
+      core: {condition: service_healthy}
+    restart: unless-stopped
+volumes:
+  postgres:
+  deletion-ledger:
+  model-cache:

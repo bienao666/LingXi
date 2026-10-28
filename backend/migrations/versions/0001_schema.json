@@ -1,0 +1,1290 @@
+[
+  {
+    "name": "audit",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "action",
+        "type": "String",
+        "length": 100,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "target_id",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_audit_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "chat_runs",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "conversation_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "request_id",
+        "type": "String",
+        "length": 100,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "request_hash",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "cancel_requested",
+        "type": "Boolean",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "model_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "config",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "memory_refs",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "source_message_ids",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "memory_status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "error",
+        "type": "Text",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "next_seq",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [
+      [
+        "user_id",
+        "request_id"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_chat_runs_conversation_id",
+        "columns": [
+          "conversation_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_chat_runs_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_chat_runs_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "conversations",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "title",
+        "type": "String",
+        "length": 200,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "version",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "deleted",
+        "type": "Boolean",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_conversations_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_conversations_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "jobs",
+    "columns": [
+      {
+        "name": "key",
+        "type": "String",
+        "length": 200,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "kind",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "payload",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "attempts",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "available_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "lease_until",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "lease_token",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "error",
+        "type": "Text",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [
+      [
+        "key"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_jobs_status",
+        "columns": [
+          "status"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_jobs_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_jobs_kind",
+        "columns": [
+          "kind"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "login_sessions",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "token_hash",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "csrf",
+        "type": "String",
+        "length": 100,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "expires_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [
+      [
+        "token_hash"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_login_sessions_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_login_sessions_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "memories",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "subject",
+        "type": "String",
+        "length": 150,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "category",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "content",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "source_ids",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "evidence",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "event_at",
+        "type": "String",
+        "length": 100,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "valid_from",
+        "type": "String",
+        "length": 100,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "valid_to",
+        "type": "String",
+        "length": 100,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "expires_at",
+        "type": "Float",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "version",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "index_status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "revisions",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_memories_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_memories_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "memory_candidates",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "source_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "fingerprint",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "content",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "category",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "subject",
+        "type": "String",
+        "length": 150,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "evidence",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "reason",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "memory_id",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [
+      [
+        "source_id",
+        "fingerprint"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_memory_candidates_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_memory_candidates_source_id",
+        "columns": [
+          "source_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_memory_candidates_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "memory_operations",
+    "columns": [
+      {
+        "name": "user_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "kind",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "target_id",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "result",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "error",
+        "type": "Text",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_memory_operations_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_memory_operations_user_id",
+        "columns": [
+          "user_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "messages",
+    "columns": [
+      {
+        "name": "conversation_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "role",
+        "type": "String",
+        "length": 20,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "content",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "run_id",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_messages_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_run_id",
+        "columns": [
+          "run_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_messages_conversation_id",
+        "columns": [
+          "conversation_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "model_calls",
+    "columns": [
+      {
+        "name": "model_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "run_id",
+        "type": "String",
+        "length": 64,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "purpose",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "duration_ms",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "usage",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "config",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "error",
+        "type": "Text",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_model_calls_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "models",
+    "columns": [
+      {
+        "name": "provider_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "name",
+        "type": "String",
+        "length": 150,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "purpose",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "context_window",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "status",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "verified_provider_version",
+        "type": "Integer",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "verified_at",
+        "type": "Float",
+        "length": null,
+        "nullable": true,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_models_provider_id",
+        "columns": [
+          "provider_id"
+        ],
+        "unique": false
+      },
+      {
+        "name": "ix_models_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "policies",
+    "columns": [
+      {
+        "name": "purpose",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "model_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "version",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": []
+  },
+  {
+    "name": "providers",
+    "columns": [
+      {
+        "name": "name",
+        "type": "String",
+        "length": 100,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "base_url",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "encrypted_key",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "allow_private",
+        "type": "Boolean",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "enabled",
+        "type": "Boolean",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "version",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": [
+      {
+        "name": "ix_providers_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  },
+  {
+    "name": "run_events",
+    "columns": [
+      {
+        "name": "run_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "seq",
+        "type": "Integer",
+        "length": null,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "kind",
+        "type": "String",
+        "length": 30,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "data",
+        "type": "JSON",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [],
+    "indexes": []
+  },
+  {
+    "name": "users",
+    "columns": [
+      {
+        "name": "username",
+        "type": "String",
+        "length": 100,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "password_hash",
+        "type": "Text",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "auto_memory",
+        "type": "Boolean",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": true
+      },
+      {
+        "name": "workspace_id",
+        "type": "String",
+        "length": 64,
+        "nullable": false,
+        "primary_key": false
+      },
+      {
+        "name": "created_at",
+        "type": "Float",
+        "length": null,
+        "nullable": false,
+        "primary_key": false
+      }
+    ],
+    "unique": [
+      [
+        "username"
+      ]
+    ],
+    "indexes": [
+      {
+        "name": "ix_users_workspace_id",
+        "columns": [
+          "workspace_id"
+        ],
+        "unique": false
+      }
+    ]
+  }
+]

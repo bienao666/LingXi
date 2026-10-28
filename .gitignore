@@ -1,0 +1,14 @@
+node_modules/
+.preview/
+.DS_Store
+Thumbs.db
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+*.db
+*.db-*
+frontend/dist/
+runtime/
+!runtime/.gitkeep

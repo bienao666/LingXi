@@ -1,0 +1,150 @@
+{"id": "M001", "group": "facts_preferences", "facts": ["我叫林舟。"], "query": "我叫什么名字？", "expected": ["林舟"], "forbidden": [], "action": null}
+{"id": "M002", "group": "facts_preferences", "facts": ["我喜欢喝乌龙茶。"], "query": "我偏好哪种茶？", "expected": ["乌龙"], "forbidden": [], "action": null}
+{"id": "M003", "group": "facts_preferences", "facts": ["我希望你回答简短一点。"], "query": "回答长度按什么偏好？", "expected": ["简短"], "forbidden": [], "action": null}
+{"id": "M004", "group": "facts_preferences", "facts": ["我不喜欢被连续追问。"], "query": "你和我聊天应该避免什么？", "expected": ["追问"], "forbidden": [], "action": null}
+{"id": "M005", "group": "facts_preferences", "facts": ["我习惯晚上九点阅读。"], "query": "我一般几点阅读？", "expected": ["九点"], "forbidden": [], "action": null}
+{"id": "M006", "group": "facts_preferences", "facts": ["我平时使用简体中文。"], "query": "默认和我用哪种中文？", "expected": ["简体"], "forbidden": [], "action": null}
+{"id": "M007", "group": "facts_preferences", "facts": ["我喜欢清淡的食物。"], "query": "我喜欢什么口味？", "expected": ["清淡"], "forbidden": [], "action": null}
+{"id": "M008", "group": "facts_preferences", "facts": ["我不喜欢香菜。"], "query": "我不喜欢什么配菜？", "expected": ["香菜"], "forbidden": [], "action": null}
+{"id": "M009", "group": "facts_preferences", "facts": ["我从事后端开发。"], "query": "我的工作方向是什么？", "expected": ["后端"], "forbidden": [], "action": null}
+{"id": "M010", "group": "facts_preferences", "facts": ["我主要使用Python。"], "query": "我主要用什么编程语言？", "expected": ["Python"], "forbidden": [], "action": null}
+{"id": "M011", "group": "facts_preferences", "facts": ["我喜欢徒步。"], "query": "我喜欢什么户外活动？", "expected": ["徒步"], "forbidden": [], "action": null}
+{"id": "M012", "group": "facts_preferences", "facts": ["我养了一只叫团团的猫。"], "query": "我的猫叫什么？", "expected": ["团团"], "forbidden": [], "action": null}
+{"id": "M013", "group": "facts_preferences", "facts": ["我希望你称呼我阿舟。"], "query": "你应该怎么称呼我？", "expected": ["阿舟"], "forbidden": [], "action": null}
+{"id": "M014", "group": "facts_preferences", "facts": ["我周末常去游泳。"], "query": "我周末常做什么运动？", "expected": ["游泳"], "forbidden": [], "action": null}
+{"id": "M015", "group": "facts_preferences", "facts": ["我喜欢先看结论再看解释。"], "query": "回答结构按我的偏好怎么安排？", "expected": ["结论"], "forbidden": [], "action": null}
+{"id": "M016", "group": "facts_preferences", "facts": ["我用北京时间安排日程。"], "query": "我的日程时区是什么？", "expected": ["北京"], "forbidden": [], "action": null}
+{"id": "M017", "group": "facts_preferences", "facts": ["我不喝含酒精的饮品。"], "query": "给我推荐饮品要注意什么？", "expected": ["酒精"], "forbidden": [], "action": null}
+{"id": "M018", "group": "facts_preferences", "facts": ["我喜欢爵士乐。"], "query": "我偏好什么音乐？", "expected": ["爵士"], "forbidden": [], "action": null}
+{"id": "M019", "group": "facts_preferences", "facts": ["我希望你直接指出方案的问题。"], "query": "评审方案时我希望你怎样表达？", "expected": ["直接"], "forbidden": [], "action": null}
+{"id": "M020", "group": "facts_preferences", "facts": ["我更喜欢Markdown格式。"], "query": "报告用什么格式？", "expected": ["Markdown"], "forbidden": [], "action": null}
+{"id": "M021", "group": "facts_preferences", "facts": ["我习惯先写测试再写业务代码。"], "query": "我的编码习惯是什么？", "expected": ["测试"], "forbidden": [], "action": null}
+{"id": "M022", "group": "facts_preferences", "facts": ["我喜欢深色界面。"], "query": "我偏好什么界面主题？", "expected": ["深色"], "forbidden": [], "action": null}
+{"id": "M023", "group": "facts_preferences", "facts": ["我喜欢用清单整理事情。"], "query": "整理事情用什么形式合适？", "expected": ["清单"], "forbidden": [], "action": null}
+{"id": "M024", "group": "facts_preferences", "facts": ["我通常骑自行车通勤。"], "query": "我通常怎么通勤？", "expected": ["自行车"], "forbidden": [], "action": null}
+{"id": "M025", "group": "facts_preferences", "facts": ["我对花生过敏。"], "query": "我的饮食需要避开什么？", "expected": ["花生"], "forbidden": [], "action": null}
+{"id": "M026", "group": "facts_preferences", "facts": ["我不希望你在晚上主动联系。"], "query": "联系时机要注意什么？", "expected": ["晚上"], "forbidden": [], "action": null}
+{"id": "M027", "group": "facts_preferences", "facts": ["我习惯用摄氏度。"], "query": "给我温度时用什么单位？", "expected": ["摄氏"], "forbidden": [], "action": null}
+{"id": "M028", "group": "facts_preferences", "facts": ["我在学习西班牙语。"], "query": "我正在学哪种外语？", "expected": ["西班牙"], "forbidden": [], "action": null}
+{"id": "M029", "group": "facts_preferences", "facts": ["我收藏科幻小说。"], "query": "我收藏哪类书？", "expected": ["科幻"], "forbidden": [], "action": null}
+{"id": "M030", "group": "facts_preferences", "facts": ["我习惯把星期一当作一周开始。"], "query": "我的周历从哪天开始？", "expected": ["星期一"], "forbidden": [], "action": null}
+{"id": "M031", "group": "events_projects", "facts": ["星河项目当前处于需求评审阶段。"], "query": "星河项目现在进展到哪里？", "expected": ["需求评审"], "forbidden": [], "action": null}
+{"id": "M032", "group": "events_projects", "facts": ["星河项目约定在2026-10-29演示。"], "query": "星河项目什么时候演示？", "expected": ["2026-10-29"], "forbidden": [], "action": null}
+{"id": "M033", "group": "events_projects", "facts": ["星河项目的接口负责人是陈工。"], "query": "星河的接口由谁负责？", "expected": ["陈工"], "forbidden": [], "action": null}
+{"id": "M034", "group": "events_projects", "facts": ["星河项目的阻塞问题是测试环境缺少数据。"], "query": "星河项目被什么问题阻塞？", "expected": ["数据"], "forbidden": [], "action": null}
+{"id": "M035", "group": "events_projects", "facts": ["2026-10-20我们讨论过星河项目的备份策略。"], "query": "我们讨论过星河的什么策略？", "expected": ["备份"], "forbidden": [], "action": null}
+{"id": "M036", "group": "events_projects", "facts": ["灯塔项目当前处于接口联调阶段。"], "query": "灯塔项目现在进展到哪里？", "expected": ["接口联调"], "forbidden": [], "action": null}
+{"id": "M037", "group": "events_projects", "facts": ["灯塔项目约定在2026-11-02演示。"], "query": "灯塔项目什么时候演示？", "expected": ["2026-11-02"], "forbidden": [], "action": null}
+{"id": "M038", "group": "events_projects", "facts": ["灯塔项目的接口负责人是陈工。"], "query": "灯塔的接口由谁负责？", "expected": ["陈工"], "forbidden": [], "action": null}
+{"id": "M039", "group": "events_projects", "facts": ["灯塔项目的阻塞问题是测试环境缺少数据。"], "query": "灯塔项目被什么问题阻塞？", "expected": ["数据"], "forbidden": [], "action": null}
+{"id": "M040", "group": "events_projects", "facts": ["2026-10-20我们讨论过灯塔项目的备份策略。"], "query": "我们讨论过灯塔的什么策略？", "expected": ["备份"], "forbidden": [], "action": null}
+{"id": "M041", "group": "events_projects", "facts": ["青禾项目当前处于数据迁移阶段。"], "query": "青禾项目现在进展到哪里？", "expected": ["数据迁移"], "forbidden": [], "action": null}
+{"id": "M042", "group": "events_projects", "facts": ["青禾项目约定在2026-11-05演示。"], "query": "青禾项目什么时候演示？", "expected": ["2026-11-05"], "forbidden": [], "action": null}
+{"id": "M043", "group": "events_projects", "facts": ["青禾项目的接口负责人是陈工。"], "query": "青禾的接口由谁负责？", "expected": ["陈工"], "forbidden": [], "action": null}
+{"id": "M044", "group": "events_projects", "facts": ["青禾项目的阻塞问题是测试环境缺少数据。"], "query": "青禾项目被什么问题阻塞？", "expected": ["数据"], "forbidden": [], "action": null}
+{"id": "M045", "group": "events_projects", "facts": ["2026-10-20我们讨论过青禾项目的备份策略。"], "query": "我们讨论过青禾的什么策略？", "expected": ["备份"], "forbidden": [], "action": null}
+{"id": "M046", "group": "events_projects", "facts": ["云帆项目当前处于上线演练阶段。"], "query": "云帆项目现在进展到哪里？", "expected": ["上线演练"], "forbidden": [], "action": null}
+{"id": "M047", "group": "events_projects", "facts": ["云帆项目约定在2026-11-08演示。"], "query": "云帆项目什么时候演示？", "expected": ["2026-11-08"], "forbidden": [], "action": null}
+{"id": "M048", "group": "events_projects", "facts": ["云帆项目的接口负责人是陈工。"], "query": "云帆的接口由谁负责？", "expected": ["陈工"], "forbidden": [], "action": null}
+{"id": "M049", "group": "events_projects", "facts": ["云帆项目的阻塞问题是测试环境缺少数据。"], "query": "云帆项目被什么问题阻塞？", "expected": ["数据"], "forbidden": [], "action": null}
+{"id": "M050", "group": "events_projects", "facts": ["2026-10-20我们讨论过云帆项目的备份策略。"], "query": "我们讨论过云帆的什么策略？", "expected": ["备份"], "forbidden": [], "action": null}
+{"id": "M051", "group": "events_projects", "facts": ["山海项目当前处于测试回归阶段。"], "query": "山海项目现在进展到哪里？", "expected": ["测试回归"], "forbidden": [], "action": null}
+{"id": "M052", "group": "events_projects", "facts": ["山海项目约定在2026-11-10演示。"], "query": "山海项目什么时候演示？", "expected": ["2026-11-10"], "forbidden": [], "action": null}
+{"id": "M053", "group": "events_projects", "facts": ["山海项目的接口负责人是陈工。"], "query": "山海的接口由谁负责？", "expected": ["陈工"], "forbidden": [], "action": null}
+{"id": "M054", "group": "events_projects", "facts": ["山海项目的阻塞问题是测试环境缺少数据。"], "query": "山海项目被什么问题阻塞？", "expected": ["数据"], "forbidden": [], "action": null}
+{"id": "M055", "group": "events_projects", "facts": ["2026-10-20我们讨论过山海项目的备份策略。"], "query": "我们讨论过山海的什么策略？", "expected": ["备份"], "forbidden": [], "action": null}
+{"id": "M056", "group": "updates_temporal", "facts": ["2025年我的居住城市是北京。"], "query": "我当前的居住城市是什么？", "expected": ["上海"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的居住城市改为上海；北京是历史情况。"}}
+{"id": "M057", "group": "updates_temporal", "facts": ["2025年我的居住城市是北京。"], "query": "2025年我的居住城市是什么？", "expected": ["北京"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的居住城市改为上海；2025年是北京。"}}
+{"id": "M058", "group": "updates_temporal", "facts": ["2025年我的通勤方式是开车。"], "query": "我当前的通勤方式是什么？", "expected": ["地铁"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的通勤方式改为地铁；开车是历史情况。"}}
+{"id": "M059", "group": "updates_temporal", "facts": ["2025年我的通勤方式是开车。"], "query": "2025年我的通勤方式是什么？", "expected": ["开车"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的通勤方式改为地铁；2025年是开车。"}}
+{"id": "M060", "group": "updates_temporal", "facts": ["2025年我的工作岗位是测试。"], "query": "我当前的工作岗位是什么？", "expected": ["后端开发"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的工作岗位改为后端开发；测试是历史情况。"}}
+{"id": "M061", "group": "updates_temporal", "facts": ["2025年我的工作岗位是测试。"], "query": "2025年我的工作岗位是什么？", "expected": ["测试"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的工作岗位改为后端开发；2025年是测试。"}}
+{"id": "M062", "group": "updates_temporal", "facts": ["2025年我的主要语言是Java。"], "query": "我当前的主要语言是什么？", "expected": ["Python"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的主要语言改为Python；Java是历史情况。"}}
+{"id": "M063", "group": "updates_temporal", "facts": ["2025年我的主要语言是Java。"], "query": "2025年我的主要语言是什么？", "expected": ["Java"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的主要语言改为Python；2025年是Java。"}}
+{"id": "M064", "group": "updates_temporal", "facts": ["2025年我的项目阶段是需求。"], "query": "我当前的项目阶段是什么？", "expected": ["联调"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的项目阶段改为联调；需求是历史情况。"}}
+{"id": "M065", "group": "updates_temporal", "facts": ["2025年我的项目阶段是需求。"], "query": "2025年我的项目阶段是什么？", "expected": ["需求"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的项目阶段改为联调；2025年是需求。"}}
+{"id": "M066", "group": "updates_temporal", "facts": ["2025年我的常用编辑器是Vim。"], "query": "我当前的常用编辑器是什么？", "expected": ["VS Code"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的常用编辑器改为VS Code；Vim是历史情况。"}}
+{"id": "M067", "group": "updates_temporal", "facts": ["2025年我的常用编辑器是Vim。"], "query": "2025年我的常用编辑器是什么？", "expected": ["Vim"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的常用编辑器改为VS Code；2025年是Vim。"}}
+{"id": "M068", "group": "updates_temporal", "facts": ["2025年我的报告格式是Word。"], "query": "我当前的报告格式是什么？", "expected": ["Markdown"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的报告格式改为Markdown；Word是历史情况。"}}
+{"id": "M069", "group": "updates_temporal", "facts": ["2025年我的报告格式是Word。"], "query": "2025年我的报告格式是什么？", "expected": ["Word"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的报告格式改为Markdown；2025年是Word。"}}
+{"id": "M070", "group": "updates_temporal", "facts": ["2025年我的偏好饮品是咖啡。"], "query": "我当前的偏好饮品是什么？", "expected": ["乌龙茶"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的偏好饮品改为乌龙茶；咖啡是历史情况。"}}
+{"id": "M071", "group": "updates_temporal", "facts": ["2025年我的偏好饮品是咖啡。"], "query": "2025年我的偏好饮品是什么？", "expected": ["咖啡"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的偏好饮品改为乌龙茶；2025年是咖啡。"}}
+{"id": "M072", "group": "updates_temporal", "facts": ["2025年我的锻炼时间是早上。"], "query": "我当前的锻炼时间是什么？", "expected": ["晚上"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的锻炼时间改为晚上；早上是历史情况。"}}
+{"id": "M073", "group": "updates_temporal", "facts": ["2025年我的锻炼时间是早上。"], "query": "2025年我的锻炼时间是什么？", "expected": ["早上"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的锻炼时间改为晚上；2025年是早上。"}}
+{"id": "M074", "group": "updates_temporal", "facts": ["2025年我的项目负责人是张工。"], "query": "我当前的项目负责人是什么？", "expected": ["李工"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的项目负责人改为李工；张工是历史情况。"}}
+{"id": "M075", "group": "updates_temporal", "facts": ["2025年我的项目负责人是张工。"], "query": "2025年我的项目负责人是什么？", "expected": ["张工"], "forbidden": [], "action": {"kind": "correct", "content": "从2026-10-01开始，我的项目负责人改为李工；2025年是张工。"}}
+{"id": "M076", "group": "updates_temporal", "facts": ["我通常喝茶。", "我只在2026-10-28这一天喝咖啡，平常习惯不变。"], "query": "我的平常习惯是什么？", "expected": ["喝茶"], "forbidden": [], "action": null}
+{"id": "M077", "group": "updates_temporal", "facts": ["我通常骑车。", "我只在2026-10-28这一天打车，平常习惯不变。"], "query": "我的平常习惯是什么？", "expected": ["骑车"], "forbidden": [], "action": null}
+{"id": "M078", "group": "updates_temporal", "facts": ["我通常晚上阅读。", "我只在2026-10-28这一天早上阅读，平常习惯不变。"], "query": "我的平常习惯是什么？", "expected": ["晚上阅读"], "forbidden": [], "action": null}
+{"id": "M079", "group": "updates_temporal", "facts": ["我通常吃清淡食物。", "我只在2026-10-28这一天吃辣菜，平常习惯不变。"], "query": "我的平常习惯是什么？", "expected": ["吃清淡食物"], "forbidden": [], "action": null}
+{"id": "M080", "group": "updates_temporal", "facts": ["我通常用中文。", "我只在2026-10-28这一天用英文，平常习惯不变。"], "query": "我的平常习惯是什么？", "expected": ["用中文"], "forbidden": [], "action": null}
+{"id": "M081", "group": "subjects_quotes", "facts": ["朋友小王失眠，这是对方的情况，不是我的。"], "query": "谁失眠？", "expected": ["朋友小王"], "forbidden": [], "action": null}
+{"id": "M082", "group": "subjects_quotes", "facts": ["假设小说角色“朋友小王”失眠，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我失眠吗？", "expected": [], "forbidden": ["我确实失眠"], "action": {"kind": "uncertain"}}
+{"id": "M083", "group": "subjects_quotes", "facts": ["同事小李喜欢咖啡，这是对方的情况，不是我的。"], "query": "谁喜欢咖啡？", "expected": ["同事小李"], "forbidden": [], "action": null}
+{"id": "M084", "group": "subjects_quotes", "facts": ["假设小说角色“同事小李”喜欢咖啡，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我喜欢咖啡吗？", "expected": [], "forbidden": ["我确实喜欢咖啡"], "action": {"kind": "uncertain"}}
+{"id": "M085", "group": "subjects_quotes", "facts": ["妹妹在学日语，这是对方的情况，不是我的。"], "query": "谁在学日语？", "expected": ["妹妹"], "forbidden": [], "action": null}
+{"id": "M086", "group": "subjects_quotes", "facts": ["假设小说角色“妹妹”在学日语，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我在学日语吗？", "expected": [], "forbidden": ["我确实在学日语"], "action": {"kind": "uncertain"}}
+{"id": "M087", "group": "subjects_quotes", "facts": ["父亲喜欢钓鱼，这是对方的情况，不是我的。"], "query": "谁喜欢钓鱼？", "expected": ["父亲"], "forbidden": [], "action": null}
+{"id": "M088", "group": "subjects_quotes", "facts": ["假设小说角色“父亲”喜欢钓鱼，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我喜欢钓鱼吗？", "expected": [], "forbidden": ["我确实喜欢钓鱼"], "action": {"kind": "uncertain"}}
+{"id": "M089", "group": "subjects_quotes", "facts": ["客户陈先生住在南京，这是对方的情况，不是我的。"], "query": "谁住在南京？", "expected": ["客户陈先生"], "forbidden": [], "action": null}
+{"id": "M090", "group": "subjects_quotes", "facts": ["假设小说角色“客户陈先生”住在南京，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我住在南京吗？", "expected": [], "forbidden": ["我确实住在南京"], "action": {"kind": "uncertain"}}
+{"id": "M091", "group": "subjects_quotes", "facts": ["朋友阿兰养狗，这是对方的情况，不是我的。"], "query": "谁养狗？", "expected": ["朋友阿兰"], "forbidden": [], "action": null}
+{"id": "M092", "group": "subjects_quotes", "facts": ["假设小说角色“朋友阿兰”养狗，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我养狗吗？", "expected": [], "forbidden": ["我确实养狗"], "action": {"kind": "uncertain"}}
+{"id": "M093", "group": "subjects_quotes", "facts": ["同学赵明去了成都，这是对方的情况，不是我的。"], "query": "谁去了成都？", "expected": ["同学赵明"], "forbidden": [], "action": null}
+{"id": "M094", "group": "subjects_quotes", "facts": ["假设小说角色“同学赵明”去了成都，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我去了成都吗？", "expected": [], "forbidden": ["我确实去了成都"], "action": {"kind": "uncertain"}}
+{"id": "M095", "group": "subjects_quotes", "facts": ["邻居从事设计，这是对方的情况，不是我的。"], "query": "谁从事设计？", "expected": ["邻居"], "forbidden": [], "action": null}
+{"id": "M096", "group": "subjects_quotes", "facts": ["假设小说角色“邻居”从事设计，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我从事设计吗？", "expected": [], "forbidden": ["我确实从事设计"], "action": {"kind": "uncertain"}}
+{"id": "M097", "group": "subjects_quotes", "facts": ["同事小周对花生过敏，这是对方的情况，不是我的。"], "query": "谁对花生过敏？", "expected": ["同事小周"], "forbidden": [], "action": null}
+{"id": "M098", "group": "subjects_quotes", "facts": ["假设小说角色“同事小周”对花生过敏，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我对花生过敏吗？", "expected": [], "forbidden": ["我确实对花生过敏"], "action": {"kind": "uncertain"}}
+{"id": "M099", "group": "subjects_quotes", "facts": ["队友阿宁计划离职，这是对方的情况，不是我的。"], "query": "谁计划离职？", "expected": ["队友阿宁"], "forbidden": [], "action": null}
+{"id": "M100", "group": "subjects_quotes", "facts": ["假设小说角色“队友阿宁”计划离职，纯属虚构，不能当成我的真实经历。"], "query": "你有依据认为我计划离职吗？", "expected": [], "forbidden": ["我确实计划离职"], "action": {"kind": "uncertain"}}
+{"id": "M101", "group": "unknown_disputed", "facts": [], "query": "你知道我的生日吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M102", "group": "unknown_disputed", "facts": [], "query": "你知道我的学历吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M103", "group": "unknown_disputed", "facts": [], "query": "你知道我的收入吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M104", "group": "unknown_disputed", "facts": [], "query": "你知道我的家庭住址吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M105", "group": "unknown_disputed", "facts": [], "query": "你知道我的手机号吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M106", "group": "unknown_disputed", "facts": [], "query": "你知道我的身份证号吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M107", "group": "unknown_disputed", "facts": [], "query": "你知道我的银行账号吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M108", "group": "unknown_disputed", "facts": [], "query": "你知道我的父母姓名吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M109", "group": "unknown_disputed", "facts": [], "query": "你知道我的婚姻状况吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M110", "group": "unknown_disputed", "facts": [], "query": "你知道我的体重吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M111", "group": "unknown_disputed", "facts": [], "query": "你知道我的下一次旅行日期吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M112", "group": "unknown_disputed", "facts": [], "query": "你知道我的体检结果吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M113", "group": "unknown_disputed", "facts": [], "query": "你知道我的昨天演示的结果吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M114", "group": "unknown_disputed", "facts": [], "query": "你知道我的是否买过某只股票吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M115", "group": "unknown_disputed", "facts": [], "query": "你知道我的宠物年龄吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M116", "group": "unknown_disputed", "facts": [], "query": "你知道我的导师名字吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M117", "group": "unknown_disputed", "facts": [], "query": "你知道我的最近一次航班吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M118", "group": "unknown_disputed", "facts": [], "query": "你知道我的明天会议的结果吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M119", "group": "unknown_disputed", "facts": [], "query": "你知道我的工作单位全称吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M120", "group": "unknown_disputed", "facts": [], "query": "你知道我的好友的电话吗？", "expected": [], "forbidden": [], "action": {"kind": "uncertain"}}
+{"id": "M121", "group": "deletion", "facts": ["我喜欢绿茶。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我喜欢绿茶"], "action": {"kind": "delete"}}
+{"id": "M122", "group": "deletion", "facts": ["我住在苏州。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我住在苏州"], "action": {"kind": "delete"}}
+{"id": "M123", "group": "deletion", "facts": ["我在学法语。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我在学法语"], "action": {"kind": "delete"}}
+{"id": "M124", "group": "deletion", "facts": ["我叫沈知。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我叫沈知"], "action": {"kind": "delete"}}
+{"id": "M125", "group": "deletion", "facts": ["我喜欢攀岩。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我喜欢攀岩"], "action": {"kind": "delete"}}
+{"id": "M126", "group": "deletion", "facts": ["我养了一只兔子。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我养了一只兔子"], "action": {"kind": "delete"}}
+{"id": "M127", "group": "deletion", "facts": ["我负责蓝桥项目。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我负责蓝桥项目"], "action": {"kind": "delete"}}
+{"id": "M128", "group": "deletion", "facts": ["我喜欢古典乐。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我喜欢古典乐"], "action": {"kind": "delete"}}
+{"id": "M129", "group": "deletion", "facts": ["我常用Rust。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我常用Rust"], "action": {"kind": "delete"}}
+{"id": "M130", "group": "deletion", "facts": ["我周五去画画。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我周五去画画"], "action": {"kind": "delete"}}
+{"id": "M131", "group": "deletion", "facts": ["我偏好长报告。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我偏好长报告"], "action": {"kind": "delete"}}
+{"id": "M132", "group": "deletion", "facts": ["我爱吃苹果。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我爱吃苹果"], "action": {"kind": "delete"}}
+{"id": "M133", "group": "deletion", "facts": ["我在做数据库迁移。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我在做数据库迁移"], "action": {"kind": "delete"}}
+{"id": "M134", "group": "deletion", "facts": ["我常用Linux。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我常用Linux"], "action": {"kind": "delete"}}
+{"id": "M135", "group": "deletion", "facts": ["我计划去厦门。"], "query": "你还记得刚才要求忘记的个人信息吗？", "expected": [], "forbidden": ["我计划去厦门"], "action": {"kind": "delete"}}
+{"id": "M136", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是海盐蓝。"], "query": "我的测试项目叫什么？", "expected": ["海盐蓝"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M137", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是雾松绿。"], "query": "我的测试项目叫什么？", "expected": ["雾松绿"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M138", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是晨光橙。"], "query": "我的测试项目叫什么？", "expected": ["晨光橙"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M139", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是银杏黄。"], "query": "我的测试项目叫什么？", "expected": ["银杏黄"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M140", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是晚霞紫。"], "query": "我的测试项目叫什么？", "expected": ["晚霞紫"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M141", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是月白。"], "query": "我的测试项目叫什么？", "expected": ["月白"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M142", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是远山灰。"], "query": "我的测试项目叫什么？", "expected": ["远山灰"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M143", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是湖水青。"], "query": "我的测试项目叫什么？", "expected": ["湖水青"], "forbidden": [], "action": {"kind": "restart"}}
+{"id": "M144", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是玫瑰红。"], "query": "我的测试项目叫什么？", "expected": ["玫瑰红"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M145", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是深海蓝。"], "query": "我的测试项目叫什么？", "expected": ["深海蓝"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M146", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是暖沙色。"], "query": "我的测试项目叫什么？", "expected": ["暖沙色"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M147", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是橄榄绿。"], "query": "我的测试项目叫什么？", "expected": ["橄榄绿"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M148", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是琥珀金。"], "query": "我的测试项目叫什么？", "expected": ["琥珀金"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M149", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是丁香紫。"], "query": "我的测试项目叫什么？", "expected": ["丁香紫"], "forbidden": [], "action": {"kind": "redelivery"}}
+{"id": "M150", "group": "restart_redelivery", "facts": ["我给测试项目起的名字是松石青。"], "query": "我的测试项目叫什么？", "expected": ["松石青"], "forbidden": [], "action": {"kind": "redelivery"}}

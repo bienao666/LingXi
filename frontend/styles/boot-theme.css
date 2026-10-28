@@ -1,0 +1,87 @@
+/* 灵犀开场采用午夜蓝金融桥接；不更改动画公共默认参数或主题本身。 */
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"][data-boot-theme="dark"] {
+  --rlb-bg: var(--color-surface-page);
+  --rlb-surface: var(--color-surface-default);
+  --rlb-ink: var(--color-text-primary);
+  --rlb-secondary: var(--color-text-secondary);
+  --rlb-muted: var(--color-text-tertiary);
+  --rlb-border: var(--color-border-control);
+  --rlb-hair: var(--color-border-default);
+  --rlb-accent: var(--color-action-primary);
+  --rlb-signal: var(--color-action-primary);
+  --rlb-box: var(--color-surface-elevated);
+  --rlb-box-ink: var(--color-text-primary);
+  --rlb-focus: var(--color-border-focus);
+  --rlb-wash: var(--color-surface-elevated);
+  --rlb-intro-bg: var(--color-surface-page);
+  --rlb-intro-ink: var(--color-text-primary);
+  --rlb-intro-secondary: var(--color-text-secondary);
+  --rlb-intro-muted: var(--color-text-tertiary);
+  --rlb-intro-focus: var(--color-border-focus);
+  --rlb-glitch-a: var(--color-action-primary);
+  --rlb-glitch-b: var(--color-action-accent);
+  --rlb-font-display: var(--font-family-heading);
+  --rlb-font-body: var(--font-family);
+  --rlb-font-title-size: var(--typography-page-title-size);
+  --rlb-font-title-weight: var(--typography-page-title-weight);
+  --rlb-font-title-line: var(--typography-page-title-line-height);
+  --rlb-font-title-tracking: var(--typography-page-title-letter-spacing);
+  --rlb-font-brand-weight: var(--font-weight-semibold);
+  --rlb-font-welcome-weight: var(--font-weight-semibold);
+  --rlb-font-brand-tracking: var(--typography-page-title-letter-spacing);
+  --rlb-font-body-size: var(--typography-body-size);
+  --rlb-font-body-line: var(--typography-body-line-height);
+  --rlb-font-meta-size: var(--typography-caption-size);
+  --rlb-radius: var(--control-radius);
+  --rlb-card-gap: var(--space-4);
+  --rlb-card-row-padding: var(--space-3) var(--space-2);
+  --rlb-desktop-padding: var(--layout-page-padding);
+  --rlb-tablet-padding: var(--layout-page-padding);
+  --rlb-mobile-padding: var(--layout-page-padding-mobile);
+  --rlb-layer: var(--z-index-modal);
+  color-scheme: dark;
+}
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"]::backdrop { background: var(--color-surface-page); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-decoration { background: var(--material-page-background); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-title { font-family: var(--rlb-font-display); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-card {
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-lg);
+  padding: var(--layout-card-padding); background: var(--material-card-fallback);
+  background: var(--material-card-background); box-shadow: var(--shadow-card-inner), var(--shadow-sm);
+  backdrop-filter: blur(var(--material-backdrop-blur));
+}
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-welcome-box {
+  border: 1px solid var(--color-border-default); border-radius: var(--radius-md);
+  background: var(--rlb-box); color: var(--rlb-box-ink); box-shadow: var(--shadow-card-inner);
+}
+/* 主操作独立映射，不能沿用原反相按钮的主文字/品牌框文字组合。 */
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-action {
+  background: var(--material-button-background); color: var(--color-text-on-primary);
+  border-color: var(--color-action-primary); font-weight: var(--typography-button-weight);
+}
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-action:hover:not(:disabled) { background: var(--color-action-primary-hover); border-color: var(--color-action-primary-hover); box-shadow: none; }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-action:active:not(:disabled) { background: var(--color-action-primary-active); border-color: var(--color-action-primary-active); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-tool:hover { background: var(--color-action-secondary-hover); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-tool:active { background: var(--color-action-secondary-active); }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-tool[aria-pressed="true"] { background: var(--color-surface-selected); border-color: var(--color-border-selected); color: var(--color-text-primary); }
+/* SVG 只作透明度遮罩，强调色来自主题；减少动效不会移除遮罩。 */
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"][data-boot-theme="dark"] :is(.rlb-mark, .rlb-hero-mark) { display: none; }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-brand::before,
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-center::before {
+  content: ""; width: 44px; height: 44px; flex: 0 0 auto; background: var(--color-action-primary);
+  mask: url("../assets/lingxi.svg") center / contain no-repeat; -webkit-mask: url("../assets/lingxi.svg") center / contain no-repeat;
+}
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-center::before { display: none; }
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"][data-boot-stage="brand"] .rlb-center::before { display: block; width: 86px; height: 86px; margin-bottom: var(--space-4); }
+/* 原扫光的白色带改用同族弱高光；暗色过场只提升至浮层明度。 */
+:where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-sweep { background: linear-gradient(105deg, transparent 40%, var(--material-highlight) 50%, transparent 60%); }
+@media (max-width: 767px) {
+  :where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"][data-boot-theme="dark"] { --rlb-font-title-size: clamp(24px, 6.4vw, 32px); --rlb-font-title-tracking: 0.04em; }
+  :where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-card { padding: var(--layout-card-padding-mobile); background: var(--material-card-fallback); backdrop-filter: none; }
+}
+@media (max-height: 520px) {
+  :where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"][data-boot-stage="brand"] .rlb-center::before { display: none; }
+}
+@supports not (backdrop-filter: blur(1px)) {
+  :where(html[data-demo="lingxi"]) [data-boot-animation="rhine-lab-boot"] .rlb-card { background: var(--material-card-fallback); }
+}

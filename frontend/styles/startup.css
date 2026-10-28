@@ -1,0 +1,29 @@
+#app-shell[hidden] { display: none; }
+body:has(.startup-guard) > #root > .skip-link { display: none; }
+.startup-guard { position: fixed; inset: 0; z-index: var(--z-index-modal); background: var(--color-surface-page); color: var(--color-text-primary); overflow: auto; }
+.identity-panel { width: min(100%, 420px); min-width: 0; text-align: start; padding: var(--space-6); border: 1px solid var(--color-border-default); border-radius: var(--radius-lg); background: var(--material-card-fallback); box-shadow: var(--shadow-card-inner); display: flex; flex-direction: column; gap: var(--space-4); }
+.identity-panel .identity-workspace { color: var(--color-text-tertiary); font-size: var(--font-size-sm); margin: 0; }
+.identity-panel .identity-name { font-size: var(--font-size-xl); color: var(--color-text-primary); overflow-wrap: anywhere; }
+.identity-panel .button.primary { color: var(--color-text-on-primary); width: 100%; }
+.identity-panel .button:disabled { cursor: wait; }
+.identity-panel p { overflow-wrap: anywhere; margin: 0; }
+.identity-panel label { text-align: start; }
+.identity-panel .identity-help { color: var(--color-text-tertiary); font-size: var(--font-size-sm); }
+.identity-panel code { white-space: normal; overflow-wrap: anywhere; }
+.identity-panel :is(input, button, summary):focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 3px; }
+[data-boot-animation="rhine-lab-boot"] .rlb-identity-slot { width: 100%; display: flex; justify-content: center; }
+[data-boot-animation="rhine-lab-boot"][data-boot-stage="identity"] .rlb-title { animation: none; clip-path: none; }
+.startup-guard [data-boot-stage="identity"] :is(.rlb-overview, .rlb-action-area, .rlb-rule) { display: none; }
+.startup-guard [data-boot-stage="identity"] .rlb-center { padding-block: var(--space-2); }
+[data-boot-animation="rhine-lab-boot"] .identity-panel summary { padding-block: var(--space-2); min-height: var(--size-control-touch-min); }
+.identity-fallback { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-4); padding: var(--space-6); }
+.identity-fallback-brand { display: flex; align-items: center; gap: var(--space-3); color: var(--color-text-secondary); margin-bottom: var(--space-4); }
+.identity-fallback h1 { margin: 0; font-size: var(--typography-page-title-size); }
+@media (max-width: 767px) {
+  .identity-panel { padding: var(--space-4); }
+  .identity-fallback { padding: var(--space-4); }
+}
+@media (max-height: 600px) {
+  .identity-fallback { justify-content: flex-start; }
+  [data-boot-animation="rhine-lab-boot"][data-boot-stage="identity"] .rlb-center { margin-block: 0; }
+}

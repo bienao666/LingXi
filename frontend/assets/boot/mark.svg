@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <title>原创研究终端几何标记</title>
+  <path d="M50 7 88 29v42L50 93 12 71V29Z" stroke="#808078" stroke-width="3"/>
+  <path d="M29 66V34h19c13 0 18 17 5 22l15 10H54L39 54v12Z" fill="#808078"/>
+  <path d="M49 25v50M22 50h56" stroke="#ff7500" stroke-width="2"/>
+  <circle cx="50" cy="50" r="4" fill="#ff7500"/>
+</svg>
