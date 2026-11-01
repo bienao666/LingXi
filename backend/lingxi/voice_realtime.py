@@ -201,6 +201,10 @@ def relay(identity, login_id, incoming, outgoing, stop):
             config_snapshot = {'provider_id': provider.id, 'provider_version': provider.version,
                 'model': model, 'voice_config_version': config.version, 'validation': ticket.validation,
                 'audio_transport': 'realtime'}
+            from .audio_costs import snapshot
+            config_snapshot['_audio_price_snapshot'] = snapshot(config, provider, model, 'realtime_asr')
+            config_snapshot['audio_channel'] = 'voice'
+            config_snapshot['audio_measurement'] = {'transport': 'realtime', 'input_frames': 0, 'input_sample_rate': 24000}
             initial = update_event(config, model)
             proxy_version = load_proxy().version
             # Use the same pinned DNS/TLS transport and HTTP(S)/SOCKS proxy as
@@ -236,6 +240,7 @@ def relay(identity, login_id, incoming, outgoing, stop):
                                         size > (clock - ready_at + 2) * 48000):
                                     raise HTTPException(422, '音频须为有界的 24 kHz 单声道 PCM16 流')
                                 upstream.send_json({'type': 'input_audio_buffer.append', 'audio': base64.b64encode(frame).decode()})
+                                config_snapshot['audio_measurement']['input_frames'] += len(frame) // 2
                             elif frame == 'commit':
                                 if size < 4800:
                                     raise HTTPException(422, '录音过短，请至少说一句话')

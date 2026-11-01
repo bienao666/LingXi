@@ -191,7 +191,7 @@ def transcribe(job):
             wav_check(raw)
             reserve_audio(db, owner, commit=False)
             row.audio_state = row.audio_state | {'phase': 'calling'}
-        transcript = audio_call(config, provider, 'asr', model, data=raw)
+        transcript = audio_call(config, provider, 'asr', model, data=raw, channel='qq')
         # Keep the transcript as an unconfirmed attachment source, never an
         # automatic user-fact candidate or authority to execute a tool.
         with SessionLocal.begin() as db:

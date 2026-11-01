@@ -122,6 +122,9 @@ def test_native_playback_rechecks_source_and_marks_offer(configured, output):
         assert playback.offered_parts == 1
         call = db.scalar(select(ModelCall).where(ModelCall.model_id == 'voice:realtime-tts'))
         assert call and call.status == 'completed'
+        assert call.config['validation'] is False
+        assert call.config['audio_measurement']['input_characters'] == len('第一句话。')
+        assert call.config['audio_measurement']['output_frames'] > 0
 
 
 def test_native_playback_does_not_retry_or_use_rest_after_failure(configured, monkeypatch):

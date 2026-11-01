@@ -183,6 +183,8 @@ def attribution(db, model_id, run_id, config, workspace):
         result['channel'] = 'qq' if data.get('channel') else 'voice' if data.get('voice_session_id') else 'web'
     if config.get('validation'):
         result['channel'] = 'validation'
+    elif config.get('audio_measurement') and config.get('audio_channel') in ('voice', 'qq'):
+        result['channel'] = config['audio_channel']
     if not context and invocation:
         result['channel'] = 'web'
     return result

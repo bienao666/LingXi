@@ -21,6 +21,7 @@ USAGE_KEYS = {'prompt_tokens', 'completion_tokens', 'input_tokens', 'output_toke
 USAGE_DETAILS = {'prompt_tokens_details', 'completion_tokens_details', 'input_tokens_details',
     'output_tokens_details', 'cache_creation'}
 PRICE_KEYS = {'version', 'provider_version', 'model', 'currency', 'unit', 'source',
+    'rate', 'kind',
     'input_per_million', 'output_per_million', 'cached_input_per_million', 'cache_write_per_million'}
 
 
@@ -62,6 +63,9 @@ def entry(row):
         and type(v) in (str, int, float, type(None))}
     if type(source.get('validation')) is bool:
         config['validation'] = source['validation']
+    if 'audio_measurement' in source:
+        from .audio_costs import public_measurement
+        config['audio_measurement'] = public_measurement(source['audio_measurement'])
     routing = source.get('routing')
     if isinstance(routing, dict) and type(routing.get('version')) is int:
         config['routing'] = {'version': routing['version'],

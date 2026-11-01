@@ -946,3 +946,5 @@ from .memory_pages import router as memory_pages_router
 app.include_router(memory_pages_router)
 from .model_budgets import router as model_budgets_router
 app.include_router(model_budgets_router)
+from .audio_costs import router as audio_costs_router
+app.include_router(audio_costs_router)

@@ -58,10 +58,16 @@ def record_call(model_id, purpose, started, status, usage=None, error=None, run_
         config = dict(config or {})
         dispatches = config.pop('_dispatch_ids', [])
         price = config.pop('_price_snapshot', None)
+        audio_price = config.pop('_audio_price_snapshot', None)
+        if 'audio_measurement' in config:
+            config['audio_measurement'] = config['audio_measurement'] | {'attempted': bool(dispatches)}
         model = db.get(Model, model_id)
         provider = db.get(Provider, config.get('provider_id', '')) if not model else None
         workspace = model.workspace_id if model else provider.workspace_id if provider else 'personal'
         billing = cost(price, usage) | {'attribution': attribution(db, model_id, run_id, config, workspace)}
+        if 'audio_measurement' in config:
+            from .audio_costs import billing as audio_billing
+            billing = audio_billing(audio_price, config['audio_measurement'], status) | {'attribution': billing['attribution']}
         call = ModelCall(model_id=model_id, purpose=purpose, duration_ms=int((time.monotonic()-started)*1000),
                          status=status, usage=usage or {}, error=error, run_id=run_id,
                          config=config, billing=billing, workspace_id=workspace)

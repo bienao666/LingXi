@@ -3900,6 +3900,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audio-prices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Prices */
+        get: operations["prices_api_admin_audio_prices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/audio-prices/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save */
+        put: operations["save_api_admin_audio_prices__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4195,6 +4229,104 @@ export interface components {
              * @default
              */
             model: string;
+        };
+        /** AudioPriceInput */
+        AudioPriceInput: {
+            /** Version */
+            version: number;
+            /** Voice Config Version */
+            voice_config_version: number;
+            /** Provider Version */
+            provider_version: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * Currency
+             * @default CNY
+             * @enum {string}
+             */
+            currency: "CNY" | "USD";
+            /** Rate */
+            rate: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "measured_input_estimate";
+        };
+        /** AudioPriceView */
+        AudioPriceView: {
+            /** Id */
+            id: string;
+            /** Provider */
+            provider: string;
+            /** Provider Version */
+            provider_version: number;
+            /** Model */
+            model: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "asr" | "tts" | "realtime_asr" | "realtime_tts";
+            /**
+             * Unit
+             * @enum {string}
+             */
+            unit: "per_minute" | "per_million_characters";
+            /** Voice Config Version */
+            voice_config_version: number;
+            /** Version */
+            version: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Current */
+            current: boolean;
+            /** Rates */
+            rates: {
+                [key: string]: unknown;
+            };
+        };
+        /** AudioUsageView */
+        AudioUsageView: {
+            /**
+             * Calls
+             * @default 0
+             */
+            calls: number;
+            /**
+             * Measured Calls
+             * @default 0
+             */
+            measured_calls: number;
+            /**
+             * Unknown Calls
+             * @default 0
+             */
+            unknown_calls: number;
+            /**
+             * Input Audio Ms
+             * @default 0
+             */
+            input_audio_ms: number;
+            /**
+             * Output Audio Ms
+             * @default 0
+             */
+            output_audio_ms: number;
+            /**
+             * Input Characters
+             * @default 0
+             */
+            input_characters: number;
+            /**
+             * Note
+             * @default 本地请求／接收量，不等于已播放时长或供应商计费用量；失败和取消仍可能收费。
+             */
+            note: string;
         };
         /** BindingInput */
         BindingInput: {
@@ -8324,6 +8456,7 @@ export interface components {
         };
         /** UsageView */
         UsageView: {
+            audio?: components["schemas"]["AudioUsageView"];
             /** Days */
             days: number;
             /** Calls */
@@ -16630,6 +16763,61 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BudgetPreviewView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prices_api_admin_audio_prices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioPriceView"][];
+                };
+            };
+        };
+    };
+    save_api_admin_audio_prices__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudioPriceInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudioPriceView"];
                 };
             };
             /** @description Validation Error */

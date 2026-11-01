@@ -13,7 +13,7 @@ Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTM
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
 const costs=compile('../src/UsageCosts.tsx',{'./api':api,'./ui':ui});
-const {ModelPrices,CostAmounts,CostBreakdowns}=await import(costs);
+const {ModelPrices,CostAmounts,CostBreakdowns,AudioPrices,AudioUsage}=await import(costs);
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 async function mount(t,component,props,handler){document.body.innerHTML='<div id="root"></div>';globalThis.fetch=async(u,o)=>handler(u,o);const root=createRoot(document.getElementById('root'));t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});await act(async()=>root.render(createElement(component,props)));}
 async function click(text){const b=[...document.querySelectorAll('button')].find(v=>v.textContent===text);assert.ok(b,text);await act(async()=>b.click());}
@@ -66,4 +66,34 @@ test('cost breakdown switches dimensions and declares incomplete groups',async t
 test('failed directory load keeps an explicit recovery path',async t=>{
  await mount(t,ModelPrices,{onSaved(){}},()=>response({detail:'服务不可用'},503));await expand();
  assert.match(document.body.textContent,/服务不可用/);assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='重新加载'));
+});
+
+const audioPrices=[{id:'audio-asr',kind:'asr',model:'声音模型',provider:'测试连接',provider_version:2,voice_config_version:4,version:0,enabled:false,current:false,unit:'per_minute',rates:{}}];
+
+test('audio usage separates local input, output and unknown history',async t=>{
+ await mount(t,AudioUsage,{audio:{calls:3,measured_calls:2,unknown_calls:1,input_audio_ms:1250,output_audio_ms:500,input_characters:4,note:'本地计量，不是账单'}},()=>response({}));
+ assert.match(document.body.textContent,/1.25 秒/);assert.match(document.body.textContent,/500|0.5 秒/);
+ assert.match(document.body.textContent,/实际播完/);assert.match(document.body.textContent,/计量未知 1/);assert.match(document.body.textContent,/码点/);
+});
+
+test('audio rates load on demand and require matching-unit review',async t=>{
+ const calls=[];let saved=0;await mount(t,AudioPrices,{onSaved(){saved++;}},(u,o)=>{calls.push({u,o});return response(o.method==='PUT'?{}:audioPrices);});
+ assert.equal(calls.length,0);await expand();assert.equal(calls[0].u,'/api/admin/audio-prices');
+ await click('设置单价');assert.match(document.querySelector('dialog').textContent,/每分钟音频/);
+ await value('[name="audio_rate"]','0.000001');await submit();assert.equal(document.activeElement,document.querySelector('dialog p[tabindex="-1"]'));
+ assert.equal(calls.filter(c=>c.o.method==='PUT').length,0);assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='保存单价').disabled,true);
+ await act(async()=>document.querySelector('dialog input').click());await click('保存单价');
+ const body=JSON.parse(calls.find(c=>c.o.method==='PUT').o.body);
+ assert.equal(body.rate,'0.000001');assert.equal(body.voice_config_version,4);assert.equal(body.provider_version,2);assert.equal(body.acknowledgement,'measured_input_estimate');assert.equal(saved,1);
+ assert.match(document.body.textContent,/历史调用与正在执行/);
+});
+
+test('audio rate conflict preserves review and never resubmits automatically',async t=>{
+ const calls=[];await mount(t,AudioPrices,{onSaved(){}},(u,o)=>{calls.push({u,o});return response(o.method==='PUT'?{detail:'语音配置已变化，请重新加载后核对'}:audioPrices,o.method==='PUT'?409:200);});
+ await expand();await click('设置单价');await value('[name="audio_rate"]','6');await submit();await act(async()=>document.querySelector('dialog input').click());await click('保存单价');
+ assert.match(document.querySelector('dialog').textContent,/语音配置已变化/);await click('继续修改');assert.equal(document.querySelector('[name="audio_rate"]').value,'6');assert.equal(calls.filter(c=>c.o.method==='PUT').length,1);
+});
+
+test('empty or unavailable audio directory does not suggest a free model',async t=>{
+ await mount(t,AudioPrices,{onSaved(){}},()=>response([]));await expand();assert.match(document.body.textContent,/先在语音配置/);assert.equal(document.querySelector('dialog'),null);
 });

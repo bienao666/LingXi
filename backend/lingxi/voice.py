@@ -165,7 +165,8 @@ def valid_voice(value):
 
 def effective_config(config, voice):
     # A detached projection: never overwrite the persisted system default.
-    return SimpleNamespace(spec=config.spec | {'voice': voice}, version=config.version, workspace_id=config.workspace_id)
+    return SimpleNamespace(spec=config.spec | {'voice': voice}, version=config.version,
+        workspace_id=config.workspace_id, id=getattr(config, 'id', None))
 
 
 def voice_key(voice):
@@ -349,12 +350,17 @@ async def read_audio(request):
     return bytes(data)
 
 
-def audio_call(row, provider, kind, model, data=None, text=None, validation=False):
+def audio_call(row, provider, kind, model, data=None, text=None, validation=False, channel='voice'):
     started, status, error, usage = time.monotonic(), 'failed', None, {}
     from .model_budgets import client as budget_client, BudgetExceeded
     metadata = {'provider_id': provider.id, 'provider_version': provider.version,
                 'model': model, 'voice_config_version': row.version, 'validation': validation,
                 **({'voice': row.spec['voice'], 'speed': row.spec['speed']} if kind == 'tts' else {})}
+    from .audio_costs import snapshot, wav_measurement
+    metadata['_audio_price_snapshot'] = snapshot(row, provider, model, kind)
+    metadata['audio_channel'] = channel
+    metadata['audio_measurement'] = ({'transport': 'http', **wav_measurement(data, 'input')} if kind == 'asr'
+        else {'transport': 'http', 'input_characters': len(text or '')})
     try:
         with budget_client(provider, client_for, metadata) as client:
             if kind == 'asr':
@@ -385,6 +391,7 @@ def audio_call(row, provider, kind, model, data=None, text=None, validation=Fals
                         chunks.append(chunk)
                     value = b''.join(chunks)
                 wav_check(value)
+                metadata['audio_measurement'].update(wav_measurement(value, 'output'))
         status = 'completed'
         return value
     except Exception as exc:
@@ -447,7 +454,7 @@ def test_realtime_tts(ctx: Context):
     version, pv = row.version, provider.version
     reserve_audio(db, user)
     from .voice_native_output import native_tts
-    result = native_tts(row, provider, model, '你好，我是灵犀。这是实时合成验证。', row.spec['voice'], row.spec['speed'])
+    result = native_tts(row, provider, model, '你好，我是灵犀。这是实时合成验证。', row.spec['voice'], row.spec['speed'], validation=True)
     authenticate_again(db, login.id)
     row = recheck_config(db, user, version, 'realtime_tts', pv)
     row.checks = row.checks | {'realtime_tts': audio_signature(row, provider, 'realtime_tts')}

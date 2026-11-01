@@ -10631,6 +10631,77 @@
           }
         }
       }
+    },
+    "/api/admin/audio-prices": {
+      "get": {
+        "summary": "Prices",
+        "operationId": "prices_api_admin_audio_prices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AudioPriceView"
+                  },
+                  "type": "array",
+                  "title": "Response Prices Api Admin Audio Prices Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audio-prices/{key}": {
+      "put": {
+        "summary": "Save",
+        "operationId": "save_api_admin_audio_prices__key__put",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AudioPriceInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioPriceView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -11398,6 +11469,174 @@
         },
         "type": "object",
         "title": "AudioModel"
+      },
+      "AudioPriceInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "voice_config_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Voice Config Version"
+          },
+          "provider_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Provider Version"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Currency",
+            "default": "CNY"
+          },
+          "rate": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,5})(\\.[0-9]{1,6})?$",
+            "title": "Rate"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "measured_input_estimate",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "voice_config_version",
+          "provider_version",
+          "rate",
+          "acknowledgement"
+        ],
+        "title": "AudioPriceInput"
+      },
+      "AudioPriceView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "provider_version": {
+            "type": "integer",
+            "title": "Provider Version"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "asr",
+              "tts",
+              "realtime_asr",
+              "realtime_tts"
+            ],
+            "title": "Kind"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "per_minute",
+              "per_million_characters"
+            ],
+            "title": "Unit"
+          },
+          "voice_config_version": {
+            "type": "integer",
+            "title": "Voice Config Version"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "current": {
+            "type": "boolean",
+            "title": "Current"
+          },
+          "rates": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Rates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider",
+          "provider_version",
+          "model",
+          "kind",
+          "unit",
+          "voice_config_version",
+          "version",
+          "enabled",
+          "current",
+          "rates"
+        ],
+        "title": "AudioPriceView"
+      },
+      "AudioUsageView": {
+        "properties": {
+          "calls": {
+            "type": "integer",
+            "title": "Calls",
+            "default": 0
+          },
+          "measured_calls": {
+            "type": "integer",
+            "title": "Measured Calls",
+            "default": 0
+          },
+          "unknown_calls": {
+            "type": "integer",
+            "title": "Unknown Calls",
+            "default": 0
+          },
+          "input_audio_ms": {
+            "type": "integer",
+            "title": "Input Audio Ms",
+            "default": 0
+          },
+          "output_audio_ms": {
+            "type": "integer",
+            "title": "Output Audio Ms",
+            "default": 0
+          },
+          "input_characters": {
+            "type": "integer",
+            "title": "Input Characters",
+            "default": 0
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": "本地请求／接收量，不等于已播放时长或供应商计费用量；失败和取消仍可能收费。"
+          }
+        },
+        "type": "object",
+        "title": "AudioUsageView"
       },
       "BindingInput": {
         "properties": {
@@ -21574,6 +21813,9 @@
       },
       "UsageView": {
         "properties": {
+          "audio": {
+            "$ref": "#/components/schemas/AudioUsageView"
+          },
           "days": {
             "type": "integer",
             "title": "Days"

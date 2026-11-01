@@ -192,6 +192,8 @@ def test_real_socket_deltas_final_verification_and_no_memory_write(configured, u
         assert not list(db.scalars(select(Message))) and not list(db.scalars(select(Job))) and not list(db.scalars(select(ChatRun)))
         call = db.scalar(select(ModelCall))
         assert call.status == 'completed' and call.config['model'] == 'live-model'
+        assert call.config['audio_measurement']['input_frames'] == 2400
+        assert call.config['audio_measurement']['input_sample_rate'] == 24000
         assert '我喜欢' not in repr(call.__dict__) and 'secret-fixture-key' not in repr(call.__dict__)
 
 

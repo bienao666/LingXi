@@ -13,6 +13,7 @@ from .db import Base, SessionLocal, now
 from .models import Audit, ChatRun, Entity, Job, ModelCall, User
 from .web import Context, audit, owned
 from .trace_graph import TraceGraph, trace_graph
+from .audio_costs import AudioUsageView, summary as audio_summary
 
 router=APIRouter()
 
@@ -140,6 +141,7 @@ class MetadataPage(BaseModel):
 
 
 class UsageView(BaseModel):
+    audio: AudioUsageView = Field(default_factory=AudioUsageView)
     days:int
     calls:int
     failed:int
@@ -288,11 +290,12 @@ def usage(db,user,days=7):
     for key,group in groups.items():
         group.update(money_summary(group_calls[key]))
     return {'days':days,'calls':len(calls),'failed':failed,'known_tokens':known,'unknown_usage_calls':len(calls)-known_calls,
+        'audio':audio_summary(calls),
         'cost':None,'groups':sorted(groups.values(),key=lambda x:(-x['calls'],x['model_id'],x['purpose'])),
         **money_summary(calls), 'breakdowns':{dimension:breakdown(calls,dimension) for dimension in ('channel','model','task','plugin')},
         'daily':{'timezone':'UTC','known_tokens':today,'unknown_usage_calls':today_unknown,'alert_threshold':threshold,
             'alert':bool(threshold and today>=threshold),'enforcement':'alert_only'},
-        'note':'费用是调用开始时用户单价的估算，不是供应商账单。不同币种分别合计，不换汇；未知费用另列，不回填旧调用。日阈值按 UTC token 告警，不阻止调用。语音按时长／字符计费及其他服务费仍未知。'}
+        'note':'费用是调用开始时用户单价的估算，不是供应商账单。不同币种分别合计，不换汇；未知费用另列，不回填旧调用。语音只在明确配置匹配的时长／字符单价后估算；其他计费方式保持未知。日阈值按 UTC token 告警，不阻止调用。'}
 
 
 @router.get('/api/admin/usage',response_model=UsageView)

@@ -199,6 +199,7 @@ def test_internal_memory_proxy_blocked_before_network(configured,monkeypatch,rou
 
 def test_audio_and_native_websocket_blocked_at_transport(configured,monkeypatch):
     from lingxi.voice import audio_call
+    from test_voice import wav
     from lingxi.voice_native_output import native_tts
     save(configured,1);_,p=pair();b.reserve(p,{})
     seen=transport(monkeypatch)
@@ -206,7 +207,7 @@ def test_audio_and_native_websocket_blocked_at_transport(configured,monkeypatch)
         monkeypatch.setattr(target,gateway.client_for)
     row=SimpleNamespace(version=1,spec={'language':'zh','voice':'fixture','speed':1})
     for kind in ('asr','tts'):
-        with pytest.raises(b.BudgetExceeded):audio_call(row,p,kind,'fixture',data=b'fixture',text='fixture')
+        with pytest.raises(b.BudgetExceeded):audio_call(row,p,kind,'fixture',data=wav(),text='fixture')
     with pytest.raises(HTTPException) as error:native_tts(row,p,'fixture','合成','fixture',1)
     assert error.value.status_code==429 and not seen and count()==1
 

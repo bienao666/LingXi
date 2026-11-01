@@ -46,7 +46,7 @@ def pcm_wav(data):
     return value
 
 
-def native_tts(config, provider, model, text, voice, speed):
+def native_tts(config, provider, model, text, voice, speed, validation=False):
     started = time.monotonic()
     status, error = 'failed', None
     pcm = bytearray()
@@ -54,7 +54,10 @@ def native_tts(config, provider, model, text, voice, speed):
     from .model_budgets import client as budget_client
     metadata = {'provider_id': provider.id, 'provider_version': provider.version,
                 'model': model, 'voice_config_version': config.version,
-                'audio_transport': 'realtime', 'validation': True}
+                'audio_transport': 'realtime', 'validation': validation, 'audio_channel': 'voice'}
+    from .audio_costs import snapshot, wav_measurement
+    metadata['_audio_price_snapshot'] = snapshot(config, provider, model, 'realtime_tts')
+    metadata['audio_measurement'] = {'transport': 'realtime', 'input_characters': len(text)}
     try:
         with budget_client(provider, client_for, metadata) as client:
             url = str(client.base_url.join('realtime'))
@@ -114,6 +117,7 @@ def native_tts(config, provider, model, text, voice, speed):
         if not spoken or normalized(spoken) != normalized(text):
             raise HTTPException(409, '实时合成字幕与原回复不一致，音频已丢弃')
         result = pcm_wav(bytes(pcm))
+        metadata['audio_measurement'].update(wav_measurement(result, 'output'))
         status = 'completed'
         return result
     except Exception as exc:

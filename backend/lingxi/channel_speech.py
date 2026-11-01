@@ -149,7 +149,7 @@ def synthesize(job):
             reserve_audio(db, owner, commit=False)
             text, voice = spoken(message.content), output.speech['voice']
             output.speech = output.speech | {'phase': 'calling'}
-        raw = audio_call(effective_config(config, voice), provider, 'tts', model, text=text)
+        raw = audio_call(effective_config(config, voice), provider, 'tts', model, text=text, channel='qq')
         wav_check(raw)
         with SessionLocal.begin() as db:
             output = locked(db, job)
