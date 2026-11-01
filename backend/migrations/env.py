@@ -5,6 +5,7 @@ from lingxi import plugin_api, plugin_mcp, plugin_events, plugin_agents, plugin_
 from lingxi import model_routing
 from lingxi import emotions
 from lingxi import channel_tasks, channel_artifacts, media_storage
+from lingxi import browser_notifications
 from lingxi import proactive_generation
 from lingxi import usage_costs
 from lingxi import model_budgets

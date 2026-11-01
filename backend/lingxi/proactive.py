@@ -463,6 +463,9 @@ def deliver(identity):
             register(db, owner, topic, contact, voice_session, prefs)
         from .proactive_channels import record_delivery
         record_delivery(db,owner,topic,contact,prefs['delivery'])
+        if not voice_session:
+            from .browser_notifications import register as register_browser_notice
+            register_browser_notice(db,owner,topic,contact,prefs)
         topic.status, topic.reason, topic.version = 'contacted', ('已排队等待授权 QQ 私聊投递；尚无发送回执' if prefs['delivery']['kind']=='qq' else '已存站内；不等于已读或推送送达'), topic.version+1
 
 

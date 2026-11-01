@@ -1707,6 +1707,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/browser-notifications/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** State */
+        get: operations["state_api_browser_notifications_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/browser-notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save Preferences */
+        put: operations["save_preferences_api_browser_notifications_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/browser-notifications/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Claim */
+        post: operations["claim_api_browser_notifications_claims_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/browser-notifications/{identity}/ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge */
+        post: operations["acknowledge_api_browser_notifications__identity__ack_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents": {
         parameters: {
             query?: never;
@@ -5812,6 +5880,83 @@ export interface components {
         NodeVersion: {
             /** Version */
             version: number;
+        };
+        /** NoticeAck */
+        NoticeAck: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "requested" | "failed" | "clicked";
+        };
+        /** NoticeClaimInput */
+        NoticeClaimInput: {
+            /** Consent Version */
+            consent_version: number;
+            /**
+             * Background
+             * @constant
+             */
+            background: true;
+        };
+        /** NoticeClaimView */
+        NoticeClaimView: {
+            /** Id */
+            id?: string | null;
+            /** Expires At */
+            expires_at?: number | null;
+            /**
+             * Path
+             * @default #/proactive/history
+             */
+            path: string;
+        };
+        /** NoticePreferenceInput */
+        NoticePreferenceInput: {
+            /** Version */
+            version: number;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "browser_running_only";
+        };
+        /** NoticePreferenceView */
+        NoticePreferenceView: {
+            /** Enabled */
+            enabled: boolean;
+            /** Version */
+            version: number;
+            /** Scope */
+            scope: string;
+        };
+        /** NoticeReceiptView */
+        NoticeReceiptView: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at: number;
+            /** Attempted At */
+            attempted_at: number | null;
+            /** Eligible */
+            eligible: boolean;
+        };
+        /** NoticeState */
+        NoticeState: {
+            preference: components["schemas"]["NoticePreferenceView"];
+            /** Receipts */
+            receipts: components["schemas"]["NoticeReceiptView"][];
+            /**
+             * Note
+             * @default 请求展示不等于系统已显示、送达或已读；未知尝试不重发。仅运行中的页面可检查通知，不使用后台推送。
+             */
+            note: string;
         };
         /** OAuthFlowView */
         OAuthFlowView: {
@@ -12113,6 +12258,127 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadinessView"];
+                };
+            };
+        };
+    };
+    state_api_browser_notifications_state_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeState"];
+                };
+            };
+        };
+    };
+    save_preferences_api_browser_notifications_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoticePreferenceInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticePreferenceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    claim_api_browser_notifications_claims_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoticeClaimInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeClaimView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_api_browser_notifications__identity__ack_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoticeAck"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeReceiptView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

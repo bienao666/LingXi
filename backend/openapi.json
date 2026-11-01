@@ -4875,6 +4875,149 @@
         }
       }
     },
+    "/api/browser-notifications/state": {
+      "get": {
+        "summary": "State",
+        "operationId": "state_api_browser_notifications_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browser-notifications/preferences": {
+      "put": {
+        "summary": "Save Preferences",
+        "operationId": "save_preferences_api_browser_notifications_preferences_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticePreferenceInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticePreferenceView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browser-notifications/claims": {
+      "post": {
+        "summary": "Claim",
+        "operationId": "claim_api_browser_notifications_claims_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticeClaimInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeClaimView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/browser-notifications/{identity}/ack": {
+      "post": {
+        "summary": "Acknowledge",
+        "operationId": "acknowledge_api_browser_notifications__identity__ack_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoticeAck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NoticeReceiptView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents": {
       "get": {
         "summary": "Available Agents",
@@ -15712,6 +15855,198 @@
           "version"
         ],
         "title": "NodeVersion"
+      },
+      "NoticeAck": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "requested",
+              "failed",
+              "clicked"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "NoticeAck"
+      },
+      "NoticeClaimInput": {
+        "properties": {
+          "consent_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Consent Version"
+          },
+          "background": {
+            "type": "boolean",
+            "const": true,
+            "title": "Background"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "consent_version",
+          "background"
+        ],
+        "title": "NoticeClaimInput"
+      },
+      "NoticeClaimView": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "default": "#/proactive/history"
+          }
+        },
+        "type": "object",
+        "title": "NoticeClaimView"
+      },
+      "NoticePreferenceInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "browser_running_only",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "enabled",
+          "acknowledgement"
+        ],
+        "title": "NoticePreferenceInput"
+      },
+      "NoticePreferenceView": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "version",
+          "scope"
+        ],
+        "title": "NoticePreferenceView"
+      },
+      "NoticeReceiptView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "attempted_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempted At"
+          },
+          "eligible": {
+            "type": "boolean",
+            "title": "Eligible"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "expires_at",
+          "attempted_at",
+          "eligible"
+        ],
+        "title": "NoticeReceiptView"
+      },
+      "NoticeState": {
+        "properties": {
+          "preference": {
+            "$ref": "#/components/schemas/NoticePreferenceView"
+          },
+          "receipts": {
+            "items": {
+              "$ref": "#/components/schemas/NoticeReceiptView"
+            },
+            "type": "array",
+            "title": "Receipts"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": "请求展示不等于系统已显示、送达或已读；未知尝试不重发。仅运行中的页面可检查通知，不使用后台推送。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preference",
+          "receipts"
+        ],
+        "title": "NoticeState"
       },
       "OAuthFlowView": {
         "properties": {

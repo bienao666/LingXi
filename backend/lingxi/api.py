@@ -871,6 +871,8 @@ from .media_storage import router as media_storage_router
 app.include_router(media_storage_router)
 from .readiness import router as readiness_router
 app.include_router(readiness_router)
+from .browser_notifications import router as browser_notifications_router
+app.include_router(browser_notifications_router)
 
 from .delegation import router as delegation_router
 app.include_router(delegation_router)

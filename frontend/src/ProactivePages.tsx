@@ -1,5 +1,6 @@
 import React, {useEffect,useRef,useState} from 'react';
 import {api} from './api';
+import {BrowserNoticeAgent,BrowserNotificationSettings} from './BrowserNotifications';
 import type {ContactPreferences,ContactTargetOption,Topic,TopicPage,TopicSource,Contact,ContactPage,Memory,TaskPage,Conversation} from './api';
 import {ErrorNotice,formatTime,Modal,useResource} from './ui';
 
@@ -25,8 +26,7 @@ export function ProactiveInbox() {
   useRefresh(result.reload);
   useEffect(()=>{window.addEventListener('lingxi:contact-preferences',result.reload);return()=>window.removeEventListener('lingxi:contact-preferences',result.reload);},[result.reload]);
   const latest=result.data?.items.find(row=>row.status==='stored');
-  if(!latest||latest.id===dismissed)return null;
-  return <aside className="contact-notice" aria-label="主动交流提示"><p>灵犀留下了一条有来源的主动交流，方便时可以接着聊。</p><div className="actions"><a className="button" href="#/proactive/history">查看交流</a><button className="button" onClick={()=>{setDismissed(latest.id);try{sessionStorage.setItem('lingxi.contact.dismissed',latest.id);}catch{/* banner remains dismissible without storage */}}}>暂时收起</button></div></aside>;
+  return <><BrowserNoticeAgent/>{latest&&latest.id!==dismissed&&<aside className="contact-notice" aria-label="主动交流提示"><p>灵犀留下了一条有来源的主动交流，方便时可以接着聊。</p><div className="actions"><a className="button" href="#/proactive/history">查看交流</a><button className="button" onClick={()=>{setDismissed(latest.id);try{sessionStorage.setItem('lingxi.contact.dismissed',latest.id);}catch{/* banner remains dismissible without storage */}}}>暂时收起</button></div></aside>}</>;
 }
 
 function Pagination({cursor,next,change}:{cursor:string;next?:string|null;change(value:string):void}) {return <div className="actions">{cursor&&<button className="button" onClick={()=>change('')}>返回首页</button>}{next&&<button className="button" onClick={()=>change(next)}>查看下页</button>}</div>;}
@@ -77,7 +77,7 @@ function Preferences() {
   const [saved,setSaved]=useState(false);
   const pane=useRef<HTMLDivElement>(null),focusAfterReload=useRef(false);
   useEffect(()=>{if(result.data&&focusAfterReload.current){focusAfterReload.current=false;pane.current?.querySelector<HTMLButtonElement>('form button[type="submit"]')?.focus();}},[result.data?.version]);
-  return <div className="page-stack" ref={pane}><div className="pane-toolbar"><h2>联系偏好</h2><button className="button" onClick={result.reload}>重新加载</button></div><p className="muted">普通主动交流统一由核心管理。可选择 Web 站内或明确授权的 QQ 私聊。QQ 离线时等待，不自动改投；不向群聊主动发布，不发送浏览器推送或自动播音。用户指定的提醒与任务结果独立保存。没有回应只表示尚未回应。</p><ErrorNotice error={result.error}/>{saved&&<p role="status">联系偏好已保存，新投递按已保存的版本检查。</p>}{result.data?<PreferenceForm key={result.data.version} current={result.data} done={()=>{focusAfterReload.current=true;setSaved(true);result.reload();}}/>:!result.error&&<p role="status">正在加载联系偏好…</p>}</div>;
+  return <div className="page-stack" ref={pane}><div className="pane-toolbar"><h2>联系偏好</h2><button className="button" onClick={result.reload}>重新加载</button></div><p className="muted">普通主动交流统一由核心管理。可选择 Web 站内或明确授权的 QQ 私聊。QQ 离线时等待，不自动改投；不向群聊主动发布。浏览器系统通知需在下方单独开启，不自动播音。用户指定的提醒与任务结果独立保存。没有回应只表示尚未回应。</p><ErrorNotice error={result.error}/>{saved&&<p role="status">联系偏好已保存，新投递按已保存的版本检查。</p>}{result.data?<PreferenceForm key={result.data.version} current={result.data} done={()=>{focusAfterReload.current=true;setSaved(true);result.reload();}}/>:!result.error&&<p role="status">正在加载联系偏好…</p>}<BrowserNotificationSettings/></div>;
 }
 function PreferenceForm({current,done}:{current:ContactPreferences;done():void}) {
   const conversations=useResource<Conversation[]>('/api/conversations');

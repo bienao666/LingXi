@@ -22,7 +22,8 @@ const window=new Window({url:'http://localhost/#/tasks/list'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true,location:window.location,sessionStorage:window.sessionStorage});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
-const {ProactivePages,ProactiveInbox}=await import(compile('../src/ProactivePages.tsx',{'./api':api,'./ui':ui}));
+const notices=compile('../src/BrowserNotifications.tsx',{'./api':api,'./ui':ui});
+const {ProactivePages,ProactiveInbox}=await import(compile('../src/ProactivePages.tsx',{'./api':api,'./ui':ui,'./BrowserNotifications':notices}));
 const response=(value,status=200)=>new Response(JSON.stringify(value),{status});
 const preferences={version:4,enabled:true,mode:'companion',timezone:'Asia/Shanghai',quiet_start:'22:00',quiet_end:'08:00',daily_limit:2,min_gap_hours:3,allowed_kinds:['follow_up','suggestion','interest'],paused_until:null,conversation_id:null,blocked_sources:[]};
 const topic={id:'topic-one',title:'演示接续',source_type:'memory',source_id:'memory-one',source_version:2,kind:'follow_up',not_before:Date.now()/1000+3600,expires_at:Date.now()/1000+86400,conversation_id:null,status:'pending',version:3,reason:'等待合适时机',origin:'core',created_at:1};
@@ -30,7 +31,7 @@ const contact={id:'contact-one',topic_id:'topic-one',content:'之前的计划里
 const qqTarget={kind:'qq',binding_id:'binding-one',binding_version:3,channel_version:4};
 const destination={target:qqTarget,label:'我的 QQ · QQ 87654321',online:false};
 const qqDelivery={kind:'qq',status:'pending',channel_id:'qq-one',target_label:destination.label,sent_at:null,protocol_message_id:null,error:null,reviewed_at:null};
-const empty=uri=>uri==='/api/contact-preferences'?preferences:uri.startsWith('/api/conversation-topics?')||uri.startsWith('/api/proactive-contacts')||uri.startsWith('/api/tasks?')?{items:[],next_cursor:null}:[];
+const empty=uri=>uri==='/api/browser-notifications/state'?{preference:{enabled:false,version:0,scope:'qa'},receipts:[],note:'只在页面运行时检查'}:uri==='/api/contact-preferences'?preferences:uri.startsWith('/api/conversation-topics?')||uri.startsWith('/api/proactive-contacts')||uri.startsWith('/api/tasks?')?{items:[],next_cursor:null}:[];
 async function mount(t,page,handler,inbox=false) {
   document.body.innerHTML='<div id="root"></div>';
   window.sessionStorage.clear();
