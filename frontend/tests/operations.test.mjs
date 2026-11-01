@@ -22,12 +22,38 @@ async function submit(){await act(async()=>document.querySelector('form').dispat
 
 const preferences={version:4,log_retention_days:90,daily_token_alert:0};
 const health={worker:{status:'unavailable',online:0,slots:0,busy:0,last_seen:null},queue:{pending:0},oldest_ready_seconds:0,disk:{status:'unavailable'},checked_at:1};
+const readiness={checked_at:123,alerts:[{code:'models_attention',title:'模型配置',message:'默认用途需要核对',href:'#/models/policies'}],groups:[{id:'models',name:'模型配置',href:'#/models/policies',total:23,truncated:true,note:'不是实时探测',items:[{id:'chat',name:'默认对话',state:'configured',message:'配置验证有效，远端实时可用性未探测',observed_at:100}]},{id:'channels',name:'平台连接',href:'#/channels/instances',total:0,items:[],note:'不发送测试消息'}],note:'只读证据快照'};
 const bundle={id:'diagnostic',created_at:1,expires_at:9999999999,digest:'a'.repeat(64),status:'preview',bytes:100,download_url:null,preview:{format:'lingxi-diagnostics-v1',sections:['health','usage']}};
 const usage={days:7,calls:2,failed:1,known_tokens:50,unknown_usage_calls:1,cost:null,groups:[],daily:{known_tokens:50,unknown_usage_calls:1,alert_threshold:40,alert:true},note:'费用未定价'};
 
 test('overview never infers worker health from an empty queue',async t=>{
- await mount(t,OperationsOverview,{},u=>response(u.endsWith('/operations/health')?health:{core:'ready',database:'ready',hindsight:'ready',memory:'unavailable'}));
+ await mount(t,OperationsOverview,{},u=>response(u.endsWith('/readiness')?readiness:u.endsWith('/operations/health')?health:{core:'ready',database:'ready',hindsight:'ready',memory:'unavailable'}));
  assert.match(document.body.textContent,/尚未收到 worker 心跳/);assert.match(document.body.textContent,/在线 0/);assert.match(document.body.textContent,/暂不可用/);assert.ok(!document.body.textContent.includes('undefined'));
+});
+
+test('readiness labels evidence and bounds without probing or granting permissions',async t=>{
+ const calls=[];await mount(t,OperationsOverview,{},(u,o)=>{calls.push({u,o});return response(u.endsWith('/readiness')?readiness:u.endsWith('/operations/health')?health:{core:'ready'});});
+ const section=document.querySelector('section[aria-label="能力就绪"]');
+ assert.match(section.textContent,/配置已验/);assert.match(section.textContent,/远端实时可用性未探测/);
+ assert.match(section.textContent,/仅展示最近 20 项/);assert.match(section.textContent,/暂无当前身份可见/);
+ assert.ok(section.querySelector('a[href="#/models/policies"]'));
+ await click('刷新状态');assert.equal(calls.filter(x=>x.u.endsWith('/readiness')).length,2);
+ assert.ok(calls.every(x=>x.o.method==='GET'));
+});
+
+test('failed readiness refresh marks retained evidence stale and can recover',async t=>{
+ let count=0;await mount(t,OperationsOverview,{},u=>u.endsWith('/readiness')?(++count===2?response({detail:'快照读取失败'},503):response({...readiness,alerts:[]})):response(u.endsWith('/operations/health')?health:{core:'ready'}));
+ await click('刷新状态');const section=document.querySelector('section[aria-label="能力就绪"]');
+ assert.match(section.textContent,/快照读取失败/);assert.match(section.textContent,/保留上次快照/);assert.match(section.textContent,/配置已验/);
+ await click('刷新状态');assert.doesNotMatch(section.textContent,/保留上次快照/);
+ assert.match(section.textContent,/不代表全部能力已验收/);
+});
+
+test('stale warning survives a pending retry until fresh evidence arrives',async t=>{
+ let count=0,resolve;await mount(t,OperationsOverview,{},u=>u.endsWith('/readiness')?(++count===1?response(readiness):count===2?response({detail:'连接失败'},503):new Promise(r=>{resolve=r;})):response(u.endsWith('/operations/health')?health:{core:'ready'}));
+ await click('刷新状态');await click('刷新状态');
+ const section=document.querySelector('section[aria-label="能力就绪"]');assert.match(section.textContent,/保留上次快照/);
+ await act(async()=>resolve(response({...readiness,checked_at:124})));assert.doesNotMatch(section.textContent,/保留上次快照/);
 });
 
 test('usage retains unknown accounting and shows soft UTC alert',async t=>{

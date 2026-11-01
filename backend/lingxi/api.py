@@ -869,6 +869,8 @@ from .channel_artifacts import router as channel_artifacts_router
 app.include_router(channel_artifacts_router)
 from .media_storage import router as media_storage_router
 app.include_router(media_storage_router)
+from .readiness import router as readiness_router
+app.include_router(readiness_router)
 
 from .delegation import router as delegation_router
 app.include_router(delegation_router)

@@ -4,6 +4,7 @@ import {ErrorNotice,formatTime,Modal,useResource} from './ui';
 import type {components} from './api.generated';
 import {CostAmounts,CostBreakdowns,ModelPrices} from './UsageCosts';
 
+type Readiness=components['schemas']['ReadinessView'];
 type Health=components['schemas']['OperationalHealth'];
 type Usage=components['schemas']['UsageView'];
 type Metadata=components['schemas']['MetadataPage'];
@@ -30,11 +31,20 @@ export function OperationsPages({page}:{page:string}){
 export function OperationsOverview(){
   const live=useResource<Record<string,unknown>>('/api/admin/health');
   const runtime=useResource<Health>('/api/admin/operations/health');
+  const readiness=useResource<Readiness>('/api/admin/operations/readiness');
+  const [readinessError,setReadinessError]=useState('');
+  useEffect(()=>{if(readiness.error)setReadinessError(readiness.error);},[readiness.error]);
+  useEffect(()=>{if(readiness.data)setReadinessError('');},[readiness.data]);
   const [refresh,setRefresh]=useState(0);
   useEffect(()=>{const id=window.setInterval(()=>setRefresh(x=>x+1),15000);return()=>window.clearInterval(id);},[]);
-  useEffect(()=>{if(refresh)runtime.reload();},[refresh]);
+  useEffect(()=>{if(refresh){runtime.reload();readiness.reload();}},[refresh]);
   const worker=runtime.data?.worker;
-  return <div className="page-stack"><div className="pane-toolbar"><h2>系统概览</h2><button className="button" onClick={()=>{live.reload();runtime.reload();}}>刷新状态</button></div><ErrorNotice error={live.error||runtime.error}/><div className="card-grid">{live.data&&[['核心服务','core'],['业务数据库','database'],['索引服务','hindsight'],['记忆能力','memory']].map(([name,key])=><article className="data-card" key={key}><h3>{name}</h3><strong>{word(live.data?.[key])}</strong></article>)}<article className="data-card"><h3>后台执行</h3><strong>{worker?word(worker.status):'正在加载'}</strong>{worker&&<><p>在线 {num(worker.online)} · 执行槽 {num(worker.slots)} · 占用 {num(worker.busy)}</p><p className="muted">{worker.last_seen?`最近心跳 ${formatTime(num(worker.last_seen))}`:'尚未收到 worker 心跳'}</p></>}</article></div>{runtime.data&&<><div className="data-card"><h3>后台队列</h3><div className="tag-row">{Object.entries(runtime.data.queue).map(([state,count])=><span className="status-badge" key={state}>{word(state)} {count}</span>)}</div><p>最早到期等待 {(runtime.data.oldest_ready_seconds/60).toFixed(1)} 分钟</p><p className="muted">{text(worker?.note)} 页面每 15 秒更新运行状态，健康不代表真实模型质量已验收。</p></div><div className="data-card"><h3>存储容量</h3><p>{word(runtime.data.disk.status)} · 可用 {bytes(runtime.data.disk.free_bytes)} / 共 {bytes(runtime.data.disk.total_bytes)}</p><p className="muted">仅检查服务器运行卷所在文件系统，不代表数据库独立存储或备份健康。</p></div></>}<p className="muted">{text(live.data?.release_status||'正在检查服务状态')}</p></div>;
+  return <div className="page-stack"><div className="pane-toolbar"><h2>系统概览</h2><button className="button" onClick={()=>{live.reload();runtime.reload();readiness.reload();}}>刷新状态</button></div><ErrorNotice error={live.error||runtime.error}/><div className="card-grid">{live.data&&[['核心服务','core'],['业务数据库','database'],['索引服务','hindsight'],['记忆能力','memory']].map(([name,key])=><article className="data-card" key={key}><h3>{name}</h3><strong>{word(live.data?.[key])}</strong></article>)}<article className="data-card"><h3>后台执行</h3><strong>{worker?word(worker.status):'正在加载'}</strong>{worker&&<><p>在线 {num(worker.online)} · 执行槽 {num(worker.slots)} · 占用 {num(worker.busy)}</p><p className="muted">{worker.last_seen?`最近心跳 ${formatTime(num(worker.last_seen))}`:'尚未收到 worker 心跳'}</p></>}</article></div>{runtime.data&&<><div className="data-card"><h3>后台队列</h3><div className="tag-row">{Object.entries(runtime.data.queue).map(([state,count])=><span className="status-badge" key={state}>{word(state)} {count}</span>)}</div><p>最早到期等待 {(runtime.data.oldest_ready_seconds/60).toFixed(1)} 分钟</p><p className="muted">{text(worker?.note)} 页面每 15 秒更新运行状态，健康不代表真实模型质量已验收。</p></div><div className="data-card"><h3>存储容量</h3><p>{word(runtime.data.disk.status)} · 可用 {bytes(runtime.data.disk.free_bytes)} / 共 {bytes(runtime.data.disk.total_bytes)}</p><p className="muted">仅检查服务器运行卷所在文件系统，不代表数据库独立存储或备份健康。</p></div></>}<ReadinessEvidence data={readiness.data} error={readiness.error||readinessError}/><p className="muted">{text(live.data?.release_status||'正在检查服务状态')}</p></div>;
+}
+
+function ReadinessEvidence({data,error}:{data:Readiness|undefined;error:string}){
+  const states:Record<string,string>={configured:'配置已验',observed:'记录有效',online:'协议在线',unconfigured:'尚未配置',disabled:'已经停用',attention:'需要核对',unknown:'状态未知'};
+  return <section className="page-stack" aria-label="能力就绪"><h3>能力就绪</h3><ErrorNotice error={error}/>{error&&data&&<p role="status" className="error">更新失败，以下保留上次快照，不能视为当前状态。</p>}{!data&&!error&&<p role="status">正在读取就绪依据…</p>}{data&&<><p className="muted">快照时间：{formatTime(data.checked_at)}。每 15 秒更新本地证据；远端服务没有在此实时探测。</p><p className="muted">{data.note}</p><div aria-label="异常提示" className="page-stack">{data.alerts.length?data.alerts.map(row=><article className="data-card" key={row.code}><strong>{row.title}</strong><p>{row.message}</p><a href={row.href}>前往核对</a></article>):<p>本次检查范围内暂无异常提示，不代表全部能力已验收。</p>}</div><div className="card-grid">{data.groups.map(group=><article className="data-card" key={group.id}><div className="pane-toolbar"><h4>{group.name}</h4><a href={group.href}>查看详情</a></div><p className="muted">{group.note}</p>{group.items.length?<ul className="page-stack">{group.items.map(row=><li key={row.id}><strong className="plugin-digest">{row.name}</strong> <span className="status-badge">{states[row.state]}</span><p>{row.message}</p>{row.observed_at!=null&&<small>依据时间：{formatTime(row.observed_at)}</small>}</li>)}</ul>:<p>暂无当前身份可见的配置。</p>}<p className="muted">已列 {group.items.length} / 共 {group.total} 项。{group.truncated?'仅展示最近 20 项，其余请到详情核对。':''}</p></article>)}</div></>}</section>;
 }
 
 function MetadataPage({page}:{page:string}){

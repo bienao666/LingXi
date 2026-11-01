@@ -1690,6 +1690,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/operations/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness */
+        get: operations["readiness_api_admin_operations_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents": {
         parameters: {
             query?: never;
@@ -6514,6 +6531,64 @@ export interface components {
             version: number;
             /** Protected No Proxy */
             protected_no_proxy?: string[];
+        };
+        /** ReadinessAlert */
+        ReadinessAlert: {
+            /** Code */
+            code: string;
+            /** Title */
+            title: string;
+            /** Message */
+            message: string;
+            /** Href */
+            href: string;
+        };
+        /** ReadinessGroup */
+        ReadinessGroup: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Href */
+            href: string;
+            /** Items */
+            items: components["schemas"]["ReadinessItem"][];
+            /** Total */
+            total: number;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+            /** Note */
+            note: string;
+        };
+        /** ReadinessItem */
+        ReadinessItem: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "configured" | "observed" | "online" | "unconfigured" | "disabled" | "attention" | "unknown";
+            /** Message */
+            message: string;
+            /** Observed At */
+            observed_at?: number | null;
+        };
+        /** ReadinessView */
+        ReadinessView: {
+            /** Checked At */
+            checked_at: number;
+            /** Alerts */
+            alerts: components["schemas"]["ReadinessAlert"][];
+            /** Groups */
+            groups: components["schemas"]["ReadinessGroup"][];
+            /** Note */
+            note: string;
         };
         /** Recipient */
         Recipient: {
@@ -12018,6 +12093,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    readiness_api_admin_operations_readiness_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessView"];
                 };
             };
         };

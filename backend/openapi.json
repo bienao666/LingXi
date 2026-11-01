@@ -4857,6 +4857,24 @@
         }
       }
     },
+    "/api/admin/operations/readiness": {
+      "get": {
+        "summary": "Readiness",
+        "operationId": "readiness_api_admin_operations_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents": {
       "get": {
         "summary": "Available Agents",
@@ -17289,6 +17307,162 @@
         },
         "type": "object",
         "title": "ProxyView"
+      },
+      "ReadinessAlert": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "title",
+          "message",
+          "href"
+        ],
+        "title": "ReadinessAlert"
+      },
+      "ReadinessGroup": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "default": false
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "href",
+          "items",
+          "total",
+          "note"
+        ],
+        "title": "ReadinessGroup"
+      },
+      "ReadinessItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "configured",
+              "observed",
+              "online",
+              "unconfigured",
+              "disabled",
+              "attention",
+              "unknown"
+            ],
+            "title": "State"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "state",
+          "message"
+        ],
+        "title": "ReadinessItem"
+      },
+      "ReadinessView": {
+        "properties": {
+          "checked_at": {
+            "type": "number",
+            "title": "Checked At"
+          },
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessAlert"
+            },
+            "type": "array",
+            "title": "Alerts"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/ReadinessGroup"
+            },
+            "type": "array",
+            "title": "Groups"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "checked_at",
+          "alerts",
+          "groups",
+          "note"
+        ],
+        "title": "ReadinessView"
       },
       "Recipient": {
         "properties": {

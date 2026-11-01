@@ -6,7 +6,7 @@ import shutil
 from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Float, Integer, String, Text, UniqueConstraint, delete, func, literal, or_, and_, select, union_all
+from sqlalchemy import Float, Integer, String, Text, UniqueConstraint, case, delete, func, literal, or_, and_, select, union_all
 from sqlalchemy.orm import Mapped, mapped_column
 from .config import settings
 from .db import Base, SessionLocal, now
@@ -103,7 +103,8 @@ def overview(db,user):
               'total_bytes':usage.total,'free_bytes':usage.free,'used_bytes':usage.used}
     except OSError:disk={'status':'unavailable','total_bytes':None,'free_bytes':None,'used_bytes':None}
     oldest=db.scalar(
-        select(func.min(Job.created_at)).where(Job.workspace_id==user.workspace_id,Job.status=='pending',Job.available_at<=now()))
+        select(func.min(case((Job.available_at>Job.created_at,Job.available_at),else_=Job.created_at))).where(
+            Job.workspace_id==user.workspace_id,Job.status=='pending',Job.available_at<=now()))
     return {'worker':workers(db),'queue':count_by(db,Job,user.workspace_id,'status'),
             'oldest_ready_seconds':max(0,now()-oldest) if oldest else 0,'disk':disk,'checked_at':now()}
 
