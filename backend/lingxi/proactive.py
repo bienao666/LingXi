@@ -13,6 +13,7 @@ from .web import Context, owned, view, audit
 from .proactive_channels import ContactTarget, DeliveryView
 from .proactive_generation import DraftView
 from .proactive_voice import VoiceContactView
+from .proactive_completion import TopicCompletion
 
 KINDS = ('follow_up', 'suggestion', 'interest')
 router = APIRouter()
@@ -146,6 +147,11 @@ class TopicView(BaseModel):
     generation: DraftView | None = None
 
 
+class ResolveInput(BaseModel):
+    model_config = {'extra': 'forbid', 'strict': True}
+    version: int = Field(ge=1)
+
+
 class CloseInput(BaseModel):
     version: int = Field(ge=1)
     block_source: bool = True
@@ -174,6 +180,7 @@ class TopicSourceView(BaseModel):
 
 
 class ContactView(BaseModel):
+    topic_status: str | None = None
     voice: VoiceContactView | None = None
     id: str
     topic_id: str
@@ -191,7 +198,7 @@ class ContactView(BaseModel):
 
 class FeedbackInput(BaseModel):
     version: int = Field(ge=1)
-    feedback: Literal['helpful','stop_topic','pause','results_only']
+    feedback: Literal['helpful','stop_topic','pause','results_only','resolved']
 
 
 class ContinueView(BaseModel):
@@ -275,6 +282,9 @@ def automatic_topic(db, source):
     lock_owner(db, owner)
     prefs = pref_view(db, owner)
     if not prefs['enabled'] or prefs['mode'] == 'results_only' or f'{source_type}:{source.id}' in prefs['blocked_sources']:
+        return
+    from .proactive_completion import completed
+    if completed(db, owner, source_type, source.id):
         return
     key = f'{source_type}:{source.id}:{source.version}'
     if db.scalar(select(ConversationTopic.id).where(ConversationTopic.user_id == owner.id,
@@ -495,13 +505,20 @@ def valid_contact(db, contact):
 def contact_view(db, row):
     from .proactive_channels import delivery_view
     from .proactive_voice import public_entry
-    values = view(row) | {'delivery':delivery_view(db,row), 'voice':public_entry(db,row)}
+    topic = db.get(ConversationTopic, row.topic_id)
+    values = view(row) | {'delivery':delivery_view(db,row), 'voice':public_entry(db,row),
+        'topic_status': topic.status if topic else None}
     if not valid_contact(db, row):
         values |= {'status': 'invalidated', 'content': '', 'reason': '来源已失效，不再展示原内容'}
     return values
 
 
 def apply_feedback(db, user, contact, action):
+    if action == 'resolved':
+        from .proactive_completion import resolve
+        topic = owned(db, ConversationTopic, contact.topic_id, user, lock=True)
+        resolve(db, user, topic)
+        return
     prefs = preference(db, user, create=True)
     if action == 'stop_topic':
         topic = db.get(ConversationTopic, contact.topic_id)
@@ -521,10 +538,24 @@ def apply_feedback(db, user, contact, action):
 def chat_control(db, user, conversation, text):
     command = text.strip().rstrip('。！!，,').strip()
     actions = {'先别聊':'pause', '暂停主动交流':'disable', '以后别主动联系':'disable',
-               '直接告诉我结果':'results_only', '这个以后别问':'stop_topic'}
+               '直接告诉我结果':'results_only', '这个以后别问':'stop_topic',
+               '这个话题结束了':'resolved', '这件事已经结束了':'resolved', '这件事已完成':'resolved'}
     action = actions.get(command)
     if not action:
         return None
+    if action == 'resolved':
+        # Exact explicit controls only; outcomes, quotes and vague references are not inferred.
+        candidates = list(db.scalars(select(ConversationTopic).join(ProactiveContact, ProactiveContact.topic_id == ConversationTopic.id)
+            .where(ProactiveContact.user_id == user.id, ProactiveContact.workspace_id == user.workspace_id,
+                ProactiveContact.conversation_id == conversation.id, ProactiveContact.status == 'stored',
+                ConversationTopic.user_id == user.id, ConversationTopic.workspace_id == user.workspace_id,
+                ConversationTopic.status == 'contacted').order_by(ProactiveContact.created_at.desc()).limit(2)))
+        if len(candidates) != 1:
+            return '这段对话没有唯一的待续话题。请在“待续话题”或“联系记录”中选择具体话题结束；我不会猜测。'
+        from .proactive_completion import resolve
+        resolve(db, user, candidates[0])
+        audit(db, user, 'topic_resolve', candidates[0].id)
+        return '好，这件事先到这里，不再自动跟进。交流记录和原记忆会保留；其他话题照常。'
     prefs = preference(db, user, create=True)
     if action == 'stop_topic':
         contact = db.scalar(select(ProactiveContact).where(ProactiveContact.user_id == user.id,
@@ -607,7 +638,7 @@ def create_topic(body: TopicInput, ctx: Context):
 
 @router.get('/api/conversation-topics', response_model=TopicPage)
 def list_topics(ctx: Context, q: str = Query('', max_length=200),
-                status: Literal['pending','contacted','closed','invalidated','expired'] | None = None,
+                status: Literal['pending','contacted','closed','resolved','invalidated','expired'] | None = None,
                 cursor: str | None = None, limit: int = Query(50, ge=1, le=100)):
     from .task_routes import page_query
     db, user, _ = ctx
@@ -681,6 +712,19 @@ def retry_generation(identity: str, body: GenerationRetry, ctx: Context):
     return draft_view(db,topic)
 
 
+@router.post('/api/conversation-topics/{identity}/resolve', response_model=TopicView)
+def resolve_topic(identity: str, body: ResolveInput, ctx: Context):
+    from .proactive_completion import resolve
+    db, user, _ = ctx
+    lock_owner(db, user)
+    topic = owned(db, ConversationTopic, identity, user, lock=True)
+    if topic.version != body.version:
+        raise HTTPException(409, '话题已变化，请重新加载后操作')
+    resolve(db, user, topic)
+    audit(db, user, 'topic_resolve', topic.id)
+    return view(topic)
+
+
 @router.post('/api/conversation-topics/{identity}/close', response_model=TopicView)
 def close_topic(identity: str, body: CloseInput, ctx: Context):
     db, user, _ = ctx
@@ -715,6 +759,7 @@ def list_contacts(ctx: Context, cursor: str | None = None, limit: int = Query(50
             return {'items': [], 'next_cursor': None}
         query = query.join(ConversationTopic, ConversationTopic.id == ProactiveContact.topic_id).where(
             ProactiveContact.feedback == None, ProactiveContact.status == 'stored',
+            ConversationTopic.status == 'contacted',
             ConversationTopic.expires_at > now(), ConversationTopic.kind.in_(prefs['allowed_kinds']),
             ~(ConversationTopic.source_type+':'+ConversationTopic.source_id).in_(prefs['blocked_sources']))
     rows, next_cursor = page_query(db, ProactiveContact, user, cursor, query, limit)

@@ -244,7 +244,7 @@ def prepare(identity,connection):
                 if ContactTarget(**row.target).model_dump()!=prefs['delivery']:raise HTTPException(409,'联系目标已修改')
             except HTTPException:
                 stop_delivery(row,'QQ 联系目标、平台或身份授权已变化');continue
-            if not source or not contact or contact.status=='invalidated' or topic.status in ('invalidated','closed'):
+            if not source or not contact or contact.status=='invalidated' or topic.status in ('invalidated','closed','resolved'):
                 stop_delivery(row,'主动消息来源已失效或关闭');continue
             if topic.expires_at<=now():stop_delivery(row,'主动话题已过期，未补发');continue
             if channel.login_state!='online':continue
@@ -281,7 +281,7 @@ def expire_pending():
             if row.status!='pending':continue
             topic=db.get(ConversationTopic,row.topic_id,populate_existing=True)
             contact=db.get(ProactiveContact,row.contact_id,populate_existing=True)
-            if not topic or topic.expires_at<=now() or topic.status in ('closed','invalidated') or not contact or contact.status=='invalidated' or not source_record(db,topic):
+            if not topic or topic.expires_at<=now() or topic.status in ('closed','invalidated','resolved') or not contact or contact.status=='invalidated' or not source_record(db,topic):
                 stop_delivery(row,'话题过期、关闭或来源失效；离线时也不保留待补发内容')
 
 

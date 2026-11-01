@@ -117,6 +117,44 @@ test('closing a source topic is explicit and never deletes the memory',async t=>
   assert.deepEqual(writes[0].body,{version:3,block_source:true});
 });
 
+test('normal topic completion requires confirmation, preserves preferences and focuses the list',async t=>{
+  const writes=[];let ended=false;
+  await mount(t,'topics',(uri,options)=>{
+    if(options.method==='POST'){ended=true;writes.push({uri,body:JSON.parse(options.body)});return response({...topic,status:'resolved',version:4});}
+    return response(uri.startsWith('/api/conversation-topics?')?{items:[{...topic,status:ended?'resolved':'pending'}],next_cursor:null}:empty(uri));
+  });
+  await click('结束话题');
+  assert.equal(writes.length,0);
+  assert.match(document.querySelector('dialog').textContent,/不将关联任务标为完成/);
+  await click('确认结束');
+  assert.deepEqual(writes,[{uri:'/api/conversation-topics/topic-one/resolve',body:{version:3}}]);
+  assert.match(document.body.textContent,/话题已结/);
+  assert.equal([...document.querySelectorAll('button')].some(b=>b.textContent==='结束话题'),false);
+  assert.equal(document.activeElement?.textContent,'待续话题');
+});
+
+test('completion version conflict leaves confirmation recoverable',async t=>{
+  await mount(t,'topics',(uri,options)=>response(options.method==='POST'?{detail:'话题已变化，请重新加载后操作'}:uri.startsWith('/api/conversation-topics?')?{items:[topic],next_cursor:null}:empty(uri),options.method==='POST'?409:200));
+  await click('结束话题');await click('确认结束');
+  assert.match(document.querySelector('dialog').textContent,/重新加载后操作/);
+  assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='确认结束').disabled,false);
+  await click('继续保留');assert.equal(document.querySelector('dialog'),null);
+});
+
+test('contact completion preserves original text and does not present rejection actions afterward',async t=>{
+  const writes=[];let ended=false;
+  await mount(t,'history',(uri,options)=>{
+    if(options.method==='POST'){ended=true;writes.push({uri,body:JSON.parse(options.body)});return response({...contact,topic_status:'resolved',feedback:'resolved'});}
+    return response(uri.startsWith('/api/proactive-contacts')?{items:[{...contact,topic_status:ended?'resolved':'contacted',feedback:ended?'resolved':null}],next_cursor:null}:empty(uri));
+  });
+  await click('话题已结');assert.equal(writes.length,0);
+  await click('确认设置');
+  assert.deepEqual(writes,[{uri:'/api/proactive-contacts/contact-one/feedback',body:{version:2,feedback:'resolved'}}]);
+  assert.match(document.body.textContent,/第一步是整理提纲/);
+  assert.equal([...document.querySelectorAll('button')].some(b=>b.textContent==='不再提起'),false);
+  assert.equal(document.activeElement?.textContent,'联系记录');
+});
+
 test('stored contact never implies reading and rejection waits for confirmation',async t=>{
   const writes=[];
   await mount(t,'history',(uri,options)=>{

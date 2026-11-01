@@ -3415,6 +3415,7 @@
                     "pending",
                     "contacted",
                     "closed",
+                    "resolved",
                     "invalidated",
                     "expired"
                   ],
@@ -3600,6 +3601,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DraftView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/conversation-topics/{identity}/resolve": {
+      "post": {
+        "summary": "Resolve Topic",
+        "operationId": "resolve_topic_api_conversation_topics__identity__resolve_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicView"
                 }
               }
             }
@@ -13224,6 +13274,17 @@
       },
       "ContactView": {
         "properties": {
+          "topic_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topic Status"
+          },
           "voice": {
             "anyOf": [
               {
@@ -18421,6 +18482,21 @@
         ],
         "title": "Resolution"
       },
+      "ResolveInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "ResolveInput"
+      },
       "ResourcePolicyConfirm": {
         "properties": {
           "token": {
@@ -22442,7 +22518,8 @@
               "helpful",
               "stop_topic",
               "pause",
-              "results_only"
+              "results_only",
+              "resolved"
             ],
             "title": "Feedback"
           }

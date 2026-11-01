@@ -1246,6 +1246,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/conversation-topics/{identity}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Topic */
+        post: operations["resolve_topic_api_conversation_topics__identity__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/conversation-topics/{identity}/close": {
         parameters: {
             query?: never;
@@ -4939,6 +4956,8 @@ export interface components {
         };
         /** ContactView */
         ContactView: {
+            /** Topic Status */
+            topic_status?: string | null;
             voice?: components["schemas"]["VoiceContactView"] | null;
             /** Id */
             id: string;
@@ -7018,6 +7037,11 @@ export interface components {
              */
             acknowledged: true;
         };
+        /** ResolveInput */
+        ResolveInput: {
+            /** Version */
+            version: number;
+        };
         /** ResourcePolicyConfirm */
         ResourcePolicyConfirm: {
             /** Token */
@@ -8727,7 +8751,7 @@ export interface components {
              * Feedback
              * @enum {string}
              */
-            feedback: "helpful" | "stop_topic" | "pause" | "results_only";
+            feedback: "helpful" | "stop_topic" | "pause" | "results_only" | "resolved";
         };
         /** DeliveryView */
         lingxi__proactive_channels__DeliveryView: {
@@ -11327,7 +11351,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
-                status?: ("pending" | "contacted" | "closed" | "invalidated" | "expired") | null;
+                status?: ("pending" | "contacted" | "closed" | "resolved" | "invalidated" | "expired") | null;
                 cursor?: string | null;
                 limit?: number;
             };
@@ -11478,6 +11502,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DraftView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_topic_api_conversation_topics__identity__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicView"];
                 };
             };
             /** @description Validation Error */
