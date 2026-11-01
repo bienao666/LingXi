@@ -1520,6 +1520,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/channels/{identity}/artifact-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Options */
+        get: operations["options_api_channels__identity__artifact_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channels/{identity}/artifact-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_channels__identity__artifact_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channels/{identity}/artifact-replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Replies */
+        get: operations["replies_api_channels__identity__artifact_replies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channel-artifact-replies/{identity}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_channel_artifact_replies__identity__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/channel-artifact-replies/{identity}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_channel_artifact_replies__identity__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents": {
         parameters: {
             query?: never;
@@ -3841,6 +3926,75 @@ export interface components {
             plan: {
                 [key: string]: unknown;
             };
+        };
+        /** ArtifactConfirm */
+        ArtifactConfirm: {
+            /** Digest */
+            digest: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "share_with_original_audience";
+        };
+        /** ArtifactOption */
+        ArtifactOption: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "media" | "agent_result";
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
+            /** Name */
+            name: string;
+            /** Bytes */
+            bytes: number;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "file" | "image";
+        };
+        /** ArtifactReplyView */
+        ArtifactReplyView: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Target Key */
+            target_key: string;
+            /** Expires At */
+            expires_at: number;
+            /** Digest */
+            digest: string;
+            /** Files */
+            files: components["schemas"]["ArtifactOption"][];
+            /** Deliveries */
+            deliveries: components["schemas"]["lingxi__channels__DeliveryView"][];
+        };
+        /** ArtifactSelection */
+        ArtifactSelection: {
+            /** Origin Id */
+            origin_id: string;
+            /** Request Id */
+            request_id: string;
+            /** Sources */
+            sources: components["schemas"]["ArtifactSource"][];
+        };
+        /** ArtifactSource */
+        ArtifactSource: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "media" | "agent_result";
+            /** Id */
+            id: string;
+            /** Version */
+            version: number;
         };
         /** AttemptView */
         AttemptView: {
@@ -11326,6 +11480,174 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChannelTaskView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    options_api_channels__identity__artifact_sources_get: {
+        parameters: {
+            query: {
+                origin_id: string;
+                q?: string;
+            };
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactOption"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_channels__identity__artifact_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArtifactSelection"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactReplyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replies_api_channels__identity__artifact_replies_get: {
+        parameters: {
+            query: {
+                origin_id: string;
+            };
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactReplyView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_channel_artifact_replies__identity__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ArtifactConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactReplyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_channel_artifact_replies__identity__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtifactReplyView"];
                 };
             };
             /** @description Validation Error */

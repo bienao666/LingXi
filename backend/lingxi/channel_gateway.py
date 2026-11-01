@@ -161,14 +161,17 @@ def receive_event(identity, connection, event):
                 delivery = db.scalar(select(ChannelDelivery).where(ChannelDelivery.channel_id == identity,
                                                                    ChannelDelivery.echo == echo).with_for_update())
                 if delivery and delivery.status in ('sending', 'unknown'):
-                    if delivery.kind == 'file':
+                    if delivery.kind in ('file', 'artifact_file'):
                         from .channel_files import receipt
                         receipt(delivery, event)
                         if delivery.status == 'accepted_by_protocol':
                             channel.capabilities = channel.capabilities | {'file_send': 'accepted_by_protocol'}
+                    elif delivery.kind == 'artifact_image' and type(event.get('retcode')) is int and event['retcode'] == 0 and (
+                            event.get('status') != 'ok' or not numeric(data.get('message_id'),30,negative=True)):
+                        delivery.status,delivery.error='unknown','协议未返回有效图片消息回执；结果待核对，未自动重发'
                     elif type(event.get('retcode')) is int and event['retcode'] == 0 and (external_id := numeric(data.get('message_id'), 30, negative=True)):
                         delivery.status, delivery.protocol_message_id, delivery.error = 'accepted_by_protocol', external_id, None
-                        channel.capabilities = channel.capabilities | {('record_send' if delivery.kind == 'record' else 'text_send'): 'accepted_by_protocol'}
+                        channel.capabilities = channel.capabilities | {('record_send' if delivery.kind == 'record' else 'image_send' if delivery.kind == 'artifact_image' else 'text_send'): 'accepted_by_protocol'}
                     elif type(event.get('retcode')) is int and event['retcode'] != 0:
                         delivery.status, delivery.error = 'failed', '协议端拒绝发送，请检查 QQ 登录与平台限制'
                     db.flush()
@@ -439,12 +442,13 @@ def prepare_reply(identity, connection):
                     output.encrypted_audio = None
                     continue
             file_action = None
-            if output.kind == 'file':
-                from .channel_files import action
+            if output.kind in ('file', 'artifact_file', 'artifact_image'):
+                from .channel_files import action as answer_file_action
+                from .channel_artifacts import action as artifact_action
                 from fastapi import HTTPException
                 from .worker import Cancelled
                 try:
-                    file_action = action(db, output)
+                    file_action = answer_file_action(db, output) if output.kind == 'file' else artifact_action(db, output)
                 except (HTTPException, Cancelled):
                     output.status, output.error = 'cancelled', '文件来源、正文或授权已失效；未发送文件'
                     incoming.status, incoming.error = 'failed', output.error

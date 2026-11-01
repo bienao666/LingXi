@@ -112,7 +112,7 @@ def receipt(delivery, event):
 def checkpoint(db):
     from .channels import delivery_view
     from .web import view
-    deliveries = list(db.scalars(select(ChannelDelivery).where(ChannelDelivery.kind == 'file')))
+    deliveries = list(db.scalars(select(ChannelDelivery).where(ChannelDelivery.kind.in_(('file','artifact_file','artifact_image')))))
     ids = {d.inbound_id for d in deliveries}
     return {'inbounds': [view(r, ('content', 'run_id')) | {'content': '', 'run_id': None,
             'status': 'cancelled', 'error': '恢复隔离：旧文件回复不重放'}

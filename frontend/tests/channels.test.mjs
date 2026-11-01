@@ -14,7 +14,7 @@ const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
 const agentTools=compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui});
 const channelTasks=compile('../src/ChannelTasks.tsx',{'./api':api,'./ui':ui,'./AgentTools':agentTools});
-const {ChannelPages}=await import(compile('../src/ChannelPages.tsx',{'./api':api,'./ui':ui,'./ChannelTasks':channelTasks}));
+const {ChannelPages}=await import(compile('../src/ChannelPages.tsx',{'./api':api,'./ui':ui,'./ChannelTasks':channelTasks,'./ChannelArtifacts':compile('../src/ChannelArtifacts.tsx',{'./api':api,'./ui':ui})}));
 const channel={id:'channel-one',name:'测试 QQ',bot_id:'12345678',version:3,enabled:true,rules:{private_enabled:true,allow_unbound:false,group_enabled:false,group_ids:[],command:'/灵犀'},connection_state:'offline',login_state:'unknown',last_seen:null,protocol_version:'',capabilities:{},gateway_path:'/gateway/onebot/v11/ws/channel-one',token_mask:'••••••••'};
 const link={id:'link-one',channel_id:channel.id,external_user_id:'87654321',version:2,status:'proved',allow_memory:true,expires_at:Date.now()/1000+600};
 const response=(value,status=200)=>new Response(JSON.stringify(value),{status});
@@ -109,4 +109,40 @@ test('long answer files require explicit rule preview and retain independent con
 test('file records expose size and file receipt without claiming user download',async t=>{
  await mount(t,'instances',(uri,o)=>response(uri==='/api/channels'?[channel]:[{id:'in-file',sender_id:'87654321',target_key:'private:87654321',external_message_id:'8',status:'completed',created_at:1,error:null,attachments:[],deliveries:[{id:'df',part:1,kind:'file',status:'accepted_by_protocol',file_info:{name:'lingxi-answer-synthetic.md',bytes:20480},protocol_file_id:'/synthetic-uuid',speech:{},error:null,reviewed_at:null,protocol_message_id:null}]}]));
  await click('收发记录');const text=document.querySelector('dialog').textContent;assert.match(text,/文件 · 协议已接受/);assert.match(text,/协议文件 \/synthetic-uuid/);assert.match(text,/20.0 KiB/);assert.match(text,/不等于收件人已下载/);assert.doesNotMatch(text,/base64|digest|文件已送达/);
+});
+
+const artifactSource={kind:'media',id:'media-one',version:2,name:'项目说明.md',bytes:512,format:'file'};
+const artifactReply={id:'batch-one',status:'preview',target_key:'group:12345',expires_at:Date.now()/1000+300,digest:'a'.repeat(64),files:[artifactSource],deliveries:[]};
+const artifactInbound={id:'origin-one',run_id:'run-one',sender_id:'87654321',target_key:'group:12345',external_message_id:'42',status:'completed',created_at:1,attachments:[],deliveries:[]};
+async function openArtifacts(t,handler){
+ await mount(t,'instances',(uri,o)=>{
+  if(uri==='/api/channels')return response([channel]);
+  if(uri.includes('/artifact-sources?'))return response([artifactSource]);
+  if(uri.includes('/artifact-replies?'))return response([]);
+  if(uri.includes('/messages'))return response([artifactInbound]);
+  return handler(uri,o);
+ });
+ await click('收发记录');await click('发送附件');
+}
+const artifactDialog=()=>[...document.querySelectorAll('dialog')].at(-1);
+async function chooseArtifact(){await act(async()=>artifactDialog().querySelector('fieldset input[type=checkbox]').click());await click('预览附件',artifactDialog());}
+test('artifact preview requires audience acknowledgement and retains exact source version',async t=>{
+ const writes=[];await openArtifacts(t,(uri,o)=>{writes.push({uri,body:JSON.parse(o.body)});return response(uri.endsWith('/confirm')?{...artifactReply,status:'confirmed'}:artifactReply);});
+ assert.equal(writes.length,0);await chooseArtifact();assert.deepEqual(writes[0].body.sources,[{kind:'media',id:'media-one',version:2}]);
+ assert.match(artifactDialog().textContent,/group:12345/);assert.match(artifactDialog().textContent,/全群可见/);
+ const button=[...artifactDialog().querySelectorAll('button')].find(b=>b.textContent==='确认发送');assert.equal(button.disabled,true);
+ assert.equal(document.activeElement.type,'checkbox');await act(async()=>document.activeElement.click());await click('确认发送',artifactDialog());
+ assert.deepEqual(writes[1],{uri:'/api/channel-artifact-replies/batch-one/confirm',body:{digest:'a'.repeat(64),acknowledgement:'share_with_original_audience'}});
+ assert.equal(artifactDialog().querySelector('fieldset input').checked,false);
+});
+test('artifact changed source error stays in preview and allows explicit re-selection',async t=>{
+ await openArtifacts(t,(uri,o)=>uri.endsWith('/confirm')?response({detail:'来源内容或接收范围已变化，请重新预览'},409):response(artifactReply));
+ await chooseArtifact();await act(async()=>artifactDialog().querySelector('input[type=checkbox]').click());await click('确认发送',artifactDialog());
+ assert.match(artifactDialog().textContent,/重新预览/);await click('继续选择',artifactDialog());assert.ok(artifactDialog().querySelector('fieldset input').checked);
+ await click('移除',artifactDialog());assert.equal(artifactDialog().querySelector('fieldset input').checked,false);
+});
+test('artifact lost confirmation response retries same preview without another preview',async t=>{
+ const writes=[];let failed=false;await openArtifacts(t,(uri,o)=>{writes.push(uri);if(uri.endsWith('/confirm')&&!failed){failed=true;throw Error('连接中断');}return response(uri.endsWith('/confirm')?{...artifactReply,status:'confirmed'}:artifactReply);});
+ await chooseArtifact();await act(async()=>artifactDialog().querySelector('input[type=checkbox]').click());await click('确认发送',artifactDialog());assert.match(artifactDialog().textContent,/无法连接服务器/);
+ await click('确认发送',artifactDialog());assert.equal(writes.filter(v=>v.endsWith('/artifact-previews')).length,1);assert.equal(writes.filter(v=>v.endsWith('/batch-one/confirm')).length,2);
 });

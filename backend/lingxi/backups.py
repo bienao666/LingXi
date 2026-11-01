@@ -209,6 +209,7 @@ def checkpoint():
     from .plugins import PluginInvocation, PluginRelease, PluginInstallation
     from .channel_speech import checkpoint as speech_checkpoint
     from .channel_files import checkpoint as files_checkpoint
+    from .channel_artifacts import checkpoint as artifacts_checkpoint
     with SessionLocal.begin() as db:
         replay_ledger(db)
         users=[view(u) for u in restore_owners(db)]
@@ -225,6 +226,7 @@ def checkpoint():
             'resource_policies':resources_checkpoint(db),
             'channel_speech_receipts':speech_checkpoint(db),
             'channel_file_receipts':files_checkpoint(db),
+            'channel_artifact_replies':artifacts_checkpoint(db),
             'memories':[view(row) for row in db.scalars(select(Memory))],
             'invalid_messages':[{'id':row.id,'status':row.status} for row in db.scalars(select(Message).where(Message.status.in_(['deleted','redacted','invalidated','superseded'])))],
             'contact_preferences':[view(row) for row in db.scalars(select(ContactPreference))],
@@ -319,6 +321,8 @@ def quarantine(data):
         restore_speech(db, data.get('channel_speech_receipts', {}))
         from .channel_files import restore as restore_files
         restore_files(db, data.get('channel_file_receipts', {}))
+        from .channel_artifacts import restore as restore_artifacts
+        restore_artifacts(db,data.get('channel_artifact_replies',[]))
         db.flush()
         for binding in db.scalars(select(PluginAgentBinding)):
             binding.status, binding.epoch, binding.version = 'revoked', binding.epoch+1, binding.version+1

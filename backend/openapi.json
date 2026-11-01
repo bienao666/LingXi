@@ -4437,6 +4437,260 @@
         }
       }
     },
+    "/api/channels/{identity}/artifact-sources": {
+      "get": {
+        "summary": "Options",
+        "operationId": "options_api_channels__identity__artifact_sources_get",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "origin_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "title": "Origin Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "default": "",
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtifactOption"
+                  },
+                  "title": "Response Options Api Channels  Identity  Artifact Sources Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channels/{identity}/artifact-previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_channels__identity__artifact_previews_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactSelection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactReplyView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channels/{identity}/artifact-replies": {
+      "get": {
+        "summary": "Replies",
+        "operationId": "replies_api_channels__identity__artifact_replies_get",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "origin_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "title": "Origin Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtifactReplyView"
+                  },
+                  "title": "Response Replies Api Channels  Identity  Artifact Replies Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channel-artifact-replies/{identity}/confirm": {
+      "post": {
+        "summary": "Confirm",
+        "operationId": "confirm_api_channel_artifact_replies__identity__confirm_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtifactConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactReplyView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/channel-artifact-replies/{identity}/cancel": {
+      "post": {
+        "summary": "Cancel",
+        "operationId": "cancel_api_channel_artifact_replies__identity__cancel_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtifactReplyView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents": {
       "get": {
         "summary": "Available Agents",
@@ -10562,6 +10816,190 @@
           "plan"
         ],
         "title": "ApiPreviewView"
+      },
+      "ArtifactConfirm": {
+        "properties": {
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Digest"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "share_with_original_audience",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "digest",
+          "acknowledgement"
+        ],
+        "title": "ArtifactConfirm"
+      },
+      "ArtifactOption": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "media",
+              "agent_result"
+            ],
+            "title": "Kind"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "file",
+              "image"
+            ],
+            "title": "Format"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "version",
+          "name",
+          "bytes",
+          "format"
+        ],
+        "title": "ArtifactOption"
+      },
+      "ArtifactReplyView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "target_key": {
+            "type": "string",
+            "title": "Target Key"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactOption"
+            },
+            "type": "array",
+            "title": "Files"
+          },
+          "deliveries": {
+            "items": {
+              "$ref": "#/components/schemas/lingxi__channels__DeliveryView"
+            },
+            "type": "array",
+            "title": "Deliveries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "target_key",
+          "expires_at",
+          "digest",
+          "files",
+          "deliveries"
+        ],
+        "title": "ArtifactReplyView"
+      },
+      "ArtifactSelection": {
+        "properties": {
+          "origin_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Origin Id"
+          },
+          "request_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Request Id"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactSource"
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "origin_id",
+          "request_id",
+          "sources"
+        ],
+        "title": "ArtifactSelection"
+      },
+      "ArtifactSource": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "media",
+              "agent_result"
+            ],
+            "title": "Kind"
+          },
+          "id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "version"
+        ],
+        "title": "ArtifactSource"
       },
       "AttemptView": {
         "properties": {
