@@ -6,14 +6,17 @@ target instance and public origin. A source never automatically resumes writes.
 import argparse
 import hashlib
 import json
+from pathlib import Path
 import sys
 from typing import Literal
 from urllib.parse import urlsplit
 
+from alembic.migration import MigrationContext
+from alembic.script import ScriptDirectory
 from cryptography.fernet import InvalidToken
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Float, Integer, String, Text, UniqueConstraint, func, select, text
+from sqlalchemy import Float, Integer, String, Text, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .config import settings
@@ -23,7 +26,22 @@ from .security import decrypt, encrypt
 from .web import Context, audit, owned
 
 router = APIRouter()
-SCHEMA = '0054'
+
+
+def migration_schema(directory: Path | None = None):
+    """Use the packaged migration graph, independently of the working directory.
+
+    Handover requires a fully upgraded, single-head database on both servers.
+    Missing or branched migration packages must never relax that requirement.
+    """
+    directory = directory if directory is not None else Path(__file__).resolve().parents[1] / 'migrations'
+    heads = ScriptDirectory(str(directory)).get_heads()
+    if len(heads) != 1:
+        raise RuntimeError('Server migration package requires exactly one Alembic head')
+    return heads[0]
+
+
+SCHEMA = migration_schema()
 ACTIVE = ('planned', 'freezing', 'exported', 'awaiting_activation')
 
 
@@ -158,7 +176,7 @@ def target_info(token, expired=False):
 
 
 def schema(db):
-    if db.scalar(text('SELECT version_num FROM alembic_version')) != SCHEMA:
+    if MigrationContext.configure(db.connection()).get_current_heads() != (SCHEMA,):
         raise ValueError('Source and target require schema ' + SCHEMA)
 
 
