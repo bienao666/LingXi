@@ -213,6 +213,86 @@ test('save response lost retries the same preview without duplicate submissions'
 async function setInput(selector,value){
   await act(async()=>{const input=document.querySelector(selector);assert.ok(input,selector);Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new window.Event('input',{bubbles:true}));});
 }
+async function setSelect(selector,value){
+  await act(async()=>{const select=document.querySelector(selector);assert.ok(select,selector);select.value=value;select.dispatchEvent(new window.Event('change',{bubbles:true}));});
+}
+async function submitFilters(){await act(async()=>document.querySelector('.memory-filters form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));}
+
+test('explicit memory filters wait for apply and send exact subject plus UTC date bounds',async t=>{
+  const urls=[];
+  await mount(t,async url=>{urls.push(url);return response(page([memory('fact')],'next'));});
+  const initial=urls.length;
+  await setInput('[name=memory_subject]','  朋友_100%  ');
+  await setSelect('[name=memory_time_basis]','event');
+  await setInput('[name=memory_since]','2026-01-01');
+  await setInput('[name=memory_until]','2026-01-31');
+  assert.equal(urls.length,initial);assert.match(document.body.textContent,/UTC 日/);
+  await submitFilters();
+  const params=new URL(urls.at(-1),'http://test').searchParams;
+  assert.equal(params.get('subject'),'朋友_100%');assert.equal(params.get('time_basis'),'event');
+  assert.equal(params.get('since'),'2026-01-01');assert.equal(params.get('until'),'2026-01-31');
+  assert.match(document.querySelector('.memory-filters [role=status]').textContent,/朋友_100%.*事件日期.*2026-01-01.*2026-01-31/);
+  assert.equal(params.has('cursor'),false);
+  await click('下一页');assert.equal(new URL(urls.at(-1),'http://test').searchParams.get('time_basis'),'event');
+  await click('清除筛选');
+  assert.equal(new URL(urls.at(-1),'http://test').searchParams.has('time_basis'),false);
+  assert.equal(document.querySelector('[name=memory_subject]').value,'');
+  assert.equal(document.querySelector('[name=memory_since]').disabled,true);
+  assert.match(document.body.textContent,/第 1 页/);
+});
+
+test('reversed dates focus a repairable error and do not silently reuse previous filters',async t=>{
+  const urls=[];await mount(t,async url=>{urls.push(url);return response(page());});
+  await setSelect('[name=memory_time_basis]','period');
+  await setInput('[name=memory_since]','2026-11-02');await setInput('[name=memory_until]','2026-11-01');
+  const count=urls.length;await submitFilters();
+  assert.equal(urls.length,count);assert.match(document.querySelector('[role=alert]').textContent,/开始日期不能晚于/);
+  assert.equal(document.activeElement,document.querySelector('[role=alert]'));
+  await setInput('[name=memory_until]','2026-11-03');assert.equal(document.querySelector('[role=alert]'),null);
+  await submitFilters();assert.equal(new URL(urls.at(-1),'http://test').searchParams.get('time_basis'),'period');
+});
+
+test('temporal scan budget never reports a fully empty bank and keeps continuation enabled',async t=>{
+  await mount(t,async url=>response(new URL(url,'http://test').searchParams.has('cursor')?page([memory('older-match')]):{...page([],'scan-continuation'),scanned:1024,scan_limited:true}));
+  assert.match(document.body.textContent,/还有记录未检查/);assert.match(document.body.textContent,/已检查 1024 条/);
+  assert.doesNotMatch(document.body.textContent,/尚无匹配记忆。可以/);
+  assert.equal(buttons('下一页')[0].disabled,false);await click('下一页');
+  assert.match(document.body.textContent,/older-match/);assert.equal(buttons('下一页')[0].disabled,true);
+});
+
+test('a new subject invalidates the old cursor and hides stale matching facts immediately',async t=>{
+  const urls=[];let finish;
+  await mount(t,async url=>{urls.push(url);if(new URL(url,'http://test').searchParams.get('subject'))return await new Promise(r=>finish=r);return response(page([memory('old-person-fact')],'next'));});
+  await click('下一页');await setInput('[name=memory_subject]','self');await submitFilters();
+  assert.doesNotMatch(document.body.textContent,/old-person-fact/);
+  assert.equal(new URL(urls.at(-1),'http://test').searchParams.has('cursor'),false);
+  assert.equal(buttons('下一页')[0].disabled,true);
+  await act(async()=>finish(response(page([memory('own-current-fact')]))));
+  assert.match(document.body.textContent,/own-current-fact/);
+});
+
+test('unknown temporal evidence is explained and switching to all clears disabled dates',async t=>{
+  const urls=[];await mount(t,async url=>{urls.push(url);return response(page());});
+  assert.match(document.querySelector('.memory-filters').textContent,/未注明或旧格式时间不会被猜测/);
+  await setSelect('[name=memory_time_basis]','created');await setInput('[name=memory_since]','2026-01-01');
+  await setSelect('[name=memory_time_basis]','all');
+  assert.equal(document.querySelector('[name=memory_since]').value,'');
+  assert.equal(document.querySelector('[name=memory_since]').disabled,true);
+  await submitFilters();assert.equal(new URL(urls.at(-1),'http://test').searchParams.has('since'),false);
+});
+
+test('native date values are read from the submitted form even without React change events',async t=>{
+  const urls=[];await mount(t,async url=>{urls.push(url);return response(page());});
+  await setSelect('[name=memory_time_basis]','event');
+  // Some native date controls commit their value without React's change plugin.
+  Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(document.querySelector('[name=memory_since]'),'2026-11-01');
+  Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(document.querySelector('[name=memory_until]'),'2026-11-30');
+  await submitFilters();
+  const params=new URL(urls.at(-1),'http://test').searchParams;
+  assert.equal(params.get('since'),'2026-11-01');assert.equal(params.get('until'),'2026-11-30');
+  assert.match(document.querySelector('.memory-filters [role=status]').textContent,/2026-11-01.*2026-11-30/);
+});
+
 async function submitEditor(){await act(async()=>document.querySelector('dialog form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));}
 
 test('memory editing preserves untouched legacy times and sends explicit clear only for edited fields',async t=>{

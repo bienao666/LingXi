@@ -6355,6 +6355,16 @@ export interface components {
             next_cursor: string | null;
             /** As Of */
             as_of: number;
+            /**
+             * Scanned
+             * @default 0
+             */
+            scanned: number;
+            /**
+             * Scan Limited
+             * @default false
+             */
+            scan_limited: boolean;
         };
         /** MemoryView */
         MemoryView: {
@@ -17404,6 +17414,10 @@ export interface operations {
             query?: {
                 q?: string;
                 category?: ("profile" | "preferences" | "experiences" | "projects" | "relationships" | "procedures" | "support") | "";
+                subject?: string;
+                time_basis?: "all" | "created" | "event" | "period";
+                since?: string;
+                until?: string;
                 cursor?: string | null;
                 limit?: number;
             };

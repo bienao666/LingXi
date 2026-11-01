@@ -1,7 +1,7 @@
 import React,{useCallback,useEffect,useRef,useState} from 'react';
 import {api} from './api';
 
-type RecordPage<T>={items:T[];next_cursor:string|null;as_of:number};
+type RecordPage<T>={items:T[];next_cursor:string|null;as_of:number;scanned?:number;scan_limited?:boolean};
 type Position={url:string;cursor:string;stack:string[]};
 
 export function useMemoryRecords<T>(url:string){
@@ -34,7 +34,7 @@ export function useMemoryRecords<T>(url:string){
 }
 
 export function MemoryPager({records}:{records:ReturnType<typeof useMemoryRecords>}){
-  return <><p role="status" aria-live="polite">{records.busy?'正在读取记录…':records.data?`第 ${records.page} 页 · 本页 ${records.data.items.length} 条`:'记录尚未加载'}</p>
+  return <><p role="status" aria-live="polite">{records.busy?'正在读取记录…':records.data?`第 ${records.page} 页 · 本页 ${records.data.items.length} 条${records.data.scan_limited?` · 本批已检查 ${records.data.scanned} 条，仍有记录待检查，请继续下一页。`:''}`:'记录尚未加载'}</p>
     {records.error&&<div className="actions"><button className="button" disabled={records.busy} onClick={records.refresh}>重试加载</button><button className="button" disabled={records.busy} onClick={records.latest}>返回最新</button></div>}
     <nav className="actions" aria-label="记忆记录分页"><button className="button" disabled={records.busy||!records.hasPrevious} onClick={()=>records.move(false)}>上一页</button><button className="button" disabled={records.busy||!records.data?.next_cursor} onClick={()=>records.move(true)}>下一页</button><button className="button" disabled={records.busy||!records.hasPrevious} onClick={records.latest}>返回最新</button></nav>
   </>;

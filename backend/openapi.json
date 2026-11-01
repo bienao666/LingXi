@@ -10567,6 +10567,57 @@
             }
           },
           {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 150,
+              "default": "",
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "time_basis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "created",
+                "event",
+                "period"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "Time Basis"
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 10,
+              "pattern": "^(|\\d{4}-\\d{2}-\\d{2})$",
+              "default": "",
+              "title": "Since"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 10,
+              "pattern": "^(|\\d{4}-\\d{2}-\\d{2})$",
+              "default": "",
+              "title": "Until"
+            }
+          },
+          {
             "name": "cursor",
             "in": "query",
             "required": false,
@@ -17138,6 +17189,16 @@
           "as_of": {
             "type": "number",
             "title": "As Of"
+          },
+          "scanned": {
+            "type": "integer",
+            "title": "Scanned",
+            "default": 0
+          },
+          "scan_limited": {
+            "type": "boolean",
+            "title": "Scan Limited",
+            "default": false
           }
         },
         "type": "object",

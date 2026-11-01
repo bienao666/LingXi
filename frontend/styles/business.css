@@ -41,6 +41,11 @@ label.checkbox { display: flex; flex-direction: row; gap: var(--space-2); align-
 .filter-row { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 .filter-row input { flex: 1; min-width: min(100%, 180px); }
 .filter-row select { width: auto; }
+.memory-filters summary { cursor: pointer; }
+.memory-filters[open] summary { margin-bottom: var(--space-4); }
+.memory-filters .form-stack > p { margin: 0; }
+.memory-filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--space-3); }
+.memory-filter-grid > label, .memory-filter-grid input, .memory-filter-grid select { min-width: 0; width: 100%; }
 .table-scroll { max-width: 100%; overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; text-align: start; }
 th, td { padding: var(--space-3); border-bottom: 1px solid var(--color-border-default); vertical-align: top; text-align: start; }
