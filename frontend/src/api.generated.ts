@@ -3077,6 +3077,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change Password */
+        put: operations["change_password_api_auth_password_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/backups": {
         parameters: {
             query?: never;
@@ -6733,6 +6750,46 @@ export interface components {
             maintenance: boolean;
             /** Runs */
             runs: components["schemas"]["RunView"][];
+        };
+        /** PasswordChangeInput */
+        PasswordChangeInput: {
+            /** Version */
+            version: number;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * New Password
+             * Format: password
+             */
+            new_password: string;
+            /**
+             * Confirmation
+             * Format: password
+             */
+            confirmation: string;
+            /**
+             * Code
+             * Format: password
+             * @default
+             */
+            code: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "revoke_all_logins";
+        };
+        /** PasswordChangeView */
+        PasswordChangeView: {
+            /**
+             * Status
+             * @default reauthentication_required
+             * @constant
+             */
+            status: "reauthentication_required";
         };
         /** PersonaInput */
         PersonaInput: {
@@ -15643,6 +15700,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SecurityView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_password_api_auth_password_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChangeInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PasswordChangeView"];
                 };
             };
             /** @description Validation Error */

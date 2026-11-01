@@ -8359,6 +8359,44 @@
         }
       }
     },
+    "/api/auth/password": {
+      "put": {
+        "summary": "Change Password",
+        "operationId": "change_password_api_auth_password_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordChangeView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backups": {
       "get": {
         "summary": "Overview",
@@ -18128,6 +18166,74 @@
           "runs"
         ],
         "title": "Overview"
+      },
+      "PasswordChangeInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "format": "password",
+            "title": "Password",
+            "writeOnly": true
+          },
+          "new_password": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 12,
+            "format": "password",
+            "title": "New Password",
+            "writeOnly": true
+          },
+          "confirmation": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 12,
+            "format": "password",
+            "title": "Confirmation",
+            "writeOnly": true
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 64,
+            "format": "password",
+            "title": "Code",
+            "default": "",
+            "writeOnly": true
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "revoke_all_logins",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "password",
+          "new_password",
+          "confirmation",
+          "acknowledgement"
+        ],
+        "title": "PasswordChangeInput"
+      },
+      "PasswordChangeView": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "reauthentication_required",
+            "title": "Status",
+            "default": "reauthentication_required"
+          }
+        },
+        "type": "object",
+        "title": "PasswordChangeView"
       },
       "PersonaInput": {
         "properties": {

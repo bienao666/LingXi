@@ -75,3 +75,67 @@ test('current session revocation waits for confirmation then triggers identity g
 test('unavailable security status never exposes enrollment actions',async t=>{
  await mount(t,SecurityPage,{},()=>response({detail:'安全状态暂不可用'},503));assert.match(document.body.textContent,/安全状态暂不可用/);assert.ok(![...document.querySelectorAll('button')].some(b=>b.textContent==='启用验证'));
 });
+
+async function passwordForm({factor=false}={}){
+ await click('修改密码');await value('input[name="password"]','synthetic-current-password');
+ await value('input[name="new_password"]','synthetic-new-password');await value('input[name="confirmation"]','synthetic-new-password');
+ if(factor)await value('input[name="code"]','synthetic-recovery-code');
+ await act(async()=>document.querySelector('dialog input[type="checkbox"]').click());
+}
+
+test('password change requires explicit all-session acknowledgement and never assumes disabled factor proof',async t=>{
+ const calls=[];await mount(t,SecurityPage,{},(u,o)=>{calls.push({u,o});return response(u.endsWith('/security')?state:[]);});
+ await click('修改密码');assert.equal(document.querySelector('dialog button.primary').disabled,true);
+ assert.match(document.querySelector('dialog').textContent,/全部登录会话将失效/);assert.equal(document.querySelector('input[name="code"]'),null);
+ assert.equal(document.querySelector('input[name="new_password"]').autocomplete,'new-password');
+ await submit();assert.ok(calls.every(c=>c.o.method==='GET'));
+ assert.equal(window.localStorage.length,0);assert.equal(window.sessionStorage.length,0);
+});
+
+test('password mismatch stays local and focuses the accessible error',async t=>{
+ const calls=[];await mount(t,SecurityPage,{},(u,o)=>{calls.push({u,o});return response(u.endsWith('/security')?state:[]);});
+ await passwordForm();await value('input[name="confirmation"]','does-not-match');await submit();
+ assert.match(document.querySelector('[role="alert"]').textContent,/两次新密码须一致/);
+ assert.equal(document.activeElement,document.querySelector('[role="alert"]'));assert.ok(calls.every(c=>c.o.method==='GET'));
+});
+
+test('successful password rotation submits current version and explicit proof, then enters identity gate',async t=>{
+ let events=0;const listener=()=>events++;window.addEventListener('lingxi:unauthorized',listener);t.after(()=>window.removeEventListener('lingxi:unauthorized',listener));
+ const calls=[];await mount(t,SecurityPage,{},(u,o)=>{calls.push({u,o});return response(u.endsWith('/security')?active:u.endsWith('/password')?{status:'reauthentication_required'}:[]);});
+ await passwordForm({factor:true});await submit();
+ assert.deepEqual(JSON.parse(calls.find(c=>c.u.endsWith('/password')).o.body),{version:2,password:'synthetic-current-password',new_password:'synthetic-new-password',confirmation:'synthetic-new-password',code:'synthetic-recovery-code',acknowledgement:'revoke_all_logins'});
+ assert.equal(events,1);assert.equal(document.querySelector('dialog'),null);assert.equal(document.querySelector('input[type="password"]'),null);
+ assert.equal(window.localStorage.length,0);assert.equal(window.sessionStorage.length,0);
+});
+
+test('wrong password and version conflicts clear secrets and require fresh acknowledgement',async t=>{
+ let status=401;const calls=[];await mount(t,SecurityPage,{},(u,o)=>{calls.push({u,o});return response(u.endsWith('/security')?active:u.endsWith('/password')?{detail:status===401?'当前密码不正确':'安全配置已变化'}:[],u.endsWith('/password')?status:200);});
+ await passwordForm({factor:true});await submit();assert.match(document.querySelector('[role="alert"]').textContent,/当前密码不正确/);
+ for(const input of document.querySelectorAll('dialog input:not([type="checkbox"])'))assert.equal(input.value,'');
+ assert.equal(document.querySelector('dialog button.primary').disabled,true);assert.equal(document.querySelector('dialog input[type="checkbox"]').checked,false);
+ status=409;await value('input[name="password"]','current-again');await value('input[name="new_password"]','new-password-again');await value('input[name="confirmation"]','new-password-again');await value('input[name="code"]','fresh-proof');
+ await act(async()=>document.querySelector('dialog input[type="checkbox"]').click());await submit();
+ assert.match(document.querySelector('[role="alert"]').textContent,/安全配置已变化/);assert.equal(calls.filter(c=>c.u.endsWith('/password')).length,2);
+ await click('刷新核对');assert.equal(calls.filter(c=>c.u.endsWith('/password')).length,2);
+});
+
+test('pending password submission blocks duplicates and dismissing until outcome arrives',async t=>{
+ let resolve;let attempts=0;await mount(t,SecurityPage,{},(u)=>u.endsWith('/password')?(attempts++,new Promise(r=>resolve=r)):response(u.endsWith('/security')?state:[]));
+ await passwordForm();await submit();await submit();assert.equal(attempts,1);
+ assert.equal(document.querySelector('dialog button[aria-label="关闭修改密码"]').disabled,true);
+ await act(async()=>resolve(response({detail:'请稍后重试'},429)));assert.match(document.querySelector('[role="alert"]').textContent,/请稍后重试/);
+ assert.equal(document.querySelector('dialog button[aria-label="关闭修改密码"]').disabled,false);
+});
+
+test('connection failure does not retry or claim password was unchanged',async t=>{
+ let attempts=0;await mount(t,SecurityPage,{},u=>{if(u.endsWith('/password')){attempts++;throw new TypeError('network interrupted');}return response(u.endsWith('/security')?state:[]);});
+ await passwordForm();await submit();assert.equal(attempts,1);assert.match(document.querySelector('[role="alert"]').textContent,/修改结果尚未确认/);
+ assert.equal(document.querySelector('input[name="password"]').value,'');assert.equal(document.querySelector('dialog button.primary').disabled,true);
+});
+
+test('revoked auth reads trigger identity gate but rejected current-password proof stays in its form',async t=>{
+ let events=0,revoked=false;const listener=()=>events++;window.addEventListener('lingxi:unauthorized',listener);t.after(()=>window.removeEventListener('lingxi:unauthorized',listener));
+ await mount(t,SecurityPage,{},u=>response(u.endsWith('/password')||revoked?{detail:'请重新核对'}:u.endsWith('/security')?state:[],u.endsWith('/password')||revoked?401:200));
+ await passwordForm();await submit();assert.equal(events,0);assert.ok(document.querySelector('dialog'));
+ await click('关闭');revoked=true;await click('刷新状态');assert.ok(events>=1);
+});

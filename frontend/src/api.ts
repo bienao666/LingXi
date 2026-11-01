@@ -55,7 +55,9 @@ export async function api<T>(url: string, method = 'GET', body?: unknown, option
   } catch { throw new ApiError(options.signal?.aborted ? '服务器响应超时，请重试连接' : '无法连接服务器，请检查网络后重试', 0); }
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    if (response.status === 401 && !url.includes('/auth/')) window.dispatchEvent(new Event('lingxi:unauthorized'));
+    // A failed password/TOTP proof must remain in its form. Read-only auth
+    // queries prove that the browser session itself has expired or was revoked.
+    if (response.status === 401 && (!url.includes('/auth/') || method === 'GET')) window.dispatchEvent(new window.Event('lingxi:unauthorized'));
     const fallback = response.status >= 500 ? `服务暂不可用（${response.status}），请稍后重试` : `请求失败（${response.status}），请检查输入`;
     throw new ApiError(typeof data.detail === 'string' ? data.detail : fallback, response.status);
   }

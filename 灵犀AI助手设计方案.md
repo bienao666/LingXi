@@ -1,6 +1,6 @@
 # 灵犀 AI 助手设计方案
 
-> 文档版本：v1.80<br>
+> 文档版本：v1.81<br>
 > 更新日期：2026-11-01（Asia/Shanghai）<br>
 > 项目阶段：首批代码落地；实际模型与中文质量待验证  
 > 交付形态：服务器完整版；浏览器 Web＋个人 QQ
@@ -56,7 +56,13 @@ Windows／macOS 用户无需安装助手程序，只需浏览器即可聊天、�
 
 v1.6 将可追踪的开发需求集中收录于[第 18 节](#section-18)，包含 69 项 P0 功能需求和 10 项非功能需求，保留原有设计、接口与独立评测。需求编号用于关联功能和验收，不表示开发顺序、工期或完成状态。
 
-### 当前代码实现状态（v1.80）
+### 当前代码实现状态（v1.81）
+
+**登录密码维护（v1.81，OPS-02 增量）**
+
+安全设置支持修改密码：当前密码、配置版本及已启用的第二因素核验，12–300 字符新密码双重输入，明确确认全部登录失效。成功返回开场身份确认，保留后台任务及已启用认证器、未使用恢复码，取消待完成绑定；不改变用户名、模型密钥或授权。复用持久化限流与账号行锁，阻止密码轮换竞争中以旧凭据登录；认证校验错误不回显敏感输入，网络失败不自动重放。无忘记密码重置入口。
+
+新增 `PUT /api/auth/password`，schema 仍为 `0060`。Windows 相关回归 152 项通过／4 项跳过，隔离 PostgreSQL 209 项、前端全量 462 项及类型／静态／构建通过；真实 HTTP、重启、四档／矮屏及键盘验证通过。仅修改隔离合成账号，正式账号凭据与配置保持不变；实际模型等产品质量仍待验证，操作见[安全验证说明](./deploy/安全验证说明.md)。
 
 **统一配置历史与回退（v1.80，OPS-01 增量）**
 
@@ -447,7 +453,7 @@ Web 启动按“检查会话 → 身份确认 → 页面就绪 → 进入工作�
 
 系统代理在 `0003` 迁移中加入；真实 HTTP、HTTPS、SOCKS5 隧道和 Docker 中示例代理可达性通过。首次安装默认关闭，后续以用户保存的配置为准。代理可达不代表模型接入和长期记忆质量已验收。
 
-安全接口新增 `GET /api/auth/security` 及 `POST /api/auth/totp/setup`、`/confirm`、`/cancel`、`/recovery`、`/disable`；登录新增可选 `code`。精确响应和校验约束以 OpenAPI 为准。
+安全接口新增 `GET /api/auth/security`、`PUT /api/auth/password` 及 `POST /api/auth/totp/setup`、`/confirm`、`/cancel`、`/recovery`、`/disable`；登录新增可选 `code`。密码修改撤销全部登录，与只撤销其他登录的 TOTP 管理区分。精确响应和校验约束以 OpenAPI 为准。
 
 本批新增接口与第 15 节规划按领域对应：`/api/auth/*`、`/api/providers`、`/api/models`、`/api/model-policies`、`/api/chat`、`/api/chat-runs`、`/api/conversations`、`/api/messages`、`/api/memories`、`/api/memory-candidates`、`/api/memory-operations`、`/api/memory-exports`、`/api/admin/health`、`/api/admin/model-calls`、`/api/admin/proxy`（GET／PUT）、`/api/admin/proxy/test`（POST）。助手管理新增 `/api/personas`、`/api/agent-roles`、`/api/agent-profiles` 的增改查、复制与版本历史、`/api/conversations/{id}/persona` 及 `/api/support-preferences`。实际 HTTP 契约以 [OpenAPI](./backend/openapi.json) 为准；平台及协作接口见下方当前实现说明，当前插件接口见第 11 节实现说明，独立商店已提供 `/store/v1/*` 及 Core `/api/plugin-store`，契约见 [商店 OpenAPI](./backend/store-openapi.json)。
 

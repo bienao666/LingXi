@@ -7,6 +7,8 @@ import time
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import StreamingResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from sqlalchemy import func, select, text
 from sqlalchemy.exc import IntegrityError
 from argon2.exceptions import VerifyMismatchError, InvalidHashError
@@ -48,6 +50,16 @@ async def lifespan(app):
 
 
 app = FastAPI(title='灵犀 API', version='0.2.0', lifespan=lifespan, docs_url=None, redoc_url=None)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    # Pydantic error inputs can contain passwords, second factors or setup data.
+    # Auth failures must never echo the request payload in a response.
+    if request.url.path.startswith('/api/auth/'):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'detail': '身份请求格式无效，请检查必填项、字段长度及确认内容'}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.middleware('http')
@@ -122,7 +134,13 @@ def login(body: LoginInput, request: Request, response: Response, db=Depends(dat
             audit(db,user,'login_failed')
             db.commit()
         raise HTTPException(401, '用户名或密码不正确') from None
+    verified_password_hash = user.password_hash
     verify_login_factor(db, user, body.code)
+    # Factor throttling commits its reservation and reacquires the owner lock.
+    # A password rotation in that gap must not admit the old password.
+    user = lock_owner(db, user)
+    if not secrets.compare_digest(verified_password_hash, user.password_hash):
+        raise HTTPException(401, '登录凭据已变化，请使用当前密码重新登录')
     token, csrf = secrets.token_urlsafe(48), secrets.token_urlsafe(32)
     session = LoginSession(user_id=user.id, token_hash=token_hash(token), csrf=csrf, expires_at=now()+86400)
     db.add(session)
@@ -922,6 +940,8 @@ from .usage_costs import router as usage_costs_router
 app.include_router(usage_costs_router)
 from .auth_totp import router as security_router
 app.include_router(security_router)
+from .account_password import router as account_password_router
+app.include_router(account_password_router)
 from .backups import router as backup_router
 app.include_router(backup_router)
 from .chat_actions import router as chat_actions_router
