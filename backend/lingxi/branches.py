@@ -62,10 +62,12 @@ def history(db, conversation, *, include_unusable=False, limit=None, before=None
     if branch and branch.prefix_ids:
         rows = db.scalars(select(Message).join(Conversation, Conversation.id == Message.conversation_id)
             .where(Message.id.in_(branch.prefix_ids), Conversation.user_id == conversation.user_id,
+                Message.workspace_id == conversation.workspace_id,
                 Conversation.workspace_id == conversation.workspace_id, Conversation.deleted.is_(False)))
         by_id = {m.id: m for m in rows}
         inherited = [by_id[i] for i in branch.prefix_ids if i in by_id]
-    query = select(Message).where(Message.conversation_id == conversation.id)
+    query = select(Message).where(Message.conversation_id == conversation.id,
+        Message.workspace_id == conversation.workspace_id)
     if before is not None:
         query = query.where(Message.created_at < before)
         inherited = [m for m in inherited if m.created_at < before]

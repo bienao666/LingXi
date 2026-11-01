@@ -5760,6 +5760,18 @@ export interface components {
             preview: string;
             /** Characters */
             characters: number;
+            /**
+             * Preview Start
+             * @default 0
+             */
+            preview_start: number;
+            /**
+             * Match Start
+             * @default 0
+             */
+            match_start: number;
+            /** Source Hash */
+            source_hash: string;
         };
         /** HistoryPage */
         HistoryPage: {
@@ -5768,7 +5780,11 @@ export interface components {
             /** Next Offset */
             next_offset: number | null;
             /** Total */
-            total: number;
+            total: number | null;
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** As Of */
+            as_of: number;
         };
         /** HistoryRead */
         HistoryRead: {
@@ -5786,6 +5802,8 @@ export interface components {
             total: number;
             /** Attachment Ids */
             attachment_ids: string[];
+            /** Source Hash */
+            source_hash: string;
         };
         /** HistorySearch */
         HistorySearch: {
@@ -5804,6 +5822,13 @@ export interface components {
              * @default 20
              */
             limit: number;
+            /** Cursor */
+            cursor?: string | null;
+            /**
+             * Include Total
+             * @default true
+             */
+            include_total: boolean;
         };
         /** InboundView */
         InboundView: {
@@ -16031,6 +16056,7 @@ export interface operations {
             query?: {
                 start?: number;
                 length?: number;
+                source_hash?: string | null;
             };
             header?: never;
             path: {

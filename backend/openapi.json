@@ -8790,6 +8790,23 @@
               "default": 2000,
               "title": "Length"
             }
+          },
+          {
+            "name": "source_hash",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Hash"
+            }
           }
         ],
         "responses": {
@@ -15529,6 +15546,20 @@
           "characters": {
             "type": "integer",
             "title": "Characters"
+          },
+          "preview_start": {
+            "type": "integer",
+            "title": "Preview Start",
+            "default": 0
+          },
+          "match_start": {
+            "type": "integer",
+            "title": "Match Start",
+            "default": 0
+          },
+          "source_hash": {
+            "type": "string",
+            "title": "Source Hash"
           }
         },
         "type": "object",
@@ -15537,7 +15568,8 @@
           "role",
           "created_at",
           "preview",
-          "characters"
+          "characters",
+          "source_hash"
         ],
         "title": "HistoryItem"
       },
@@ -15562,15 +15594,38 @@
             "title": "Next Offset"
           },
           "total": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Total"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          },
+          "as_of": {
+            "type": "number",
+            "title": "As Of"
           }
         },
         "type": "object",
         "required": [
           "items",
           "next_offset",
-          "total"
+          "total",
+          "as_of"
         ],
         "title": "HistoryPage"
       },
@@ -15606,6 +15661,10 @@
             },
             "type": "array",
             "title": "Attachment Ids"
+          },
+          "source_hash": {
+            "type": "string",
+            "title": "Source Hash"
           }
         },
         "type": "object",
@@ -15616,7 +15675,8 @@
           "start",
           "end",
           "total",
-          "attachment_ids"
+          "attachment_ids",
+          "source_hash"
         ],
         "title": "HistoryRead"
       },
@@ -15640,6 +15700,23 @@
             "minimum": 1.0,
             "title": "Limit",
             "default": 20
+          },
+          "cursor": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cursor"
+          },
+          "include_total": {
+            "type": "boolean",
+            "title": "Include Total",
+            "default": true
           }
         },
         "type": "object",

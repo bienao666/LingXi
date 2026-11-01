@@ -195,7 +195,7 @@ const original={message_id:'original-one',role:'user',content:'只读原文内�
 test('history browser searches by POST and reads original ranges without any execution',async t=>{
  const requests=[];
  await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},(u,o)=>{requests.push({u,method:o.method,body:o.body});return response(u.endsWith('/search')?{items:[{message_id:'original-one',role:'user',created_at:1,preview:'原文预览',characters:2100}],total:1,next_offset:null}:original);});
- assert.equal(requests[0].method,'POST');assert.deepEqual(JSON.parse(requests[0].body),{query:'',offset:0,limit:10});
+ assert.equal(requests[0].method,'POST');assert.deepEqual(JSON.parse(requests[0].body),{query:'',cursor:null,limit:10,include_total:false});
  await click('读取原文');assert.match(document.body.textContent,/只读原文内容/);assert.match(document.body.textContent,/关联 1 个附件/);
  await click('下一片段');assert.ok(requests.some(v=>v.u.includes('start=6&length=2000')));
  assert.equal(requests.some(v=>v.u.startsWith('/api/chat')||v.u.startsWith('/api/tasks')),false);
@@ -211,6 +211,49 @@ test('history failure never displays a fabricated original',async t=>{
  await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},()=>response({detail:'原文权限已经失效'},404));
  assert.match(document.querySelector('[role=alert]').textContent,/权限已经失效/);
  assert.equal(document.querySelector('.history-original'),null);
+});
+
+const originalHash='a'.repeat(64);
+const historyHit={message_id:'original-one',role:'user',created_at:1,preview:'关键词附近原文 <script>evil()</script>',characters:5000,preview_start:500,match_start:540,source_hash:originalHash};
+const cursorPage=(items,next_cursor=null)=>({items,next_cursor,next_offset:null,total:null,as_of:1});
+
+test('history cursor paging retains its token and never invents a total',async t=>{
+ const requests=[];
+ await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},(u,o)=>{const body=JSON.parse(o.body);requests.push(body);return response(body.cursor?cursorPage([{...historyHit,message_id:'older-two'}]):cursorPage([historyHit],'next-token'));});
+ assert.match(document.body.textContent,/第 1 页/);assert.match(document.body.textContent,/完整计数未计算/);
+ await click('下一页');assert.equal(requests.at(-1).cursor,'next-token');assert.match(document.body.textContent,/第 2 页/);
+ await click('上一页');assert.equal(requests.at(-1).cursor,null);assert.match(document.body.textContent,/第 1 页/);
+ assert.equal(document.querySelector('script'),null);
+});
+
+test('history reader opens the matching region and binds every range to its source hash',async t=>{
+ const requests=[];
+ await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},(u,o)=>{requests.push(u);return response(u.endsWith('/search')?cursorPage([historyHit]):{...original,start:500,end:2500,total:5000,source_hash:originalHash});});
+ assert.match(document.querySelector('.history-results').textContent,/…关键词附近原文/);
+ await click('读取原文');assert.ok(requests.at(-1).includes('start=500&length=2000&source_hash='+originalHash));
+ await click('下一片段');assert.ok(requests.at(-1).includes('start=2500&length=2000&source_hash='+originalHash));
+});
+
+test('changed original clears an already displayed range instead of mixing versions',async t=>{
+ let reads=0;
+ await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},u=>u.endsWith('/search')?response(cursorPage([historyHit])):++reads===1?response({...original,start:500,end:2500,total:5000,source_hash:originalHash}):response({detail:'原文已变化，请重新检索后读取'},409));
+ await click('读取原文');assert.match(document.body.textContent,/只读原文内容/);
+ await click('下一片段');assert.match(document.querySelector('[role=alert]').textContent,/原文已变化/);assert.doesNotMatch(document.body.textContent,/只读原文内容/);
+});
+
+test('expired search token clears the page and offers a fresh search',async t=>{
+ const requests=[];
+ await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},(u,o)=>{const body=JSON.parse(o.body);requests.push(body);return body.cursor?response({detail:'分页凭据已过期'},400):response(cursorPage([historyHit],'expired-token'));});
+ await click('下一页');assert.match(document.querySelector('[role=alert]').textContent,/已过期/);assert.equal(document.querySelector('.history-results'),null);
+ await click('重新检索');assert.equal(requests.at(-1).cursor,null);assert.match(document.body.textContent,/第 1 页/);
+});
+
+test('late history response cannot restore data from a previous query',async t=>{
+ let resolve,first=true;
+ await mount(t,HistoryBrowser,{conversationId:'conversation-one',close:()=>{}},()=>first?(first=false,new Promise(r=>resolve=r)):response(cursorPage([])));
+ await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+ await act(async()=>resolve(response(cursorPage([historyHit]))));
+ assert.equal(document.querySelector('.history-results article'),null);assert.match(document.body.textContent,/没有匹配/);
 });
 
 test('context evidence labels exact roles, coverage and model reads as data',async t=>{
