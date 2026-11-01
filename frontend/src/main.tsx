@@ -5,8 +5,22 @@ import type { NavModule } from './navigation';
 import { paths } from './icons';
 import { api, setCsrf } from './api';
 import type { Session } from './api';
-import { ChatPage, ModelsPage, MemoryPage, SystemPage } from './pages';
+import { ChatPage, ModelsPage, MemoryPage } from './pages';
 import { StartupGate } from './StartupGate';
+import { SystemSettings } from './SystemSettings';
+import { ResourceSettings } from './ResourceSettings';
+import { AssistantPages } from './AssistantPages';
+import { TaskPages, SkillCatalog } from './TaskPages';
+import { ProactivePages, ProactiveInbox } from './ProactivePages';
+import { ChannelPages } from './ChannelPages';
+import {MediaFiles,MediaSettings} from './MediaPages';
+import {VoiceSettings} from './VoicePages';
+import {PluginPages} from './PluginPages';
+import {StorePages} from './StorePages';
+import {OperationsPages,OperationsOverview} from './OperationsPages';
+import {SecurityPage} from './SecurityPage';
+import {BackupPage} from './BackupPage';
+import {MigrationPage} from './MigrationPage';
 import '../styles/app.css';
 import '../styles/business.css';
 
@@ -21,6 +35,15 @@ function App() {
   const [entered, setEntered] = useState(false);
   const [gate, setGate] = useState(0);
   const gateActive = useRef(true);
+  const [workspaceName, setWorkspaceName] = useState('工作空间');
+  useEffect(() => {
+    if (!entered || !session) {setWorkspaceName('工作空间');return;}
+    let active = true, sequence = 0; const controller = new AbortController();
+    const reload = () => {const request = ++sequence;void api<{config:{workspace_name:string}}>('/api/system-settings','GET',undefined,{signal:controller.signal})
+      .then(value=>{if(active&&request===sequence)setWorkspaceName(value.config.workspace_name);}).catch(()=>{/* Configuration page offers retry. */});};
+    reload(); window.addEventListener('lingxi:system-settings',reload);
+    return () => {active=false;controller.abort();window.removeEventListener('lingxi:system-settings',reload);};
+  }, [entered, session?.id]);
   const [authError, setAuthError] = useState('');
   const [collapsed, collapse] = useState(read('localStorage', 'lingxi.sidebar.collapsed') === 'true');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -66,13 +89,13 @@ function App() {
     </div>;
   }
   function navigation(prefix: string) {return <><nav className="main-navigation" aria-label="主导航">{groups.map(g => <section className="nav-group" key={g.id}><h2 className="nav-group-title">{g.label}</h2>{modules.filter(m => m.group.id === g.id).map(m => navModule(m, prefix))}</section>)}</nav><div className="store-navigation">{store.map(m => navModule(m, prefix))}</div></>;}
-  const content = !route ? <div className="empty-state"><h2>页面未找到</h2><a className="route-recovery" href="#/chat/conversation">返回对话</a></div> : route.module.id === 'chat' ? <ChatPage hash={hash}/> : route.module.id === 'models' ? <ModelsPage page={route.id}/> : route.module.id === 'memory' ? <MemoryPage page={route.id} session={session!} onSession={setSession}/> : route.module.id === 'settings' && ['overview', 'security'].includes(route.id) ? <SystemPage page={route.id}/> : <div className="empty-state"><div className="empty-emblem"><span className="emblem-orbit"/><img src="/assets/lingxi.svg" alt="" width="64" height="64"/></div><h2>{route.label}</h2><p>{route.description}</p><span className="status-badge">待开发</span></div>;
+  const content = route?.module.id.startsWith('store-') ? <StorePages module={route.module.id} page={route.id}/> : !route ? <div className="empty-state"><h2>页面未找到</h2><a className="route-recovery" href="#/chat/conversation">返回对话</a></div> : route.module.id === 'data' && route.id === 'files' ? <MediaFiles/> : route.module.id === 'data' ? <OperationsPages page={route.id}/> : route.module.id === 'settings' && route.id === 'overview' ? <OperationsOverview/> : route.module.id === 'channels' ? <ChannelPages page={route.id}/> : route.module.id === 'chat' ? <ChatPage hash={hash}/> : route.module.id === 'plugins' ? <PluginPages page={route.id}/> : route.module.id === 'proactive' ? <ProactivePages page={route.id}/> : route.module.id === 'tasks' ? <TaskPages page={route.id} hash={hash}/> : route.module.id === 'assistants' ? <AssistantPages page={route.id}/> : route.module.id === 'models' ? <ModelsPage page={route.id}/> : route.module.id === 'memory' ? <MemoryPage page={route.id} session={session!} onSession={setSession}/> : route.module.id === 'settings' && route.id === 'media' ? <MediaSettings/> : route.module.id === 'settings' && route.id === 'voice' ? <VoiceSettings/> : route.module.id === 'settings' && route.id === 'resources' ? <ResourceSettings/> : route.module.id === 'settings' && route.id === 'general' ? <SystemSettings/> : route.module.id === 'settings' && route.id === 'security' ? <SecurityPage/> : route.module.id === 'settings' && route.id === 'migration' ? <MigrationPage/> : route.module.id === 'settings' && route.id === 'backups' ? <BackupPage/> : <div className="empty-state"><div className="empty-emblem"><span className="emblem-orbit"/><img src="/assets/lingxi.svg" alt="" width="64" height="64"/></div><h2>{route.label}</h2><p>{route.description}</p><span className="status-badge">待开发</span></div>;
   return <>
     <a className="skip-link" href="#main-content" onClick={e => {e.preventDefault(); main.current?.focus();}}>跳至主要内容</a>
     <div className={`app-shell ${collapsed ? 'is-collapsed' : ''}`} id="app-shell" hidden={!entered} inert={!entered}>
-      <aside className="sidebar" aria-label="工作空间侧栏"><a className="brand" href="#/chat/conversation"><img src="/assets/lingxi.svg" alt="" width="40" height="40"/><span className="brand-copy"><strong>灵犀<span className="brand-dot">.</span></strong><small>与你并肩，一点就通</small></span></a><div className="workspace-label"><span className="workspace-monogram">L</span><span>个人工作空间</span></div>{navigation('desktop')}<button className="profile-button" onClick={() => profile.current?.showModal()}><span className="profile-avatar">灵</span><span className="profile-copy"><strong>{session?.username || '个人空间'}</strong><small>Lingxi Workspace</small></span><Icon name="more"/></button></aside>
+      <aside className="sidebar" aria-label="工作空间侧栏"><a className="brand" href="#/chat/conversation"><img src="/assets/lingxi.svg" alt="" width="40" height="40"/><span className="brand-copy"><strong>灵犀<span className="brand-dot">.</span></strong><small>与你并肩，一点就通</small></span></a><div className="workspace-label"><span className="workspace-monogram">L</span><span>{workspaceName}</span></div>{navigation('desktop')}<button className="profile-button" onClick={() => profile.current?.showModal()}><span className="profile-avatar">灵</span><span className="profile-copy"><strong>{session?.username || '个人空间'}</strong><small>Lingxi Workspace</small></span><Icon name="more"/></button></aside>
       <div className="workspace"><header className="topbar"><button className="icon-button desktop-toggle" aria-label={collapsed ? '展开侧栏' : '收起侧栏'} aria-expanded={!collapsed} onClick={() => {collapse(!collapsed); write('localStorage', 'lingxi.sidebar.collapsed', String(!collapsed));}}><Icon name="panel"/></button><button className="icon-button mobile-toggle" aria-label="打开导航" onClick={() => drawer.current?.showModal()}><Icon name="menu"/></button><div className="breadcrumb"><span>{route?.module.label || '页面导航'}</span><Icon name="chevron"/><span className="breadcrumb-page">{route?.label || '未知页面'}</span></div><div className="topbar-actions"><button className="search-trigger" onClick={openSearch} aria-label="搜索菜单"><Icon name="search"/><span className="search-label">搜索菜单</span><kbd className="search-shortcut">Ctrl K</kbd></button><button className="icon-button" id="replay-boot" aria-label="重播开机动画" onClick={() => startGate()}><Icon name="sparkles"/></button><a className="icon-button settings-link" href="#/settings/overview" aria-label="系统概览"><Icon name="settings"/></a></div></header>
-      <main className="main-content" id="main-content" tabIndex={-1} aria-labelledby="page-title" ref={main}><h1 className="sr-only" id="page-title">{route ? `${route.module.label} · ${route.label}` : '页面未找到'}</h1><nav className="section-navigation" id="section-navigation" aria-label="当前模块页面">{route?.module.pages.map(p => <a className="section-link" key={p.id} href={`#/${route.module.id}/${p.id}`} aria-current={route.id === p.id ? 'page' : undefined}>{p.label}</a>)}</nav><section className="page-slot business-slot" id="page-slot">{entered && session ? content : null}</section><footer className="workspace-footer"><span>与你并肩，从每一次对话开始。</span><span>首批实现 · v0.2.0</span></footer></main></div>
+      <main className="main-content" id="main-content" tabIndex={-1} aria-labelledby="page-title" ref={main}><h1 className="sr-only" id="page-title">{route ? `${route.module.label} · ${route.label}` : '页面未找到'}</h1><nav className="section-navigation" id="section-navigation" aria-label="当前模块页面">{route?.module.pages.map(p => <a className="section-link" key={p.id} href={`#/${route.module.id}/${p.id}`} aria-current={route.id === p.id ? 'page' : undefined}>{p.label}</a>)}</nav>{entered && session && <ProactiveInbox/>}<section className="page-slot business-slot" id="page-slot">{entered && session ? content : null}</section><footer className="workspace-footer"><span>与你并肩，从每一次对话开始。</span><span>首批实现 · v0.2.0</span></footer></main></div>
     </div>
     <dialog className="navigation-drawer" ref={drawer} aria-label="灵犀导航"><div className="drawer-header"><strong>灵犀导航</strong><button className="icon-button" aria-label="关闭导航" onClick={() => drawer.current?.close()}><Icon name="close"/></button></div>{navigation('mobile')}</dialog>
     <dialog className="search-dialog" ref={search} aria-label="搜索菜单"><div className="search-dialog-header"><Icon name="search"/><input aria-label="搜索菜单" value={query} ref={searchInput} onChange={e => setQuery(e.target.value)} placeholder="搜索菜单或功能…"/><button className="icon-button" aria-label="关闭搜索" onClick={() => search.current?.close()}><Icon name="close"/></button></div><div className="search-results">{matches.map(r => <a className="search-result" key={r.href} href={r.href} onClick={() => search.current?.close()}><Icon name={r.module.icon}/><span className="search-result-copy"><strong>{r.label}</strong><small>{r.module.group.label} / {r.module.label}</small></span></a>)}{!matches.length && <p className="search-empty">没有找到相关页面</p>}</div><div className="search-dialog-footer" role="status">找到 {matches.length} 个页面 · ↑↓ 选择，Enter 进入</div></dialog>

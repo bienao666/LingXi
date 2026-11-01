@@ -55,6 +55,7 @@ class MemoryInput(BaseModel):
 
 class CandidateAction(BaseModel):
     action: Literal['confirm', 'reject']
+    review_digest: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
 
 
 class PreferenceInput(BaseModel):
@@ -105,6 +106,7 @@ class MessageView(BaseModel):
 
 
 class ChatRunView(BaseModel):
+    model_id: str
     id: str
     conversation_id: str
     status: str
@@ -135,6 +137,7 @@ class CandidateView(BaseModel):
     reason: str
     status: str
     memory_id: str | None
+    origin: dict[str, Any] = Field(default_factory=dict)
 
 
 class OperationView(BaseModel):

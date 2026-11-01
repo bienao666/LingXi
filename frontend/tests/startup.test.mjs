@@ -133,6 +133,17 @@ test('wrong password and subsequent success stay in the same animation instance'
   assert.deepEqual(qa.ready,[session]);
 });
 
+test('identity sends TOTP or recovery proof and clears it after failure without entering',async t=>{
+  const qa=await setup(t,url=>url.endsWith('/me')?anonymous():response(401,{detail:'双重验证未通过'}));
+  document.querySelector('[name=code]').value='aaaa-bbbb-cccc-dddd-eeee';
+  await qa.login();
+  const loginRequest=qa.requests.find(r=>r.url.endsWith('/login'));
+  assert.equal(JSON.parse(loginRequest.options.body).code,'aaaa-bbbb-cccc-dddd-eeee');
+  assert.equal(document.querySelector('[name=code]').value,'');assert.equal(document.querySelector('[name=password]').value,'');
+  assert.match(document.body.textContent,/双重验证未通过/);assert.equal(qa.ready.length,0);assert.equal(qa.mounts.length,1);
+  assert.equal(window.localStorage.length,0);
+});
+
 test('session revoked during confirmation switches to password form without restarting intro',async t=>{
   let attempts=0;
   const qa=await setup(t,()=>++attempts===1 ? me() : anonymous());

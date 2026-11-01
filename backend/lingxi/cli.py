@@ -29,7 +29,7 @@ def configure():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['configure', 'init-admin', 'replay-deletions', 'openapi', 'reindex'])
+    parser.add_argument('command', choices=['configure', 'init-admin', 'reset-totp', 'replay-deletions', 'openapi', 'reindex'])
     args = parser.parse_args()
     if args.command == 'configure':
         configure()
@@ -53,7 +53,35 @@ def main():
             if password != getpass.getpass('Confirm password: '):
                 raise SystemExit('Passwords differ')
             db.add(User(username=username, password_hash=hasher.hash(password)))
+            db.flush()
+            from .assistants import seed_defaults
+            seed_defaults(db)
+            from .media_policy import seed_defaults as seed_media_policy
+            seed_media_policy(db)
             print('Owner initialized.')
+        elif args.command == 'reset-totp':
+            from .auth_totp import clear_factor, configuration, lock_owner
+            from .models import LoginSession
+            from .web import audit
+            from sqlalchemy import delete
+            from argon2.exceptions import VerifyMismatchError, InvalidHashError
+            username = input('Owner username: ').strip()
+            user = db.scalar(select(User).where(User.username == username))
+            if not user:
+                raise SystemExit('Owner not found.')
+            user = lock_owner(db, user)
+            try:
+                hasher.verify(user.password_hash, getpass.getpass('Current owner password: '))
+            except (VerifyMismatchError, InvalidHashError):
+                raise SystemExit('Password verification failed; no changes made.') from None
+            if input('This disables TOTP and revokes all sessions. Type RESET '+username+': ') != 'RESET '+username:
+                raise SystemExit('Cancelled; no changes made.')
+            row = configuration(db, user)
+            if row:
+                clear_factor(row)
+            db.execute(delete(LoginSession).where(LoginSession.user_id == user.id))
+            audit(db, user, 'totp_operator_reset')
+            print('TOTP reset; all browser sessions revoked. Sign in and enroll a new authenticator.')
         elif args.command == 'reindex':
             from .models import Job, Memory, Model, Policy
             from .db import now

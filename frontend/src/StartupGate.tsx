@@ -24,11 +24,11 @@ export function StartupGate({onReady}: {onReady(session: Session): void}) {
   const [startAt, setStartAt] = useState<'brand' | 'identity' | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null), [fallback, setFallback] = useState(false);
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState(''), [confirmed, setConfirmed] = useState(false);
-  const host = useRef<HTMLDivElement>(null), password = useRef<HTMLInputElement>(null), action = useRef<HTMLButtonElement>(null);
+  const host = useRef<HTMLDivElement>(null), password = useRef<HTMLInputElement>(null), code = useRef<HTMLInputElement>(null), action = useRef<HTMLButtonElement>(null);
   const alive = useRef(true), operation = useRef(false), request = useRef<AbortController | null>(null);
   const resolveIdentity = useRef<((identity: Identity) => void) | null>(null), accepted = useRef<Session | null>(null);
   const readyCallback = useRef(onReady); readyCallback.current = onReady;
-  const usernameId = useId(), passwordId = useId();
+  const usernameId = useId(), passwordId = useId(), codeId = useId();
 
   async function authRequest<T>(url: string, method = 'GET', body?: unknown) {
     const controller = new AbortController(); request.current = controller;
@@ -60,7 +60,7 @@ export function StartupGate({onReady}: {onReady(session: Session): void}) {
     if (fallback) readyCallback.current(session);
     else resolveIdentity.current?.({name:session.username});
   }
-  async function confirm(body?: {username: string; password: string}) {
+  async function confirm(body?: {username: string; password: string; code: string}) {
     if (operation.current) return;
     operation.current = true; setBusy(true); setFailure('');
     try {
@@ -73,6 +73,7 @@ export function StartupGate({onReady}: {onReady(session: Session): void}) {
       }
     } finally {
       if (password.current) password.current.value = '';
+      if (code.current) code.current.value = '';
       operation.current = false;
       if (alive.current) {
         setBusy(false);
@@ -124,10 +125,12 @@ export function StartupGate({onReady}: {onReady(session: Session): void}) {
     {auth.status==='authenticated' && <><p className="identity-name">{auth.session.username}</p><p className="muted">{confirmed ? '身份已确认，正在进入工作空间…' : '登录会话有效，请确认后进入。'}</p><button ref={action} className="button primary" autoFocus disabled={busy || confirmed} onClick={() => void confirm()}>{busy ? '正在核验…' : confirmed ? '身份已确认' : '确认进入'}</button></>}
     {auth.status==='anonymous' && <form className="form-stack" onSubmit={e => {
       e.preventDefault();const form = new FormData(e.currentTarget);
-      void confirm({username:String(form.get('username') || ''),password:String(form.get('password') || '')});
+      void confirm({username:String(form.get('username') || ''),password:String(form.get('password') || ''),code:String(form.get('code') || '').trim()});
     }} onKeyDown={e => {if (e.key==='Enter' && e.nativeEvent.isComposing) {e.preventDefault();e.stopPropagation();}}}>
       <label htmlFor={usernameId}>用户名<input id={usernameId} name="username" autoComplete="username" autoCapitalize="none" spellCheck={false} required maxLength={100} autoFocus readOnly={busy}/></label>
       <label htmlFor={passwordId}>密码<input id={passwordId} ref={password} name="password" type="password" autoComplete="current-password" required maxLength={300} readOnly={busy}/></label>
+      <label htmlFor={codeId}>验证代码<input id={codeId} ref={code} name="code" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} maxLength={64} readOnly={busy} aria-describedby={`${codeId}-hint`}/></label>
+      <p id={`${codeId}-hint`} className="muted">已启用双重验证时填写认证器的 6 位验证码或一次性恢复码；未启用可留空。</p>
       <button className="button primary" disabled={busy}>{busy ? '正在确认…' : '确认身份'}</button>
     </form>}
     {failure && <p className="error" role="alert">{failure}</p>}

@@ -1,0 +1,55 @@
+# Optional independent store. Core/worker receive none of this service's secrets.
+services:
+  store-db:
+    image: groonga/pgroonga:4.0.8-debian-17
+    environment:
+      POSTGRES_USER: lingxi_store
+      POSTGRES_DB: lingxi_store
+      POSTGRES_PASSWORD: ${STORE_DB_PASSWORD:?Set an independent store DB password}
+    volumes:
+      - store-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U lingxi_store -d lingxi_store']
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+  store-migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      LINGXI_STORE_DATABASE_URL: postgresql+psycopg://lingxi_store:${STORE_DB_PASSWORD}@store-db:5432/lingxi_store
+    command: [alembic, -c, backend/store-alembic.ini, upgrade, head]
+    depends_on:
+      store-db: {condition: service_healthy}
+  plugin-store:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      LINGXI_STORE_DATABASE_URL: postgresql+psycopg://lingxi_store:${STORE_DB_PASSWORD}@store-db:5432/lingxi_store
+      LINGXI_STORE_PUBLIC_ORIGIN: ${LINGXI_PUBLIC_ORIGIN:?Set the browser's exact origin}
+      LINGXI_STORE_COOKIE_SECURE: ${LINGXI_COOKIE_SECURE:-true}
+      LINGXI_STORE_SIGNING_KEY: /run/store-secrets/signing.key
+      LINGXI_STORE_TRUST_BUNDLE: /run/store-secrets/trust.json
+      LINGXI_STORE_ARTIFACT_DIR: /app/runtime/store-artifacts
+      LINGXI_STORE_S3_ENDPOINT: ${LINGXI_STORE_S3_ENDPOINT:-}
+      LINGXI_STORE_S3_BUCKET: ${LINGXI_STORE_S3_BUCKET:-}
+      LINGXI_STORE_S3_REGION: ${LINGXI_STORE_S3_REGION:-us-east-1}
+      LINGXI_STORE_S3_ACCESS_KEY: ${LINGXI_STORE_S3_ACCESS_KEY:-}
+      LINGXI_STORE_S3_SECRET_KEY: ${LINGXI_STORE_S3_SECRET_KEY:-}
+    command: [uvicorn, lingxi_store.api:app, --host, 0.0.0.0, --port, '8001', --no-access-log]
+    volumes:
+      - store-artifacts:/app/runtime
+      - ${LINGXI_STORE_KEYS_DIR:?Initialize keys and set this absolute directory}/signing.key:/run/store-secrets/signing.key:ro
+      - ${LINGXI_STORE_KEYS_DIR:?Initialize keys and set this absolute directory}/trust.json:/run/store-secrets/trust.json:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/store/v1/health', timeout=3)"]
+      interval: 10s
+      retries: 10
+    depends_on:
+      store-migrate: {condition: service_completed_successfully}
+    restart: unless-stopped
+volumes:
+  store-postgres:
+  store-artifacts:

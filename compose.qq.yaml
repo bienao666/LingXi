@@ -1,0 +1,20 @@
+# Optional protocol component; configure the private WebUI manually before real QQ acceptance.
+# Release and digest verified against NapNeko/NapCat-Docker and Docker Hub, 2026-10-29.
+services:
+  napcat:
+    image: mlikiowa/napcat-docker:v4.18.41@sha256:b101b8968cc31ae428ec0f8e117386e4ced7773b2d8226ed9f7ddfcec55f1b7e
+    profiles: [qq]
+    environment:
+      MODE: ws
+      WEBUI_TOKEN: ${NAPCAT_WEBUI_TOKEN:?Set an independent NapCat WebUI token in .env}
+    ports:
+      - '127.0.0.1:6099:6099'
+    volumes:
+      - napcat-qq:/app/.config/QQ
+      - napcat-config:/app/napcat/config
+    restart: unless-stopped
+    depends_on:
+      core: {condition: service_healthy}
+volumes:
+  napcat-qq:
+  napcat-config:

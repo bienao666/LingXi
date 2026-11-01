@@ -1,6 +1,15 @@
 from alembic import context
 from lingxi.db import Base, engine
-from lingxi import models
+from lingxi import models, network, assistants, tasks, proactive, channels, delegation, media, voice, plugins, plugin_store, operations, auth_totp, backups, providers, chat_actions, branches, conversation_context
+from lingxi import plugin_api, plugin_mcp, plugin_events, plugin_agents, plugin_oauth, channel_media
+from lingxi import model_routing
+from lingxi import emotions
+from lingxi import channel_tasks
+from lingxi import proactive_generation
+from lingxi import usage_costs
+from lingxi import media_policy
+from lingxi import system_settings, resources
+from lingxi import workspace_migrations, voice_realtime, voice_native_output
 
 def run_migrations():
     with engine.connect() as connection:

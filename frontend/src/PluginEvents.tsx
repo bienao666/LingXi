@@ -1,0 +1,42 @@
+import React,{useState} from 'react';
+import {api} from './api';
+import type {components} from './api.generated';
+import {ErrorNotice,formatTime,Modal,useResource} from './ui';
+
+type Subscription=components['schemas']['SubscriptionView'];
+type Event=components['schemas']['EventView'];
+export type EventCapability={id:string;name:string;kind:string;event?:{transport:string;event_types:string[];ttl_seconds:number};installation_id:string;plugin_id:string;plugin_version:string};
+const states:Record<string,string>={accepted:'已收事件',deleted:'已删正文',expired:'事件过期',invalidated:'来源失效',active:'订阅有效',revoked:'订阅撤销'};
+
+export function PluginEvents({capabilities,changed}:{capabilities:EventCapability[];changed():void}){
+  const subs=useResource<Subscription[]>('/api/plugin-event-subscriptions'),events=useResource<Event[]>('/api/plugin-events');
+  const [editing,setEditing]=useState<EventCapability|null>(null),[revoking,setRevoking]=useState<Subscription|null>(null),[deleting,setDeleting]=useState<Event|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+  const rows=Array.isArray(subs.data)?subs.data:[],received=Array.isArray(events.data)?events.data:[];
+  const caps=capabilities.filter(c=>c.kind==='event');
+  const find=(cap:EventCapability)=>rows.find(s=>s.installation_id===cap.installation_id&&s.capability_id===cap.id);
+  const reload=()=>{subs.reload();events.reload();changed();};
+  const complete=()=>{setEditing(null);setRevoking(null);setDeleting(null);setNotice('事件设置已更新，接收不等于已联系或已读。');reload();};
+  return <section className="page-stack" aria-label="插件事件"><div className="pane-toolbar"><h2>事件订阅</h2><button className="button" onClick={reload}>刷新事件</button></div><p className="muted">安装后仍需单独授权事件类型和接收额度。外部服务只能提交签名事件；核心统一判断联系时机，不自动执行其中的操作。</p><ErrorNotice error={error||subs.error||events.error}/>{notice&&<p role="status">{notice}</p>}
+    {(!subs.data||!events.data)&&!subs.error&&!events.error&&<p role="status">正在加载订阅与接收记录…</p>}
+    <div className="card-grid">{caps.map(cap=>{const row=find(cap);return <article className="data-card profile-card" key={cap.installation_id+cap.id}><div className="pane-toolbar"><h3>{cap.name}</h3><span className="status-badge">{row?states[row.status]||row.status:'尚未授权'}</span></div><small>{cap.plugin_id} · v{cap.plugin_version} · {cap.id}</small><p>事件类型：{(row?.event_types||cap.event?.event_types||[]).join('、')}</p>{row&&<><p>接收额度：每小时 {row.hourly_limit} 次 · 每 24 小时 {row.daily_limit} 次</p><p>凭据：{row.has_secret?'已加密保存':'未保存'}</p><code className="plugin-digest">{row.endpoint}</code>{row.reason&&<p className="muted">{row.reason}</p>}<details><summary>接入约定</summary><p>将地址交给已授权事件来源。使用 HMAC-SHA256 对“订阅 ID、Unix 秒时间戳、事件 ID、原始 JSON 正文”签名，前三项以换行分隔后加换行再接正文。请求头为 X-Lingxi-Timestamp、X-Lingxi-Event-Id 和 X-Lingxi-Signature（sha256=摘要）。时间误差最多五分钟；正文不超过 12 KiB。</p><p>正文包含 type、title、summary、occurred_at、expires_at；必须为已授权类型，不能指定接收者、会话、记忆或工具操作。回执仅表示接收。详情见部署目录的插件使用说明。</p></details></>}
+      <div className="actions"><button className="button primary" disabled={!subs.data} onClick={()=>{setError('');setEditing(cap);}}>{row?'编辑订阅':'配置订阅'}</button>{row?.status==='active'&&<button className="button" onClick={()=>{setError('');setRevoking(row);}}>撤销订阅</button>}</div></article>;})}</div>
+    {subs.data&&caps.length===0&&<div className="data-empty">尚未安装事件能力，可先在插件商店预览安装已审核的插件。</div>}
+    {rows.filter(row=>!caps.some(cap=>cap.installation_id===row.installation_id&&cap.id===row.capability_id)).map(row=><article className="data-card" key={row.id}><h3>{row.plugin_id} · {row.capability_id}</h3><p>{row.reason||'当前安装版本不提供此事件能力'}</p>{row.status==='active'&&<button className="button" onClick={()=>setRevoking(row)}>撤销订阅</button>}</article>)}
+    <h2>接收记录</h2><p className="muted">最近 50 条事件。外部报告不等于已核验事实；删除正文后保留去重标记，防止同一事件重新出现。普通联系继续遵守联系偏好和统一额度。</p>
+    <div className="card-grid">{received.map(event=><article className="data-card profile-card" key={event.id}><div className="pane-toolbar"><h3>{event.title||event.event_type}</h3><span className="status-badge">{states[event.status]||event.status}</span></div><small>接收：{formatTime(event.created_at)} · 来源序号 {event.sequence}</small><p>有效至 {formatTime(event.expires_at)}</p>{event.summary&&<p className="memory-content">{event.summary}</p>}<div className="actions"><a className="button" href="#/proactive/topics">待续话题</a>{event.status!=='deleted'&&<button className="button" onClick={()=>{setError('');setDeleting(event);}}>删除事件</button>}</div></article>)}</div>
+    {events.data&&received.length===0&&<div className="data-empty">尚未接收事件。保存订阅不会模拟事件或自动联系用户。</div>}
+    {editing&&<SubscriptionEditor capability={editing} row={find(editing)} close={()=>setEditing(null)} done={complete}/>}
+    {revoking&&<Modal title="撤销订阅" close={()=>setRevoking(null)} dismissible={!busy}><p>撤销 {revoking.plugin_id} / {revoking.capability_id} 的签名密钥，停止新事件，并使关联话题与对话来源失效。重新接入须明确授权并填写密钥。</p><ErrorNotice error={error}/><div className="actions"><button className="button" disabled={busy} onClick={()=>setRevoking(null)}>保留订阅</button><button className="button primary" disabled={busy} onClick={()=>{if(busy)return;setBusy(true);setError('');void api(`/api/plugin-event-subscriptions/${revoking.id}/revoke`,'POST',{version:revoking.version}).then(complete).catch(e=>setError(e.message)).finally(()=>setBusy(false));}}>{busy?'正在撤销':'确认撤销'}</button></div></Modal>}
+    {deleting&&<Modal title="删除事件" close={()=>setDeleting(null)} dismissible={!busy}><p>删除“{deleting.title||deleting.event_type}”的标题和摘要，并使关联话题、主动消息及其对话来源失效。此操作不能恢复；去重标记继续保留。</p><ErrorNotice error={error}/><div className="actions"><button className="button" disabled={busy} onClick={()=>setDeleting(null)}>保留事件</button><button className="button primary" disabled={busy} onClick={()=>{if(busy)return;setBusy(true);setError('');void api(`/api/plugin-events/${deleting.id}/delete`,'POST',{version:deleting.version}).then(complete).catch(e=>setError(e.message)).finally(()=>setBusy(false));}}>{busy?'正在删除':'确认删除'}</button></div></Modal>}
+  </section>;
+}
+
+function SubscriptionEditor({capability:cap,row,close,done}:{capability:EventCapability;row?:Subscription;close():void;done():void}){
+  const [secret,setSecret]=useState(''),[types,setTypes]=useState<string[]>(row?.event_types||[]),[hourly,setHourly]=useState(row?.hourly_limit||10),[daily,setDaily]=useState(row?.daily_limit||50),[approved,setApproved]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  return <Modal title="订阅授权" close={close} dismissible={!busy}><h3>{cap.name} · v{cap.plugin_version}</h3><p>{cap.plugin_id} · {cap.id}</p><p>仅接收所选事件类型，不授予记忆库、文件、模型或直接通知权限。修改设置会使先前事件与未发送话题失效。接收额度独立于联系额度，实际主动交流仍受统一规则控制。</p><form className="form-stack" onSubmit={e=>{e.preventDefault();if(busy||!approved||!types.length)return;setBusy(true);setError('');void api('/api/plugin-event-subscriptions','POST',{installation_id:cap.installation_id,capability_id:cap.id,secret,event_types:types,hourly_limit:hourly,daily_limit:daily,version:row?.version||0,acknowledged:true}).then(()=>{setSecret('');done();}).catch(e=>setError(e.message)).finally(()=>setBusy(false));}}>
+    <fieldset disabled={busy}><legend>允许类型</legend>{cap.event?.event_types.map(type=><label className="checkbox" key={type}><input type="checkbox" checked={types.includes(type)} onChange={e=>setTypes(old=>e.target.checked?[...old,type]:old.filter(v=>v!==type))}/>{type}</label>)}</fieldset>
+    <label>签名密钥<input type="password" autoComplete="off" minLength={32} maxLength={256} required={!row?.has_secret||row.status!=='active'} value={secret} disabled={busy} onChange={e=>setSecret(e.target.value)} placeholder={row?.has_secret?'留空保留现有密钥':'填写 32–256 位随机 ASCII 密钥'}/></label><small>密钥由你与事件来源共享，仅加密保存在服务器，不回填、不进入模型。不要使用登录密码或模型密钥。</small>
+    <label>每小时接收上限<input type="number" min={1} max={60} required value={hourly} disabled={busy} onChange={e=>setHourly(Number(e.target.value))}/></label><label>每 24 小时上限<input type="number" min={1} max={500} required value={daily} disabled={busy} onChange={e=>setDaily(Number(e.target.value))}/></label><small>工作区所有订阅合计每 24 小时最多 500 条；事件有效期不超过清单声明的 {cap.event?.ttl_seconds||86400} 秒。</small>
+    <label className="checkbox"><input type="checkbox" checked={approved} disabled={busy} onChange={e=>setApproved(e.target.checked)}/>我已核对插件、事件类型及接收额度，同意启用签名订阅。</label><ErrorNotice error={error}/><button className="button primary" disabled={busy||!approved||!types.length}>{busy?'正在保存':'确认授权'}</button>
+  </form></Modal>;
+}

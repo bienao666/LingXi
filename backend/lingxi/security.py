@@ -2,6 +2,7 @@ import hashlib
 import ipaddress
 import secrets
 import socket
+import httpx
 from urllib.parse import urlsplit
 from argon2 import PasswordHasher
 from cryptography.fernet import Fernet
@@ -63,4 +64,17 @@ def safe_error(exc: Exception) -> str:
     # Never surface upstream response bodies, prompts, URLs, or credential-bearing exception strings.
     if isinstance(exc, HTTPException):
         return str(exc.detail)
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        hint = {401: '密钥无效或已过期，请更新服务连接',
+                403: '服务拒绝访问，请检查账号权限与模型授权',
+                404: '接口或模型不存在，请检查接口根地址及模型标识',
+                429: '请求受限或额度不足，请检查服务额度后重试'}.get(status, '请检查服务状态与协议兼容性后重试')
+        return f'模型服务返回 HTTP {status}；{hint}'
+    if isinstance(exc, httpx.TimeoutException):
+        return '请求超时，请检查代理、网络与上游服务负载后重试'
+    if isinstance(exc, httpx.ProxyError):
+        return '代理连接失败，请检查代理地址与服务访问规则'
+    if isinstance(exc, httpx.ConnectError):
+        return '无法连接上游服务或代理，请检查地址、容器网络与证书'
     return f'服务请求失败（{type(exc).__name__}），请检查连接与服务状态'

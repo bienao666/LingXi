@@ -4,7 +4,9 @@ SQLAlchemy==2.0.48
 alembic==1.18.4
 psycopg[binary]==3.3.3
 httpx==0.28.1
+httpx-ws==0.9.0
 cryptography==46.0.5
 argon2-cffi==25.1.0
 pydantic-settings==2.13.1
 pytest==9.0.2
+jsonschema==4.26.0

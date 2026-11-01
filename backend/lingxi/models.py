@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Boolean, Float, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Float, Integer, String, Text, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base, uid, now
 
@@ -54,6 +54,7 @@ class Policy(Base):
 
 class Conversation(Entity, Base):
     __tablename__ = 'conversations'
+    __table_args__ = (Index('ix_conversations_page', 'user_id', 'workspace_id', 'deleted', 'created_at', 'id'),)
     user_id: Mapped[str] = mapped_column(String(64), index=True)
     title: Mapped[str] = mapped_column(String(200), default='新的对话')
     version: Mapped[int] = mapped_column(Integer, default=1)
@@ -62,6 +63,7 @@ class Conversation(Entity, Base):
 
 class Message(Entity, Base):
     __tablename__ = 'messages'
+    __table_args__ = (Index('ix_messages_page', 'conversation_id', 'workspace_id', 'created_at', 'id'),)
     conversation_id: Mapped[str] = mapped_column(String(64), index=True)
     role: Mapped[str] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text, default='')
@@ -112,6 +114,7 @@ class Memory(Entity, Base):
     index_status: Mapped[str] = mapped_column(String(30), default='pending')
     index_epoch: Mapped[int] = mapped_column(Integer, default=0)
     revisions: Mapped[list] = mapped_column(JSON, default=list)
+    provenance: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class Candidate(Entity, Base):
@@ -127,6 +130,7 @@ class Candidate(Entity, Base):
     reason: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(30), default='pending')
     memory_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    origin: Mapped[dict] = mapped_column(JSON, default=dict)
 
 
 class Operation(Entity, Base):
@@ -154,12 +158,14 @@ class Job(Entity, Base):
 
 class ModelCall(Entity, Base):
     __tablename__ = 'model_calls'
+    __table_args__ = (Index('ix_model_calls_page', 'workspace_id', 'created_at', 'id'),)
     model_id: Mapped[str] = mapped_column(String(64))
     run_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     purpose: Mapped[str] = mapped_column(String(30))
     status: Mapped[str] = mapped_column(String(30))
     duration_ms: Mapped[int] = mapped_column(Integer)
     usage: Mapped[dict] = mapped_column(JSON, default=dict)
+    billing: Mapped[dict] = mapped_column(JSON, default=dict)
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 

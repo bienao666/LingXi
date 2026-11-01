@@ -11,4 +11,5 @@ __pycache__/
 *.db-*
 frontend/dist/
 runtime/
+backups/
 !runtime/.gitkeep

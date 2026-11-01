@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -17,6 +18,8 @@ class Settings(BaseSettings):
     allow_auto_memory: bool = True
     job_lease_seconds: int = 120
     provider_timeout: float = 45
+    resource_dir: Path | None = None
+    worker_concurrency: int = Field(default=2, ge=1, le=8)
 
 
 @lru_cache

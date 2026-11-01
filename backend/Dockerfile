@@ -3,7 +3,9 @@ WORKDIR /app
 COPY backend/requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir -r /app/requirements.lock
 COPY backend /app/backend
+COPY deploy/backup.py /app/deploy/backup.py
+COPY deploy/migrate_workspace.py /app/deploy/migrate_workspace.py
 ENV PYTHONPATH=/app/backend PYTHONUNBUFFERED=1
-RUN useradd --uid 10001 --create-home lingxi && mkdir /app/runtime && chown lingxi /app/runtime
+RUN useradd --uid 10001 --create-home lingxi && mkdir /app/runtime /app/resources && chown lingxi /app/runtime /app/resources
 USER lingxi
 CMD ["uvicorn", "lingxi.api:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]

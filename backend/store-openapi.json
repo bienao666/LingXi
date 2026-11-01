@@ -1,0 +1,1162 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "灵犀独立插件商店",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/store/v1/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_store_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/auth/login": {
+      "post": {
+        "summary": "Login",
+        "operationId": "login_store_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Identity"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/auth/me": {
+      "get": {
+        "summary": "Me",
+        "operationId": "me_store_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Identity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/auth/logout": {
+      "post": {
+        "summary": "Logout",
+        "operationId": "logout_store_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/submissions": {
+      "post": {
+        "summary": "Submit",
+        "operationId": "submit_store_v1_submissions_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Submission"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Submissions",
+        "operationId": "submissions_store_v1_submissions_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "pending",
+                "published",
+                "rejected",
+                "withdrawn",
+                "revoked"
+              ],
+              "type": "string",
+              "default": "all",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseView"
+                  },
+                  "title": "Response Submissions Store V1 Submissions Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/releases/{release_id}/decision": {
+      "post": {
+        "summary": "Decide",
+        "operationId": "decide_store_v1_releases__release_id__decision_post",
+        "parameters": [
+          {
+            "name": "release_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Release Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/catalog": {
+      "get": {
+        "summary": "Catalog",
+        "operationId": "catalog_store_v1_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReleaseView"
+                  },
+                  "type": "array",
+                  "title": "Response Catalog Store V1 Catalog Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/feed": {
+      "get": {
+        "summary": "Feed",
+        "operationId": "feed_store_v1_feed_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/artifacts/{digest_}": {
+      "get": {
+        "summary": "Artifact",
+        "operationId": "artifact_store_v1_artifacts__digest___get",
+        "parameters": [
+          {
+            "name": "digest_",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Digest "
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/trust": {
+      "get": {
+        "summary": "Trust View",
+        "operationId": "trust_view_store_v1_trust_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/store/v1/audit": {
+      "get": {
+        "summary": "Audit View",
+        "operationId": "audit_view_store_v1_audit_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentEntry": {
+        "properties": {
+          "expertise": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Expertise"
+          },
+          "instructions": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Instructions",
+            "default": ""
+          },
+          "completion": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Completion"
+          },
+          "tools": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "reason",
+                "server.files",
+                "plugin.call"
+              ]
+            },
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Tools"
+          },
+          "context_categories": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "profile",
+                "preferences",
+                "experiences",
+                "projects",
+                "relationships",
+                "procedures",
+                "support"
+              ]
+            },
+            "type": "array",
+            "maxItems": 7,
+            "title": "Context Categories"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expertise",
+          "completion"
+        ],
+        "title": "AgentEntry"
+      },
+      "ApiEntry": {
+        "properties": {
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key",
+              "oauth2"
+            ],
+            "title": "Auth",
+            "default": "none"
+          },
+          "oauth": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OAuthEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Url"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ],
+            "title": "Method"
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write"
+            ],
+            "title": "Effect"
+          },
+          "key_header": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9-]{0,63}$",
+            "title": "Key Header",
+            "default": "X-API-Key"
+          },
+          "parameters": {
+            "items": {
+              "$ref": "#/components/schemas/ApiParameter"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Parameters"
+          },
+          "health_url": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Health Url",
+            "default": ""
+          },
+          "idempotency_header": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Idempotency Header",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url",
+          "method",
+          "effect"
+        ],
+        "title": "ApiEntry"
+      },
+      "ApiParameter": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9_-]{0,63}$",
+            "title": "Name"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "object",
+              "array"
+            ],
+            "title": "Type"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "default": true
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "ApiParameter"
+      },
+      "Capability": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 120,
+            "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "native",
+              "skill",
+              "api",
+              "mcp",
+              "agent",
+              "event"
+            ],
+            "title": "Kind"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "Permissions"
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 8000,
+            "title": "Instruction",
+            "default": ""
+          },
+          "api": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mcp": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/McpEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EventEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "agent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "Capability"
+      },
+      "Decision": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "approve",
+              "reject",
+              "withdraw",
+              "republish",
+              "revoke"
+            ],
+            "title": "Action"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "action",
+          "note"
+        ],
+        "title": "Decision"
+      },
+      "Dependency": {
+        "properties": {
+          "plugin_id": {
+            "type": "string",
+            "maxLength": 120,
+            "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$",
+            "title": "Plugin Id"
+          },
+          "constraint": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Constraint"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "plugin_id",
+          "constraint"
+        ],
+        "title": "Dependency"
+      },
+      "EventEntry": {
+        "properties": {
+          "transport": {
+            "type": "string",
+            "const": "signed-webhook",
+            "title": "Transport",
+            "default": "signed-webhook"
+          },
+          "event_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "minItems": 1,
+            "title": "Event Types"
+          },
+          "ttl_seconds": {
+            "type": "integer",
+            "maximum": 604800.0,
+            "minimum": 60.0,
+            "title": "Ttl Seconds",
+            "default": 86400
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_types"
+        ],
+        "title": "EventEntry"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Identity": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "namespace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Namespace"
+          },
+          "audiences": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Audiences"
+          },
+          "csrf": {
+            "type": "string",
+            "title": "Csrf"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "role",
+          "namespace",
+          "audiences",
+          "csrf"
+        ],
+        "title": "Identity"
+      },
+      "LoginInput": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "LoginInput"
+      },
+      "Manifest": {
+        "properties": {
+          "plugin_id": {
+            "type": "string",
+            "maxLength": 120,
+            "pattern": "^[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+$",
+            "title": "Plugin Id"
+          },
+          "publisher": {
+            "type": "string",
+            "maxLength": 60,
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "title": "Publisher"
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 30,
+            "pattern": "^\\d+\\.\\d+\\.\\d+$",
+            "title": "Version"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Description"
+          },
+          "license": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "License"
+          },
+          "core": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Core",
+            "default": ">=0.2.0,<0.3.0"
+          },
+          "platform": {
+            "type": "string",
+            "const": "linux",
+            "title": "Platform",
+            "default": "linux"
+          },
+          "location": {
+            "type": "string",
+            "const": "core-worker",
+            "title": "Location",
+            "default": "core-worker"
+          },
+          "capabilities": {
+            "items": {
+              "$ref": "#/components/schemas/Capability"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Capabilities"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/Dependency"
+            },
+            "type": "array",
+            "maxItems": 16,
+            "title": "Dependencies"
+          },
+          "external_services": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "title": "External Services"
+          },
+          "costs": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Costs"
+          },
+          "data_scope": {
+            "type": "string",
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Data Scope"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "plugin_id",
+          "publisher",
+          "version",
+          "name",
+          "description",
+          "license",
+          "capabilities",
+          "costs",
+          "data_scope"
+        ],
+        "title": "Manifest"
+      },
+      "McpEntry": {
+        "properties": {
+          "auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "bearer",
+              "api_key",
+              "oauth2"
+            ],
+            "title": "Auth",
+            "default": "none"
+          },
+          "oauth": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OAuthEntry"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Url"
+          },
+          "transport": {
+            "type": "string",
+            "const": "streamable-http",
+            "title": "Transport",
+            "default": "streamable-http"
+          },
+          "key_header": {
+            "type": "string",
+            "pattern": "^[a-zA-Z][a-zA-Z0-9-]{0,63}$",
+            "title": "Key Header",
+            "default": "X-API-Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "title": "McpEntry"
+      },
+      "OAuthEntry": {
+        "properties": {
+          "authorization_url": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Authorization Url"
+          },
+          "token_url": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Token Url"
+          },
+          "revocation_url": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Revocation Url",
+            "default": ""
+          },
+          "issuer": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Issuer"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Scopes"
+          },
+          "client_auth": {
+            "type": "string",
+            "enum": [
+              "none",
+              "client_secret_basic",
+              "client_secret_post"
+            ],
+            "title": "Client Auth",
+            "default": "none"
+          },
+          "resource": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Resource",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "authorization_url",
+          "token_url",
+          "issuer",
+          "scopes"
+        ],
+        "title": "OAuthEntry"
+      },
+      "ReleaseView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "plugin_id": {
+            "type": "string",
+            "title": "Plugin Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "manifest": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Manifest"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "visibility": {
+            "type": "string",
+            "title": "Visibility"
+          },
+          "audience": {
+            "type": "string",
+            "title": "Audience"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "version_number": {
+            "type": "integer",
+            "title": "Version Number"
+          },
+          "checks": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Checks"
+          },
+          "review_note": {
+            "type": "string",
+            "title": "Review Note"
+          },
+          "submitted_at": {
+            "type": "number",
+            "title": "Submitted At"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "artifact": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Artifact"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "plugin_id",
+          "version",
+          "manifest",
+          "digest",
+          "visibility",
+          "audience",
+          "status",
+          "version_number",
+          "checks",
+          "review_note",
+          "submitted_at",
+          "published_at",
+          "artifact"
+        ],
+        "title": "ReleaseView"
+      },
+      "Submission": {
+        "properties": {
+          "manifest": {
+            "$ref": "#/components/schemas/Manifest"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private"
+            ],
+            "title": "Visibility",
+            "default": "public"
+          },
+          "audience": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Audience",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "manifest"
+        ],
+        "title": "Submission"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
