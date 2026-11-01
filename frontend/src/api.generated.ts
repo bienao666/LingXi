@@ -1745,6 +1745,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/media-retention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Policy */
+        get: operations["get_policy_api_admin_media_retention_get"];
+        /** Save Policy */
+        put: operations["save_policy_api_admin_media_retention_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-retention/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Policy Preview */
+        post: operations["policy_preview_api_admin_media_retention_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/media/{identity}/protection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Protection */
+        put: operations["set_protection_api_media__identity__protection_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-retention/sweep-previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sweep Preview */
+        post: operations["sweep_preview_api_admin_media_retention_sweep_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-retention/sweeps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Sweep */
+        post: operations["confirm_sweep_api_admin_media_retention_sweeps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-retention/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs */
+        get: operations["runs_api_admin_media_retention_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/voice/config": {
         parameters: {
             query?: never;
@@ -4875,6 +4978,16 @@ export interface components {
             source?: {
                 [key: string]: unknown;
             };
+            /**
+             * Protected
+             * @default false
+             */
+            protected: boolean;
+            /**
+             * Protection Version
+             * @default 0
+             */
+            protection_version: number;
             /** Parts */
             parts: {
                 [key: string]: string;
@@ -5033,6 +5146,16 @@ export interface components {
             source?: {
                 [key: string]: unknown;
             };
+            /**
+             * Protected
+             * @default false
+             */
+            protected: boolean;
+            /**
+             * Protection Version
+             * @default 0
+             */
+            protection_version: number;
         };
         /** MemoryCandidatePage */
         MemoryCandidatePage: {
@@ -5851,6 +5974,15 @@ export interface components {
             /** Issues */
             issues: string[];
         };
+        /** ProtectionInput */
+        ProtectionInput: {
+            /** Version */
+            version: number;
+            /** Media Version */
+            media_version: number;
+            /** Protected */
+            protected: boolean;
+        };
         /** ProviderInput */
         ProviderInput: {
             /** Name */
@@ -6196,6 +6328,72 @@ export interface components {
             roots: string[];
             /** Read Roots */
             read_roots?: string[];
+        };
+        /** RetentionConfirm */
+        RetentionConfirm: {
+            /** Token */
+            token: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "delete_old_unreferenced_web_uploads";
+        };
+        /** RetentionInput */
+        RetentionInput: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Days
+             * @default 7
+             */
+            days: number;
+            /** Version */
+            version: number;
+        };
+        /** RetentionPreview */
+        RetentionPreview: {
+            before: components["schemas"]["RetentionView"];
+            after: components["schemas"]["RetentionSettings"];
+            /** Token */
+            token: string;
+            /** Expires At */
+            expires_at: number;
+        };
+        /** RetentionSettings */
+        RetentionSettings: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Days
+             * @default 7
+             */
+            days: number;
+        };
+        /** RetentionView */
+        RetentionView: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * Days
+             * @default 7
+             */
+            days: number;
+            /** Version */
+            version: number;
+            /** Last Checked */
+            last_checked: number;
+            /** Last Marked */
+            last_marked: number;
         };
         /** ReviewInput */
         ReviewInput: {
@@ -6868,6 +7066,51 @@ export interface components {
              * @default user_report
              */
             evidence: string;
+        };
+        /** SweepItem */
+        SweepItem: {
+            /** Id */
+            id: string;
+            /** Filename */
+            filename: string;
+            /** Version */
+            version: number;
+            /** Size */
+            size: number;
+            /** Created At */
+            created_at: number;
+        };
+        /** SweepPreview */
+        SweepPreview: {
+            /** Id */
+            id: string;
+            /** Items */
+            items: components["schemas"]["SweepItem"][];
+            /** Bytes */
+            bytes: number;
+            /** Has More */
+            has_more: boolean;
+            /** Token */
+            token: string;
+            /** Expires At */
+            expires_at: number;
+            /** Days */
+            days: number;
+        };
+        /** SweepView */
+        SweepView: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Marked */
+            marked: number;
+            /** Skipped */
+            skipped: number;
+            /** Bytes */
+            bytes: number;
+            /** Created At */
+            created_at: number;
         };
         /** SystemSettingsInput */
         SystemSettingsInput: {
@@ -11373,6 +11616,200 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_policy_api_admin_media_retention_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionView"];
+                };
+            };
+        };
+    };
+    save_policy_api_admin_media_retention_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetentionConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    policy_preview_api_admin_media_retention_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetentionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RetentionPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_protection_api_media__identity__protection_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProtectionInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sweep_preview_api_admin_media_retention_sweep_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SweepPreview"];
+                };
+            };
+        };
+    };
+    confirm_sweep_api_admin_media_retention_sweeps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetentionConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SweepView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    runs_api_admin_media_retention_runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SweepView"][];
                 };
             };
         };

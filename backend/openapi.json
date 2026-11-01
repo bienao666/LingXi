@@ -5166,6 +5166,225 @@
         }
       }
     },
+    "/api/admin/media-retention": {
+      "get": {
+        "summary": "Get Policy",
+        "operationId": "get_policy_api_admin_media_retention_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Save Policy",
+        "operationId": "save_policy_api_admin_media_retention_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-retention/previews": {
+      "post": {
+        "summary": "Policy Preview",
+        "operationId": "policy_preview_api_admin_media_retention_previews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RetentionPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/media/{identity}/protection": {
+      "put": {
+        "summary": "Set Protection",
+        "operationId": "set_protection_api_media__identity__protection_put",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProtectionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-retention/sweep-previews": {
+      "post": {
+        "summary": "Sweep Preview",
+        "operationId": "sweep_preview_api_admin_media_retention_sweep_previews_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SweepPreview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-retention/sweeps": {
+      "post": {
+        "summary": "Confirm Sweep",
+        "operationId": "confirm_sweep_api_admin_media_retention_sweeps_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetentionConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SweepView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-retention/runs": {
+      "get": {
+        "summary": "Runs",
+        "operationId": "runs_api_admin_media_retention_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SweepView"
+                  },
+                  "type": "array",
+                  "title": "Response Runs Api Admin Media Retention Runs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/voice/config": {
       "get": {
         "summary": "Get Config",
@@ -13337,6 +13556,16 @@
             "type": "object",
             "title": "Source"
           },
+          "protected": {
+            "type": "boolean",
+            "title": "Protected",
+            "default": false
+          },
+          "protection_version": {
+            "type": "integer",
+            "title": "Protection Version",
+            "default": 0
+          },
           "parts": {
             "items": {
               "additionalProperties": {
@@ -13756,6 +13985,16 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Source"
+          },
+          "protected": {
+            "type": "boolean",
+            "title": "Protected",
+            "default": false
+          },
+          "protection_version": {
+            "type": "integer",
+            "title": "Protection Version",
+            "default": 0
           }
         },
         "type": "object",
@@ -15794,6 +16033,32 @@
         ],
         "title": "ProfileView"
       },
+      "ProtectionInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "media_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Media Version"
+          },
+          "protected": {
+            "type": "boolean",
+            "title": "Protected"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "media_version",
+          "protected"
+        ],
+        "title": "ProtectionInput"
+      },
       "ProviderInput": {
         "properties": {
           "name": {
@@ -16616,6 +16881,137 @@
           "roots"
         ],
         "title": "ResourceScope"
+      },
+      "RetentionConfirm": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 16384,
+            "minLength": 10,
+            "title": "Token"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "delete_old_unreferenced_web_uploads",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "acknowledgement"
+        ],
+        "title": "RetentionConfirm"
+      },
+      "RetentionInput": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 7
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "RetentionInput"
+      },
+      "RetentionPreview": {
+        "properties": {
+          "before": {
+            "$ref": "#/components/schemas/RetentionView"
+          },
+          "after": {
+            "$ref": "#/components/schemas/RetentionSettings"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "before",
+          "after",
+          "token",
+          "expires_at"
+        ],
+        "title": "RetentionPreview"
+      },
+      "RetentionSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 7
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RetentionSettings"
+      },
+      "RetentionView": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "default": 7
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "last_checked": {
+            "type": "number",
+            "title": "Last Checked"
+          },
+          "last_marked": {
+            "type": "integer",
+            "title": "Last Marked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "last_checked",
+          "last_marked"
+        ],
+        "title": "RetentionView"
       },
       "ReviewInput": {
         "properties": {
@@ -18073,6 +18469,123 @@
         },
         "type": "object",
         "title": "SupportView"
+      },
+      "SweepItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "size": {
+            "type": "integer",
+            "title": "Size"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "version",
+          "size",
+          "created_at"
+        ],
+        "title": "SweepItem"
+      },
+      "SweepPreview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SweepItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "items",
+          "bytes",
+          "has_more",
+          "token",
+          "expires_at",
+          "days"
+        ],
+        "title": "SweepPreview"
+      },
+      "SweepView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "marked": {
+            "type": "integer",
+            "title": "Marked"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "marked",
+          "skipped",
+          "bytes",
+          "created_at"
+        ],
+        "title": "SweepView"
       },
       "SystemSettingsInput": {
         "properties": {

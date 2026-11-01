@@ -12,11 +12,11 @@ const window=new Window({url:'http://localhost/#/data/files'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true,location:window.location});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
-const {MediaFiles,FileUploader,AttachmentList,VisionControl,MediaPolicySettings,MediaSettings}=await import(compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui}));
+const {MediaFiles,FileUploader,AttachmentList,VisionControl,MediaPolicySettings,MediaSettings,MediaRetentionSettings}=await import(compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui}));
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 const item={id:'media-one',filename:'资料.md',suffix:'.md',size:200,status:'ready',version:2,error:null,cleanup_status:'not_needed',created_at:1,kind:'document',parts_count:2};
 const defaultPolicy={version:1,max_files:10,max_file_mib:20,max_total_mib:50,allowed_types:['text','markdown','csv','pdf','docx','xlsx','image','qq_audio']};
-async function mount(t,component,props,handler,policy=defaultPolicy){document.body.innerHTML='<div id="root"></div>';globalThis.fetch=async(u,o)=>u==='/api/media-policy'&&policy!==null?response(policy):handler(u,o);const root=createRoot(document.getElementById('root'));t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});await act(async()=>root.render(createElement(component,props)));}
+async function mount(t,component,props,handler,policy=defaultPolicy,retention=true){document.body.innerHTML='<div id="root"></div>';globalThis.fetch=async(u,o)=>u==='/api/media-policy'&&policy!==null?response(policy):u==='/api/admin/media-retention'&&o.method==='GET'&&retention?response({version:0,enabled:false,days:7,last_checked:0,last_marked:0}):u==='/api/admin/media-retention/runs'&&retention?response([]):handler(u,o);const root=createRoot(document.getElementById('root'));t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});await act(async()=>root.render(createElement(component,props)));}
 async function click(text){const b=[...document.querySelectorAll('button')].find(v=>v.textContent===text);assert.ok(b,text);await act(async()=>b.click());}
 
 test('attachment deletion names impact and keeps version conflict visible',async t=>{
@@ -119,4 +119,43 @@ let writes=0;await mount(t,FileUploader,{onUploaded:()=>{}},()=>{writes++;return
 assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='上传附件').disabled,true);
 assert.match(document.body.textContent,/当前未允许 Web 文件上传/);
 assert.equal(document.querySelector('a').getAttribute('href'),'#/settings/media');assert.equal(writes,0);
+});
+
+const retention={version:0,enabled:false,days:7,last_checked:0,last_marked:0};
+const sweepPreview={id:'sweep',days:7,items:[{...item}],bytes:200,has_more:true,token:'sweep-preview-token',expires_at:Date.now()/1000+300};
+
+test('retention starts disabled, edit needs preview and acknowledgement before update',async t=>{
+const writes=[];await mount(t,MediaRetentionSettings,{},(u,o)=>{writes.push({u,body:JSON.parse(o.body)});return response(o.method==='POST'?{before:retention,after:{enabled:false,days:7},token:'retention-preview',expires_at:Date.now()/1000+300}:{...retention,version:1});});
+assert.match(document.body.textContent,/关闭自动回收/);assert.match(document.body.textContent,/保存规则不立即删除/);
+await click('调整回收');assert.equal(writes.length,0);await act(async()=>document.querySelector('dialog form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+assert.equal(writes.length,1);assert.equal(writes[0].u,'/api/admin/media-retention/previews');assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='确认保存').disabled,true);
+await act(async()=>document.querySelector('dialog input[type=checkbox]').click());await click('确认保存');assert.equal(writes.length,2);assert.deepEqual(writes[1].body,{token:'retention-preview',acknowledgement:'delete_old_unreferenced_web_uploads'});assert.equal(document.querySelector('dialog'),null);assert.match(document.body.textContent,/未立即删除文件/);
+});
+
+test('sweep lists exact files and requires acknowledgement, cancellation never deletes',async t=>{
+const requests=[];await mount(t,MediaRetentionSettings,{},(u,o)=>{requests.push(u);return response(sweepPreview);});await click('回收预览');
+assert.match(document.querySelector('dialog').textContent,/资料.md/);assert.match(document.querySelector('dialog').textContent,/还有更多候选/);assert.match(document.querySelector('dialog').textContent,/不追加其他文件/);
+assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='确认回收').disabled,true);await click('关闭');assert.deepEqual(requests,['/api/admin/media-retention/sweep-previews']);
+});
+
+test('sweep double click sends one request and reports skipped files',async t=>{
+let finish;const writes=[];await mount(t,MediaRetentionSettings,{},(u,o)=>{writes.push(u);return u.endsWith('sweeps')?new Promise(r=>finish=r):response(sweepPreview);});await click('回收预览');await act(async()=>document.querySelector('dialog input').click());
+const button=[...document.querySelectorAll('button')].find(b=>b.textContent==='确认回收');await act(async()=>{button.click();button.click();});assert.equal(writes.filter(p=>p.endsWith('sweeps')).length,1);
+await act(async()=>finish(response({id:'r',kind:'manual',marked:0,skipped:1,bytes:0,created_at:1})));assert.equal(document.querySelector('dialog'),null);assert.match(document.body.textContent,/跳过 1 个/);
+});
+
+test('expired sweep and preview failure never permit deletion',async t=>{
+await mount(t,MediaRetentionSettings,{},()=>response({...sweepPreview,expires_at:1}));await click('回收预览');await act(async()=>document.querySelector('dialog input').click());assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='确认回收').disabled,true);assert.match(document.querySelector('dialog').textContent,/已过期/);
+});
+
+test('sweep conflict stays visible and requires fresh preview',async t=>{
+await mount(t,MediaRetentionSettings,{},(u,o)=>u.endsWith('sweeps')?response({detail:'回收配置已变化，请重新预览'},409):response(sweepPreview));await click('回收预览');await act(async()=>document.querySelector('dialog input').click());await click('确认回收');assert.match(document.querySelector('[role=alert]').textContent,/已变化/);assert.ok(document.querySelector('dialog'));
+});
+
+test('file protection has separate version and confirmed scope, conflict is recoverable',async t=>{
+const writes=[];await mount(t,MediaFiles,{},(u,o)=>{if(o.method==='PUT'){writes.push(JSON.parse(o.body));return response({detail:'附件或保留设置已变化'},409);}return response({items:[{...item,protection_version:3,protected:true}],next_cursor:null});});await click('解除保留');assert.match(document.querySelector('dialog').textContent,/后续自动或手动回收/);assert.equal(writes.length,0);await click('确认设置');assert.deepEqual(writes,[{version:3,media_version:2,protected:false}]);assert.match(document.querySelector('[role=alert]').textContent,/已变化/);
+});
+
+test('retention unavailable disables both entry actions and offers retry',async t=>{
+await mount(t,MediaRetentionSettings,{},u=>u.endsWith('/runs')?response([]):response({detail:'连接失败'},503),defaultPolicy,false);assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='回收预览').disabled,true);assert.match(document.querySelector('[role=alert]').textContent,/连接失败/);assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='重试读取'));
 });

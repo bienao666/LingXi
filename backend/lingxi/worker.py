@@ -526,6 +526,11 @@ def main():
                     maintenance()
                 except Exception:
                     logging.error('Operational metadata cleanup unavailable')
+                try:
+                    from .media_retention import sweep as retention_sweep
+                    retention_sweep()
+                except Exception:
+                    logging.error('Unused attachment collection unavailable')
             if time.monotonic() >= next_store_check and (store_future is None or store_future.done()):
                 next_store_check = time.monotonic()+60
                 store_future = store_pool.submit(sync_stores)

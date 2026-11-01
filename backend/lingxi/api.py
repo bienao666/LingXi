@@ -845,6 +845,8 @@ from .media import router as media_router
 app.include_router(media_router)
 from .media_policy import router as media_policy_router
 app.include_router(media_policy_router)
+from .media_retention import router as media_retention_router
+app.include_router(media_retention_router)
 from .voice import router as voice_router
 app.include_router(voice_router)
 from .voice_native_output import router as voice_native_output_router

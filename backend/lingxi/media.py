@@ -76,6 +76,8 @@ class MediaView(BaseModel):
     kind: str
     parts_count: int
     source: dict = Field(default_factory=dict)
+    protected: bool = False
+    protection_version: int = 0
 
 
 class MediaDetail(MediaView):
@@ -125,6 +127,9 @@ def public_media(item, detail=False):
     result = {k: getattr(item, k) for k in MediaView.model_fields if hasattr(item, k)}
     from sqlalchemy.orm import object_session
     from .server_documents import source_valid
+    from .media_retention import protection
+    db = object_session(item)
+    result.update(protection(db, item) if db else {'protected':False,'protection_version':0})
     available = not item.source or ((db := object_session(item)) is not None and source_valid(db, item))
     if not available and item.status != 'deleted':
         result.update(status='revoked', error='服务器文档来源授权已失效，请重新授权并创建读取任务')

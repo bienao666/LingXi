@@ -20,7 +20,7 @@ def schema():
     with SessionLocal.begin() as db:
         db.execute(text('CREATE TABLE IF NOT EXISTS alembic_version (version_num varchar(32) PRIMARY KEY)'))
         db.execute(text('DELETE FROM alembic_version'))
-        db.execute(text("INSERT INTO alembic_version VALUES ('0050')"))
+        db.execute(text("INSERT INTO alembic_version VALUES (:version)"), {'version':m.SCHEMA})
 
 
 def ticket(**values):

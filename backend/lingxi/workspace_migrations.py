@@ -23,7 +23,7 @@ from .security import decrypt, encrypt
 from .web import Context, audit, owned
 
 router = APIRouter()
-SCHEMA = '0050'
+SCHEMA = '0051'
 ACTIVE = ('planned', 'freezing', 'exported', 'awaiting_activation')
 
 

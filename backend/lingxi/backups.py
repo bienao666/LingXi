@@ -196,6 +196,7 @@ def checkpoint():
     from .system_settings import checkpoint as settings_checkpoint
     from .resources import checkpoint as resources_checkpoint
     from .media_policy import MediaPolicy
+    from .media_retention import checkpoint as retention_checkpoint
     from .proactive_generation import ProactiveDraft
     from .plugin_agents import PluginAgentBinding
     from .plugin_events import PluginEvent, EventSubscription
@@ -217,6 +218,7 @@ def checkpoint():
             'migrations':migration_checkpoint(db),
             'users':users,'factors':factors,'ledger':ledger.read_text(encoding='utf-8') if ledger.exists() else '',
             'media_policies':[view(row) for row in db.scalars(select(MediaPolicy))],
+            'media_retention':retention_checkpoint(db),
             'system_settings':settings_checkpoint(db),
             'resource_policies':resources_checkpoint(db),
             'channel_speech_receipts':speech_checkpoint(db),
@@ -286,6 +288,8 @@ def quarantine(data):
         MediaLimits.model_validate({key: values[key] for key in MediaLimits.model_fields})
         if type(values['version']) is not int or values['version'] < 1:
             raise ValueError('Invalid media policy version')
+    from .media_retention import validate_checkpoint as validate_retention, restore as restore_retention
+    validate_retention(data['media_retention'], data['users'][0])
     # Validate all records before changing the journal or database.
     entries=[json.loads(line) for line in data['ledger'].splitlines() if line.strip()]
     with SessionLocal.begin() as db:
@@ -294,6 +298,7 @@ def quarantine(data):
         for values in data['users']:
             db.merge(User(**values))
         restore_settings(db, data['system_settings'], db.get(User, data['users'][0]['id']))
+        restore_retention(db, data['media_retention'])
         for values in policies:
             db.merge(MediaPolicy(**(values | {'version': values['version']+1})))
         db.execute(delete(TwoFactor))
