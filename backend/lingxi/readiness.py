@@ -54,6 +54,13 @@ def local_models(db, user):
     from .providers import protocol_for, require_capability
     entries = []
     for purpose, name in (('chat','默认对话'),('extraction','记忆抽取'),('embedding','记忆嵌入'),('rerank','检索重排')):
+        from .memory_settings import mode, selection, inherited_verified
+        if purpose != 'chat' and mode(db, user.workspace_id) == 'simple':
+            choice = selection(db, purpose, user.workspace_id)
+            ready = choice['state'] == 'configured' and (purpose != 'extraction' or inherited_verified(db, user.workspace_id))
+            entries.append(item(purpose, name, 'configured' if ready else 'unconfigured' if choice['state']=='unconfigured' else 'attention', choice['notice']+
+                ('；实际推理状态请查看路由策略' if purpose != 'extraction' else '；抽取已验证' if ready else '；等待验证')))
+            continue
         policy = db.get(Policy, purpose)
         model = db.get(Model, policy.model_id) if policy else None
         provider = db.get(Provider, model.provider_id) if model else None

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     hindsight_api_key: str = ''
     memory_gateway_token: str = ''
     memory_embedding_dimensions: int = 1024
+    memory_inference_url: str = 'http://memory-inference:8090'
     allow_auto_memory: bool = True
     job_lease_seconds: int = 120
     provider_timeout: float = 45

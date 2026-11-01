@@ -58,6 +58,8 @@ def main():
             seed_defaults(db)
             from .media_policy import seed_defaults as seed_media_policy
             seed_media_policy(db)
+            from .memory_settings import configuration as memory_configuration
+            memory_configuration(db, create=True)
             print('Owner initialized.')
         elif args.command == 'reset-totp':
             from .auth_totp import clear_factor, configuration, lock_owner
@@ -97,9 +99,20 @@ def main():
             if not policy:
                 raise SystemExit('Configure the initial embedding policy first.')
             policy.model_id, policy.version = model.id, policy.version+1
+            from .memory_settings import configuration
+            memory_config = configuration(db)
+            if memory_config:
+                if memory_config.phase != 'ready':
+                    raise SystemExit('Finish the pending memory configuration transition first.')
+                memory_config.mode, memory_config.epoch = 'advanced', memory_config.epoch+1
+                memory_config.version += 1
+                db.flush()
+                from .memory_settings import selection
+                memory_config.embedding_fingerprint = selection(db, 'embedding')['fingerprint']
+            epoch = memory_config.epoch if memory_config else policy.version
             for memory in db.scalars(select(Memory).where(Memory.status=='active')):
                 memory.index_status = 'pending'
-                enqueue(db, f'reindex:{policy.version}:{memory.id}:{memory.version}', 'index', {'memory_id':memory.id,'version':memory.version})
+                enqueue(db, f'reindex:{epoch}:{memory.id}:{memory.version}', 'index', {'memory_id':memory.id,'version':memory.version,'epoch':epoch})
             print('Queued a new isolated index generation. Start Hindsight/Core/workers to rebuild; no old vectors are reused.')
         else:
             from .memory import replay_ledger

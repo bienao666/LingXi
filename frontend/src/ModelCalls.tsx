@@ -8,7 +8,7 @@ type Page=components['schemas']['ModelCallPage'];
 type Filters={days:string;status:string;purpose:string;model_id:string};
 const initial:Filters={days:'0',status:'all',purpose:'',model_id:''};
 const purposes:Record<string,string>={chat:'对话生成',extraction:'记忆抽取',embedding:'向量嵌入',rerank:'检索重排',
-  memory_embedding:'记忆嵌入',memory_rerank:'记忆重排',chat_intent:'任务理解',context_summary:'历史压缩',emotion:'情绪线索',asr:'语音转写',tts:'语音合成'};
+  memory_extraction:'记忆抽取',memory_embedding:'记忆嵌入',memory_rerank:'记忆重排',chat_intent:'任务理解',context_summary:'历史压缩',emotion:'情绪线索',asr:'语音转写',tts:'语音合成'};
 const statuses:Record<string,string>={all:'全部结果',completed:'调用完成',failed:'调用失败',cancelled:'已经停止'};
 
 export function ModelCalls(){
@@ -51,7 +51,7 @@ export function ModelCalls(){
     <p role="status" aria-live="polite">{busy?'正在读取调用记录…':data?`第 ${stack.length+1} 页 · 本页 ${data.items.length} 条 · 查询截止 ${formatTime(data.as_of)}`:'记录尚未加载'}</p>
     {data&&!busy&&<><div className="table-scroll" role="region" aria-label="模型调用记录" tabIndex={0}><table><thead><tr><th scope="col">时间</th><th scope="col">模型／用途</th><th scope="col">状态</th><th scope="col">耗时</th><th scope="col">用量／费用</th></tr></thead><tbody>{data.items.map(row=><tr key={row.id}>
       <td>{formatTime(row.created_at)}<small className="block muted">{row.id}</small></td>
-      <td>{String(row.config.model||choices.get(row.model_id)||row.model_id)}<small className="block muted">{row.model_id}</small><small className="block muted">{purposes[row.purpose]||row.purpose}{row.config.validation?' · 能力验证':''}</small><details><summary>固定版本</summary><pre className="task-json">{JSON.stringify(row.config,null,2)}</pre>{row.run_id&&<small>关联执行 {row.run_id}</small>}</details></td>
+      <td>{String(row.config.model||choices.get(row.model_id)||row.model_id)}<small className="block muted">{row.model_id}</small><small className="block muted">{purposes[row.purpose]||row.purpose}{row.config.validation?' · 能力验证':''}{row.config.configuration_source==='builtin'?' · 服务器内置':row.config.configuration_source==='inherited'?' · 沿用对话':''}</small><details><summary>固定版本</summary><pre className="task-json">{JSON.stringify(row.config,null,2)}</pre>{row.run_id&&<small>关联执行 {row.run_id}</small>}</details></td>
       <td><span className={`status-badge status-${row.status}`}>{statuses[row.status]||row.status}</span>{row.error&&<small className="block error">{row.error}</small>}</td>
       <td>{row.duration_ms} ms</td>
       <td><code>{Object.keys(row.usage).length?JSON.stringify(row.usage):'用量未知'}</code><small className="block muted">{row.billing.status==='estimated'?`估算 ${row.billing.currency} ${row.billing.amount}`:'费用未知'}</small>{!!row.config.audio_measurement&&<details><summary>语音计量</summary><p>本地请求与接收量，不等于实际播完或供应商账单。</p><pre className="task-json">{JSON.stringify(row.config.audio_measurement,null,2)}</pre></details>}{!!row.billing.price&&<details><summary>计价依据</summary><pre className="task-json">{JSON.stringify(row.billing.price,null,2)}</pre></details>}</td>

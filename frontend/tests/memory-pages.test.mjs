@@ -25,7 +25,7 @@ const {MemoryPage}=await import(compile('../src/pages.tsx',{'./MemoryTimes':time
   './api':api,'./MemoryPaging':paging,'react-markdown':pathToFileURL(require.resolve('react-markdown')).href,
   './MediaPages':stub(['AttachmentList','ChatAttachments','VisionControl','MediaPreview']),
   './VoicePages':stub(['VoicePanel']),'./AgentTools':stub(['AgentToolScope']),
-  './ModelSetup':stub(['ModelSetup','RoutingControls','modelPurposes']),
+  './ModelSetup':stub(['MemoryControls','RoutingControls','modelPurposes']),
   './AddModelForm':stub(['AddModelForm']),'./ModelCalls':stub(['ModelCalls']),
   './ConversationPersona':stub(['ConversationPersona'])}));
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});

@@ -18,9 +18,13 @@ from .model_budgets import client as budget_client, link as link_dispatches
 
 
 def resolve_model(db, purpose: str, model_id: str | None = None, verified: bool = True):
-    policy = db.get(Policy, purpose) if model_id is None else None
-    model = db.get(Model, model_id or (policy.model_id if policy else ''))
-    provider = db.get(Provider, model.provider_id) if model else None
+    from .memory_settings import resolve_effective
+    effective = resolve_effective(db, purpose, model_id, verified)
+    if effective is not None:
+        return effective
+    policy = db.get(Policy, purpose, populate_existing=True) if model_id is None else None
+    model = db.get(Model, model_id or (policy.model_id if policy else ''), populate_existing=True)
+    provider = db.get(Provider, model.provider_id, populate_existing=True) if model else None
     if not model or not provider or not provider.enabled:
         raise HTTPException(409, f'请先配置 {purpose} 用途的可用模型')
     if verified and (model.status != 'verified' or model.verified_provider_version != provider.version):
@@ -43,9 +47,10 @@ def client_for(provider: Provider):
 def call_config(model, provider, purpose):
     purpose = purpose.removeprefix('memory_')
     with SessionLocal() as db:
+        from .memory_settings import effective_snapshot
         policy = db.get(Policy, purpose)
         from .usage_costs import snapshot
-        return {'model': model.name, 'provider_id': provider.id, 'provider_version': provider.version,
+        return effective_snapshot(db, 'extraction' if purpose == 'emotion' else purpose, model.workspace_id) | {'model': model.name, 'provider_id': provider.id, 'provider_version': provider.version,
                 '_price_snapshot': snapshot(db, model, provider),
                 'provider_protocol': protocol_for(provider),
                 'policy_version': policy.version if policy and policy.model_id == model.id else None,

@@ -5,6 +5,82 @@ import type {components} from './api.generated';
 export const modelPurposes: Record<string, string> = {chat:'日常对话', extraction:'记忆抽取', embedding:'向量嵌入', rerank:'检索重排'};
 export type ModelPolicy = {purpose: string; model_id: string; version: number};
 
+type MemorySettings = components['schemas']['MemorySettingsView'];
+type MemoryPreview = components['schemas']['MemorySettingsPreview'];
+type MemoryRebuild = components['schemas']['MemoryRebuildView'];
+const memoryStates:Record<string,string>={configured:'已配置',unconfigured:'未配置',unverified:'等待验证',
+  not_downloaded:'等待下载',downloading:'正在下载',loading:'正在加载',ready:'模型就绪',failed:'处理失败',unavailable:'暂不可用'};
+
+export function MemoryControls({models,providers,policies,request}:{models:Model[];providers:Provider[];policies:ModelPolicy[];
+  request<T>(url:string,method?:string,body?:unknown):Promise<T>}) {
+  const [saved,setSaved]=React.useState<MemorySettings>(),[mode,setMode]=React.useState<'simple'|'advanced'>('simple');
+  const [selected,setSelected]=React.useState<Record<string,string>>({}),[preview,setPreview]=React.useState<MemoryPreview>();
+  const [rebuilds,setRebuilds]=React.useState<MemoryRebuild[]>([]),[busy,setBusy]=React.useState(false);
+  const [error,setError]=React.useState(''),[notice,setNotice]=React.useState(''),[revision,reload]=React.useState(0);
+  const [restarted,setRestarted]=React.useState(false),[dirty,setDirty]=React.useState(false);
+  const pending=React.useRef(false);
+  const errorRef=React.useRef<HTMLParagraphElement>(null);
+  const receive=(value:MemorySettings)=>{setSaved(value);setMode(value.mode);setDirty(false);setPreview(undefined);};
+  React.useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
+  React.useEffect(()=>{
+    let current=true;
+    void request<MemorySettings>('/api/memory-settings').then(value=>{
+      if(!current)return;if(!value||!['simple','advanced'].includes(value.mode))throw new Error('记忆配置未能加载，请重试');
+      receive(value);setSelected(Object.fromEntries(policies.filter(p=>p.purpose!=='chat').map(p=>[p.purpose,p.model_id])));setError('');
+    }).catch(e=>{if(current)setError((e as Error).message);});
+    return ()=>{current=false;};
+  },[request,revision,policies]);
+  React.useEffect(()=>{
+    if(!saved)return;
+    let current=true;
+    const poll=async()=>{
+      try{
+        const value=await request<MemorySettings>('/api/memory-settings');
+        if(current&&value.version>=(saved?.version||0)){setSaved(value);if(!dirty)setMode(value.mode);}
+        const records=await request<MemoryRebuild[]>('/api/memory-rebuilds');
+        if(current&&Array.isArray(records))setRebuilds(records);
+      }catch(e){if(current)setError((e as Error).message);}
+    };
+    void poll();const timer=window.setInterval(()=>void poll(),10000);
+    return ()=>{current=false;window.clearInterval(timer);};
+  },[request,saved?.version,dirty]);
+  const run=async(action:()=>Promise<void>)=>{if(pending.current)return;pending.current=true;setBusy(true);setError('');setNotice('');try{await action();}catch(e){setError((e as Error).message);}finally{pending.current=false;setBusy(false);}};
+  const body=()=>({version:saved?.version||0,mode,models:mode==='advanced'?Object.fromEntries(Object.entries(selected).filter(([,id])=>id)): {}});
+  const update=()=>{setDirty(true);setPreview(undefined);setNotice('');};
+  const currentRebuild=rebuilds.find(r=>r.id===saved?.rebuild_id);
+  const targetChanged=!!currentRebuild?.error?.includes('目标配置已变化');
+  return <section className="data-card form-stack" aria-labelledby="memory-controls-title">
+    <h3 id="memory-controls-title">记忆配置</h3>
+    <p className="muted">简单模式只需对话模型：抽取沿用固定对话服务，嵌入和重排在服务器运行。抽取可能产生服务费用；内置模型无需 GPU，首次下载和 CPU 推理会占用服务器资源。抽取或内置服务失败不影响正常文字聊天。</p>
+    {error&&<p role="alert" className="error" ref={errorRef} tabIndex={-1}>{error}</p>}
+    {notice&&<p role="status">{notice}</p>}
+    {!saved?<><p role="status">{error?'记忆配置不可用':'正在检查记忆配置…'}</p><button className="button" onClick={()=>reload(x=>x+1)}>重新加载</button></>:
+    <>
+      <p className="muted">当前：{saved.mode==='simple'?'简单模式':'高级模式'} · 配置 v{saved.version} · 索引代际 {saved.epoch}</p>
+      {saved.rebuild_required&&<p role="alert" className="error">嵌入模型指纹已变化，已阻止旧索引检索。请按当前配置预览并确认重建。</p>}
+      {saved.phase!=='ready'&&<p role="status">{saved.phase==='draining'?'正在等待旧记忆请求结束':saved.phase==='blocked'?'旧请求状态待核对':'索引正在后台重建'}。暂不检索长期记忆，文字聊天、查看与纠正删除继续可用。</p>}
+      <ul className="setup-list">{saved.purposes.map(p=><li key={p.purpose}><div><strong>{modelPurposes[p.purpose]}</strong><small className="block wrap">{p.model||'尚未配置'} · {{inherited:'沿用对话',builtin:'服务器内置',independent:'独立配置'}[p.source]}</small><small className="block muted wrap">{p.notice}</small></div><span className={`status-badge ${['ready','configured'].includes(p.state)?'status-verified':''}`}>{memoryStates[p.state]||p.state}</span></li>)}</ul>
+      {saved.verification_error&&<p role="status" className="error">抽取验证失败：{saved.verification_error}</p>}
+      {saved.mode==='simple'&&<div className="actions">
+        <button className="button" disabled={busy||['draining','blocked'].includes(saved.phase)} onClick={()=>void run(async()=>{receive(await request<MemorySettings>('/api/memory-settings/verify-extraction','POST'));setNotice('已完成抽取验证，请查看实际状态；验证不代表中文质量达标。');})}>验证抽取</button>
+        <button className="button" disabled={busy} onClick={()=>void run(async()=>{await request('/api/memory-settings/prepare','POST');setNotice('已请求准备内置模型，可刷新查看下载与加载状态。');})}>准备模型</button>
+        <button className="button" disabled={busy} onClick={()=>reload(x=>x+1)}>刷新状态</button>
+      </div>}
+      <form className="form-stack" onSubmit={e=>{e.preventDefault();void run(async()=>setPreview(await request<MemoryPreview>('/api/memory-settings/preview','POST',body())));}}>
+        <fieldset disabled={busy||saved.phase!=='ready'} className="form-stack"><legend>配置模式</legend>
+          <label>记忆模式<select aria-label="记忆模式" value={mode} onChange={e=>{setMode(e.target.value as 'simple'|'advanced');update();}}><option value="simple">简单模式</option><option value="advanced">高级模式</option></select></label>
+          {mode==='advanced'&&<div className="card-grid">{Object.entries(modelPurposes).filter(([p])=>p!=='chat').map(([p,title])=><label key={p}>{title}<select aria-label={title+'模型'} value={selected[p]||''} onChange={e=>{setSelected(s=>({...s,[p]:e.target.value}));update();}}><option value="">保留现有配置／尚未选用</option>{models.filter(m=>m.purpose===p&&m.status==='verified'&&providers.some(v=>v.id===m.provider_id&&v.enabled)).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>)}</div>}
+          <p className="muted">高级配置会保留，切回简单模式不会删除。嵌入固定为 1024 维；更换嵌入模型可能需要重建。切换或更换对话模型后，抽取可能需要重新验证。</p>
+          <button className="button" type="submit">预览配置</button>
+        </fieldset>
+      </form>
+      {preview&&<section className="data-card form-stack" aria-label="记忆配置预览"><h4>变更预览</h4><p>{preview.notice}</p><p>有效记忆 {preview.active_memories} 条 · {preview.rebuild_required?'需要重建':'无需重建'}</p><ul>{preview.purposes.map(p=><li key={p.purpose}>{modelPurposes[p.purpose]}：{p.model||'尚未配置'} · {{builtin:'服务器内置',inherited:'沿用对话',independent:'独立配置'}[p.source]}</li>)}</ul><div className="actions"><button className="button primary" disabled={busy} onClick={()=>void run(async()=>{receive(await request<MemorySettings>('/api/memory-settings','PUT',{...body(),preview_digest:preview.preview_digest,preview_expires_at:preview.preview_expires_at}));setNotice('配置已确认，请查看索引和模型实际状态。');})}>确认配置</button><button className="button" disabled={busy} onClick={()=>setPreview(undefined)}>取消预览</button></div></section>}
+      {currentRebuild&&<section className="form-stack" aria-label="索引重建进度"><h4>重建进度</h4><p>当前有效记忆 {currentRebuild.total} · 已就绪 {currentRebuild.ready} · 待处理 {currentRebuild.pending} · 失败 {currentRebuild.failed}</p>{currentRebuild.error&&<p role="status" className="error">{currentRebuild.error}</p>}{saved.phase==='blocked'&&!targetChanged&&<label className="checkbox"><input type="checkbox" checked={restarted} onChange={e=>setRestarted(e.target.checked)}/>我已由部署端重启 Hindsight，确认旧请求不再运行</label>}{!targetChanged&&(saved.phase==='blocked'||currentRebuild.failed>0)&&<button className="button" disabled={busy||(saved.phase==='blocked'&&!restarted)} onClick={()=>void run(async()=>{receive(await request<MemorySettings>(`/api/memory-rebuilds/${currentRebuild.id}/retry`,'POST',{version:saved.version,acknowledge_service_restarted:restarted}));setRestarted(false);setNotice('已提交恢复请求。');})}>重试重建</button>}{['draining','blocked'].includes(saved.phase)&&<button className="button" disabled={busy} onClick={()=>void run(async()=>{receive(await request<MemorySettings>(`/api/memory-rebuilds/${currentRebuild.id}/cancel`,'POST',{version:saved.version}));setRestarted(false);setNotice('已取消切换，保留原配置与索引代际。');})}>取消重建</button>}</section>}
+      <p className="muted">以上状态不代表跨会话召回和 150 题中文质量评测已经通过。模型或索引不可用时会明确提示，不会伪装成成功召回。</p>
+    </>}
+  </section>;
+}
+
 type RoutingInput = Required<components['schemas']['RoutingInput']>;
 type RoutingView = Required<components['schemas']['RoutingView']>;
 type RoutingPreview = components['schemas']['RoutingPreview'];

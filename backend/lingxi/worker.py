@@ -21,7 +21,10 @@ def claim():
     with SessionLocal.begin() as db:
         from .backups import paused
         if paused(db):return None
-        job = db.scalar(select(Job).where(or_(and_(Job.status == 'pending', Job.available_at <= now()),
+        from .memory_settings import configuration
+        memory_config = configuration(db)
+        admission = Job.kind != 'index' if memory_config and memory_config.phase in ('draining', 'blocked') else True
+        job = db.scalar(select(Job).where(admission, or_(and_(Job.status == 'pending', Job.available_at <= now()),
                                                and_(Job.status == 'running', Job.lease_until < now())))
                         .order_by(Job.created_at).with_for_update(skip_locked=True).limit(1))
         if not job:
@@ -290,6 +293,9 @@ def extract(job):
         if model.workspace_id != job.workspace_id or provider.workspace_id != job.workspace_id:
             return
         original, user_id, source_id = source.content, conversation.user_id, source.id
+        from .memory_settings import effective_snapshot
+        extraction_config = effective_snapshot(db, 'extraction', job.workspace_id)
+        provider_version = provider.version
     output = complete(model, provider, [{'role': 'system', 'content': EXTRACTION_PROMPT},
                                         {'role': 'user', 'content': original}])
     cleaned = re.sub(r'^```(?:json)?\s*|\s*```$', '', output.strip())
@@ -298,6 +304,10 @@ def extract(job):
         raise ValueError('Invalid extraction output')
     with SessionLocal.begin() as db:
         owns(db, job)
+        current_model, current_provider, _ = resolve_model(db, 'extraction')
+        if (current_model.id != model.id or current_provider.version != provider_version
+                or effective_snapshot(db, 'extraction', job.workspace_id) != extraction_config):
+            return
         # Channel revocation and the final write share this fence. Acquire it before
         # the message lock, matching channel management's channel -> message order.
         if source_run and source_run.config.get('voice_input', {}).get('automatic'):
@@ -552,6 +562,7 @@ def main():
         next_store_check = 0
         next_heartbeat = 0
         next_maintenance = 0
+        next_memory_check = 0
         next_oauth_check = 0
         next_agent_tool_check = 0
         worker_id, started = uid(), now()
@@ -569,6 +580,13 @@ def main():
             if maintenance_paused:
                 time.sleep(.5)
                 continue
+            if time.monotonic() >= next_memory_check:
+                next_memory_check = time.monotonic()+5
+                try:
+                    from .memory_settings import tick as memory_tick
+                    memory_tick()
+                except Exception:
+                    logging.error('Memory configuration reconciliation unavailable')
             if time.monotonic() >= next_agent_tool_check:
                 next_agent_tool_check=time.monotonic()+5
                 try:

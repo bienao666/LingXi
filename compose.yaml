@@ -89,7 +89,27 @@ services:
       db: {condition: service_healthy}
       core: {condition: service_healthy}
     restart: unless-stopped
+  memory-inference:
+    build:
+      context: .
+      dockerfile: inference/Dockerfile
+    environment:
+      LINGXI_MEMORY_GATEWAY_TOKEN: ${LINGXI_MEMORY_GATEWAY_TOKEN:?Run configure first}
+      LINGXI_CORE_URL: http://core:8000
+    volumes:
+      - builtin-model-cache:/models
+    depends_on:
+      core: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/live', timeout=3)"]
+      interval: 15s
+      retries: 5
+    stop_grace_period: 30s
+    mem_limit: 8g
+    cpus: 2
+    restart: unless-stopped
   web:
+    # Built-in inference is optional for ordinary text chat.
     build:
       context: .
       dockerfile: deploy/web.Dockerfile
@@ -103,3 +123,4 @@ volumes:
   deletion-ledger:
   model-cache:
   server-resources:
+  builtin-model-cache:

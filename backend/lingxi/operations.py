@@ -333,7 +333,8 @@ def traces(ctx:Context,cursor:str=Query(default='',max_length=512),kind:Literal[
     return {'items':items[:50],'next_cursor':encode_cursor(items[49]) if len(items)>50 else None}
 
 
-SAFE_CONFIG={'provider_version','policy_version','prompt_version','persona_version','role_version','plugin_version','skill_version','voice_config_version','audio_transport'}
+SAFE_CONFIG={'provider_version','policy_version','prompt_version','persona_version','role_version','plugin_version','skill_version','voice_config_version','audio_transport',
+    'memory_configuration_version','configuration_source','model_fingerprint','inference_location','source_policy_purpose','source_policy_version'}
 def call_view(c):
     return {'id':c.id,'created_at':c.created_at,'model_id':c.model_id,'purpose':c.purpose,'status':c.status,
         'billing':c.billing or {'status':'unknown','reason':'historical'},

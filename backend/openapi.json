@@ -1940,6 +1940,294 @@
         }
       }
     },
+    "/api/memory-settings": {
+      "get": {
+        "summary": "Settings Get",
+        "operationId": "settings_get_api_memory_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Settings Save",
+        "operationId": "settings_save_api_memory_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySettingsConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-settings/preview": {
+      "post": {
+        "summary": "Settings Preview",
+        "operationId": "settings_preview_api_memory_settings_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemorySettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-settings/verify-extraction": {
+      "post": {
+        "summary": "Verify Extraction",
+        "operationId": "verify_extraction_api_memory_settings_verify_extraction_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-rebuilds": {
+      "get": {
+        "summary": "Rebuilds",
+        "operationId": "rebuilds_api_memory_rebuilds_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MemoryRebuildView"
+                  },
+                  "type": "array",
+                  "title": "Response Rebuilds Api Memory Rebuilds Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Rebuild Start",
+        "operationId": "rebuild_start_api_memory_rebuilds_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebuildStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemoryRebuildView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-rebuilds/{identity}/cancel": {
+      "post": {
+        "summary": "Rebuild Cancel",
+        "operationId": "rebuild_cancel_api_memory_rebuilds__identity__cancel_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebuildRetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-rebuilds/{identity}/retry": {
+      "post": {
+        "summary": "Rebuild Retry",
+        "operationId": "rebuild_retry_api_memory_rebuilds__identity__retry_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RebuildRetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemorySettingsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-settings/prepare": {
+      "post": {
+        "summary": "Prepare Builtin",
+        "operationId": "prepare_builtin_api_memory_settings_prepare_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Prepare Builtin Api Memory Settings Prepare Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/personas": {
       "get": {
         "summary": "List Persona",
@@ -17166,6 +17454,126 @@
         ],
         "title": "MemoryOperationPage"
       },
+      "MemoryPurposeView": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "title": "Purpose"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "inherited",
+              "builtin",
+              "independent"
+            ],
+            "title": "Source"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "purpose",
+          "source",
+          "fingerprint",
+          "state",
+          "notice"
+        ],
+        "title": "MemoryPurposeView"
+      },
+      "MemoryRebuildView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "epoch": {
+            "type": "integer",
+            "title": "Epoch"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "phase",
+          "epoch",
+          "total",
+          "ready",
+          "failed",
+          "pending",
+          "error"
+        ],
+        "title": "MemoryRebuildView"
+      },
       "MemoryRecordPage": {
         "properties": {
           "items": {
@@ -17208,6 +17616,203 @@
           "as_of"
         ],
         "title": "MemoryRecordPage"
+      },
+      "MemorySettingsConfirm": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simple",
+              "advanced"
+            ],
+            "title": "Mode"
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "extraction",
+                "embedding",
+                "rerank"
+              ]
+            },
+            "type": "object",
+            "title": "Models"
+          },
+          "preview_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Preview Digest"
+          },
+          "preview_expires_at": {
+            "type": "integer",
+            "title": "Preview Expires At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "mode",
+          "preview_digest",
+          "preview_expires_at"
+        ],
+        "title": "MemorySettingsConfirm"
+      },
+      "MemorySettingsInput": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simple",
+              "advanced"
+            ],
+            "title": "Mode"
+          },
+          "models": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "propertyNames": {
+              "enum": [
+                "extraction",
+                "embedding",
+                "rerank"
+              ]
+            },
+            "type": "object",
+            "title": "Models"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "mode"
+        ],
+        "title": "MemorySettingsInput"
+      },
+      "MemorySettingsPreview": {
+        "properties": {
+          "preview_digest": {
+            "type": "string",
+            "title": "Preview Digest"
+          },
+          "preview_expires_at": {
+            "type": "integer",
+            "title": "Preview Expires At"
+          },
+          "rebuild_required": {
+            "type": "boolean",
+            "title": "Rebuild Required"
+          },
+          "active_memories": {
+            "type": "integer",
+            "title": "Active Memories"
+          },
+          "purposes": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryPurposeView"
+            },
+            "type": "array",
+            "title": "Purposes"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "preview_digest",
+          "preview_expires_at",
+          "rebuild_required",
+          "active_memories",
+          "purposes",
+          "notice"
+        ],
+        "title": "MemorySettingsPreview"
+      },
+      "MemorySettingsView": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "simple",
+              "advanced"
+            ],
+            "title": "Mode"
+          },
+          "epoch": {
+            "type": "integer",
+            "title": "Epoch"
+          },
+          "phase": {
+            "type": "string",
+            "title": "Phase"
+          },
+          "purposes": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryPurposeView"
+            },
+            "type": "array",
+            "title": "Purposes"
+          },
+          "rebuild_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rebuild Id"
+          },
+          "verification_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Error"
+          },
+          "rebuild_required": {
+            "type": "boolean",
+            "title": "Rebuild Required",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "mode",
+          "epoch",
+          "phase",
+          "purposes",
+          "rebuild_id",
+          "verification_error"
+        ],
+        "title": "MemorySettingsView"
       },
       "MemoryView": {
         "properties": {
@@ -19839,6 +20444,46 @@
           "note"
         ],
         "title": "ReadinessView"
+      },
+      "RebuildRetry": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "acknowledge_service_restarted": {
+            "type": "boolean",
+            "title": "Acknowledge Service Restarted",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "RebuildRetry"
+      },
+      "RebuildStart": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          },
+          "confirmation": {
+            "type": "string",
+            "const": "rebuild_current_index",
+            "title": "Confirmation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "confirmation"
+        ],
+        "title": "RebuildStart"
       },
       "Recipient": {
         "properties": {

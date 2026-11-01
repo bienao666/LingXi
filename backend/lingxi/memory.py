@@ -42,12 +42,21 @@ class HindsightAdapter:
         return '/v1/default/banks/' + quote(f'lingxi-personal-{user_id}-e{epoch}', safe='')
 
     def retain(self, user_id, document_id, content, epoch=None):
-        return self.request('POST', self.bank(user_id, epoch) + '/memories', json={
-            'items': [{'content': content, 'document_id': document_id}], 'async': False})
+        from .memory_settings import flight
+        if epoch is None:
+            with SessionLocal() as db:
+                epoch = index_epoch(db)
+        with flight(epoch):
+            return self.request('POST', self.bank(user_id, epoch) + '/memories', json={
+                'items': [{'content': content, 'document_id': document_id}], 'async': False})
 
     def recall(self, user_id, query):
-        return self.request('POST', self.bank(user_id) + '/memories/recall', json={
-            'query': query, 'types': ['world', 'experience'], 'budget': 'low', 'max_tokens': 2500, 'include': {'entities': {'max_tokens': 0}}})
+        from .memory_settings import flight
+        with SessionLocal() as db:
+            epoch = index_epoch(db)
+        with flight(epoch, recall=True):
+            return self.request('POST', self.bank(user_id, epoch) + '/memories/recall', json={
+                'query': query, 'types': ['world', 'experience'], 'budget': 'low', 'max_tokens': 2500, 'include': {'entities': {'max_tokens': 0}}})
 
     def delete(self, user_id, document_id, epoch=None):
         try:
@@ -69,6 +78,10 @@ def doc_id(memory):
 
 
 def index_epoch(db):
+    from .memory_settings import configuration
+    row = configuration(db)
+    if row:
+        return row.epoch
     policy = db.get(Policy, 'embedding')
     return policy.version if policy else 0
 
@@ -98,7 +111,15 @@ class MemoryService:
         user = db.get(User, user_id)
         if not user:
             return []
+        requested_epoch = index_epoch(db)
         result = self.adapter.recall(user_id, query)
+        from .memory_settings import configuration, selection
+        current = configuration(db)
+        if requested_epoch != index_epoch(db):
+            raise ValueError('Memory index generation changed during recall')
+        if current and (current.phase != 'ready' or current.embedding_fingerprint and
+                current.embedding_fingerprint != selection(db, 'embedding')['fingerprint']):
+            raise ValueError('Memory index maintenance started during recall')
         rows = result.get('results') if isinstance(result, dict) else None
         if not isinstance(rows, list) or len(rows) > 5000:
             raise ValueError('Invalid memory recall response')

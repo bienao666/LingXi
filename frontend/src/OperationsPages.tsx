@@ -16,7 +16,7 @@ type Budget=components['schemas']['BudgetView'];
 type BudgetPreview=components['schemas']['BudgetPreviewView'];
 const text=(v:unknown)=>v===null||v===undefined?'未知':String(v);
 const num=(v:unknown)=>typeof v==='number'?v:0;
-const labels:Record<string,string>={chat:'对话生成',task:'基础任务',agent:'助手协作',plugin:'插件调用',ready:'服务就绪',unconfigured:'尚未配置',unavailable:'暂不可用',warning:'需要关注',error:'运行错误',queued:'等待处理',running:'执行中',pending:'等待执行',completed:'已完成',succeeded:'已成功',failed:'已失败',cancelled:'已取消',invalidated:'已失效',preview:'待确认',confirmed:'可下载',expired:'已过期',worker:'后台执行',store:'插件商店',proactive:'主动交流'};
+const labels:Record<string,string>={chat:'对话生成',task:'基础任务',agent:'助手协作',plugin:'插件调用',ready:'服务就绪',maintenance:'索引维护',unconfigured:'尚未配置',unavailable:'暂不可用',warning:'需要关注',error:'运行错误',queued:'等待处理',running:'执行中',pending:'等待执行',completed:'已完成',succeeded:'已成功',failed:'已失败',cancelled:'已取消',invalidated:'已失效',preview:'待确认',confirmed:'可下载',expired:'已过期',worker:'后台执行',store:'插件商店',proactive:'主动交流'};
 Object.assign(labels,{active:'当前有效',deleted:'已删除',accepted:'协议接受',stored:'已保存',unknown:'结果未知',partial:'部分完成',blocked:'已阻断',waiting_confirmation:'等待确认',waiting_tool:'等待工具',not_sent:'尚未发送'});
 const word=(v:unknown)=>labels[text(v)]||text(v);
 const bytes=(v:unknown)=>typeof v==='number'?`${(v/1024**3).toFixed(1)} GiB`:'未知';

@@ -264,8 +264,11 @@ def analyze(job):
             row.status, row.error = 'failed', '分析中断，未自动重试；普通聊天不受影响'
             return
         model, provider, _ = resolve_model(db, 'extraction', row.model_id)
+        from .memory_settings import selection, inherited_verified
+        choice = selection(db, 'extraction', row.workspace_id)
+        eligible = choice['model_id'] == model.id and (model.purpose == 'extraction' or choice['source'] == 'inherited' and inherited_verified(db, row.workspace_id))
         if (provider.version != row.config['provider_version'] or model.workspace_id != row.workspace_id
-                or provider.workspace_id != row.workspace_id or model.purpose != 'extraction'):
+                or provider.workspace_id != row.workspace_id or not eligible):
             discard(db, row)
             return
         source = db.get(Message, row.source_id)
@@ -288,7 +291,8 @@ def analyze(job):
         if (not current_model or current_model.status != 'verified' or not current_provider or not current_provider.enabled
                 or current_provider.version != config['provider_version']
                 or current_model.workspace_id != row.workspace_id or current_provider.workspace_id != row.workspace_id
-                or current_model.purpose != 'extraction'
+                or selection(db, 'extraction', row.workspace_id)['model_id'] != current_model.id
+                or not (current_model.purpose == 'extraction' or inherited_verified(db, row.workspace_id))
                 or current_model.verified_provider_version != current_provider.version):
             discard(db, row)
             return

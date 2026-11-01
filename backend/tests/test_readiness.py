@@ -39,7 +39,7 @@ def test_empty_snapshot_is_read_only_and_never_probes_remote(client,monkeypatch)
             from lingxi.models import User
             data=readiness((db,db.get(User,'owner'),None))
         assert len(data.groups)==5 and not writes
-        assert all(x.state=='unconfigured' for x in data.groups[0].items)
+        assert [x.state for x in data.groups[0].items] == ['unconfigured', 'unconfigured', 'configured', 'configured']
         assert 'worker_unavailable' in [x.code for x in data.alerts]
     finally:event.remove(engine,'before_cursor_execute',inspect)
 

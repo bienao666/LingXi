@@ -744,6 +744,127 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/memory-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings Get */
+        get: operations["settings_get_api_memory_settings_get"];
+        /** Settings Save */
+        put: operations["settings_save_api_memory_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-settings/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Settings Preview */
+        post: operations["settings_preview_api_memory_settings_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-settings/verify-extraction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Extraction */
+        post: operations["verify_extraction_api_memory_settings_verify_extraction_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-rebuilds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rebuilds */
+        get: operations["rebuilds_api_memory_rebuilds_get"];
+        put?: never;
+        /** Rebuild Start */
+        post: operations["rebuild_start_api_memory_rebuilds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-rebuilds/{identity}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rebuild Cancel */
+        post: operations["rebuild_cancel_api_memory_rebuilds__identity__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-rebuilds/{identity}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rebuild Retry */
+        post: operations["rebuild_retry_api_memory_rebuilds__identity__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/memory-settings/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Builtin */
+        post: operations["prepare_builtin_api_memory_settings_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/personas": {
         parameters: {
             query?: never;
@@ -6347,6 +6468,47 @@ export interface components {
             /** As Of */
             as_of: number;
         };
+        /** MemoryPurposeView */
+        MemoryPurposeView: {
+            /** Purpose */
+            purpose: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "inherited" | "builtin" | "independent";
+            /** Model Id */
+            model_id?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Fingerprint */
+            fingerprint: string;
+            /** State */
+            state: string;
+            /** Notice */
+            notice: string;
+        };
+        /** MemoryRebuildView */
+        MemoryRebuildView: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Phase */
+            phase: string;
+            /** Epoch */
+            epoch: number;
+            /** Total */
+            total: number;
+            /** Ready */
+            ready: number;
+            /** Failed */
+            failed: number;
+            /** Pending */
+            pending: number;
+            /** Error */
+            error: string | null;
+        };
         /** MemoryRecordPage */
         MemoryRecordPage: {
             /** Items */
@@ -6365,6 +6527,78 @@ export interface components {
              * @default false
              */
             scan_limited: boolean;
+        };
+        /** MemorySettingsConfirm */
+        MemorySettingsConfirm: {
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "simple" | "advanced";
+            /** Models */
+            models?: {
+                [key: string]: string;
+            };
+            /** Preview Digest */
+            preview_digest: string;
+            /** Preview Expires At */
+            preview_expires_at: number;
+        };
+        /** MemorySettingsInput */
+        MemorySettingsInput: {
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "simple" | "advanced";
+            /** Models */
+            models?: {
+                [key: string]: string;
+            };
+        };
+        /** MemorySettingsPreview */
+        MemorySettingsPreview: {
+            /** Preview Digest */
+            preview_digest: string;
+            /** Preview Expires At */
+            preview_expires_at: number;
+            /** Rebuild Required */
+            rebuild_required: boolean;
+            /** Active Memories */
+            active_memories: number;
+            /** Purposes */
+            purposes: components["schemas"]["MemoryPurposeView"][];
+            /** Notice */
+            notice: string;
+        };
+        /** MemorySettingsView */
+        MemorySettingsView: {
+            /** Version */
+            version: number;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "simple" | "advanced";
+            /** Epoch */
+            epoch: number;
+            /** Phase */
+            phase: string;
+            /** Purposes */
+            purposes: components["schemas"]["MemoryPurposeView"][];
+            /** Rebuild Id */
+            rebuild_id: string | null;
+            /** Verification Error */
+            verification_error: string | null;
+            /**
+             * Rebuild Required
+             * @default false
+             */
+            rebuild_required: boolean;
         };
         /** MemoryView */
         MemoryView: {
@@ -7499,6 +7733,26 @@ export interface components {
             groups: components["schemas"]["ReadinessGroup"][];
             /** Note */
             note: string;
+        };
+        /** RebuildRetry */
+        RebuildRetry: {
+            /** Version */
+            version: number;
+            /**
+             * Acknowledge Service Restarted
+             * @default false
+             */
+            acknowledge_service_restarted: boolean;
+        };
+        /** RebuildStart */
+        RebuildStart: {
+            /** Version */
+            version: number;
+            /**
+             * Confirmation
+             * @constant
+             */
+            confirmation: "rebuild_current_index";
         };
         /** Recipient */
         Recipient: {
@@ -10981,6 +11235,257 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    settings_get_api_memory_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsView"];
+                };
+            };
+        };
+    };
+    settings_save_api_memory_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemorySettingsConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_preview_api_memory_settings_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MemorySettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_extraction_api_memory_settings_verify_extraction_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsView"];
+                };
+            };
+        };
+    };
+    rebuilds_api_memory_rebuilds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRebuildView"][];
+                };
+            };
+        };
+    };
+    rebuild_start_api_memory_rebuilds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RebuildStart"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemoryRebuildView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rebuild_cancel_api_memory_rebuilds__identity__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RebuildRetry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rebuild_retry_api_memory_rebuilds__identity__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RebuildRetry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemorySettingsView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_builtin_api_memory_settings_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };

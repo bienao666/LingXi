@@ -308,6 +308,9 @@ def set_policy(purpose: str, body: PolicyInput, ctx: Context):
         raise HTTPException(409, '策略已变化，请刷新')
     if policy and policy.model_id == model.id:
         return view(policy)
+    from .memory_settings import configuration
+    if purpose != 'chat' and configuration(db, user.workspace_id):
+        raise HTTPException(409, '请在路由策略的记忆配置中预览并确认用途变更')
     if purpose == 'embedding' and policy and db.scalar(select(func.count()).select_from(Memory)):
         raise HTTPException(409, '已有记忆索引。更换嵌入模型须停写后通过部署端 reindex 命令重建，不可直接混用')
     if policy:
@@ -332,6 +335,19 @@ def internal_model(route: str, body: dict, request: Request, db=Depends(database
     if len(json.dumps(body)) > 500000:
         raise HTTPException(413, '内部模型请求超过预算')
     model, provider, _ = resolve_model(db, purpose)
+    if getattr(provider, 'builtin', False):
+        from .memory_settings import builtin_request, selection, effective_snapshot
+        choice = selection(db, purpose)
+        started = time.monotonic()
+        config = effective_snapshot(db, purpose) | {'model': model.name, 'provider_id': provider.id, 'configuration_source': 'builtin',
+            'inference_location': 'server', 'model_fingerprint': choice['fingerprint']}
+        try:
+            data = builtin_request(route, body | {'model': model.name})
+            record_call(model.id, 'memory_'+purpose, started, 'completed', data.get('usage'), config=config)
+            return data
+        except Exception as exc:
+            record_call(model.id, 'memory_'+purpose, started, 'failed', error=safe_error(exc), config=config)
+            raise
     config = call_config(model, provider, purpose)
     started = time.monotonic()
     try:
@@ -354,6 +370,17 @@ def conversations(ctx: Context, q: str = Query('', max_length=200)):
     from .conversation_pages import conversation_query
     query = conversation_query(db, user, q)
     return [view(c) for c in db.scalars(query.order_by(Conversation.created_at.desc(), Conversation.id.desc()).limit(200))]
+
+
+@app.get('/internal/memory-inference/config', include_in_schema=False)
+def inference_configuration(request: Request, db=Depends(database)):
+    expected = settings().memory_gateway_token
+    if not expected or not secrets.compare_digest(request.headers.get('Authorization', ''), 'Bearer '+expected):
+        raise HTTPException(401, '无效的内部服务身份')
+    from .memory_settings import mode
+    from .network import load_proxy
+    return {'mode': mode(db), 'proxy': load_proxy().model_dump(include={
+        'enabled', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy'})}
 
 
 @app.post('/api/conversations', response_model=ConversationView)
@@ -883,6 +910,8 @@ def health(ctx: Context):
     failed = db.scalar(select(func.count()).select_from(Job).where(Job.workspace_id == user.workspace_id, Job.status == 'failed'))
     from .operations import workers as worker_status
     hindsight = 'ready' if HindsightAdapter().healthy() else 'unavailable'
+    from .memory_settings import view as memory_configuration_view
+    memory_configuration = memory_configuration_view(db, user.workspace_id, probe=True)
     missing = []
     for purpose in ('chat', 'extraction', 'embedding', 'rerank'):
         try:
@@ -890,13 +919,17 @@ def health(ctx: Context):
         except HTTPException:
             missing.append(purpose)
     return {'core': 'ready', 'database': 'ready', 'hindsight': hindsight,
-            'memory': 'unconfigured' if any(p in missing for p in ('extraction','embedding','rerank')) else hindsight,
+            'memory': 'maintenance' if memory_configuration['phase'] != 'ready' or memory_configuration['rebuild_required'] else 'unconfigured' if any(p in missing for p in ('extraction','embedding','rerank')) else
+                'unavailable' if any(p['source']=='builtin' and p['state']!='ready' for p in memory_configuration['purposes']) else hindsight,
+            'memory_configuration': memory_configuration,
             'unconfigured_purposes': missing,
             'worker': worker_status(db) | {'active_jobs': workers, 'pending_jobs': pending, 'failed_jobs': failed},
             'release_status': '首批实现，真实模型和中文质量待验证'}
 
 
 from .assistant_routes import router as assistant_router
+from .memory_settings import router as memory_settings_router
+app.include_router(memory_settings_router)
 app.include_router(assistant_router)
 from .emotions import router as emotion_router
 app.include_router(emotion_router)

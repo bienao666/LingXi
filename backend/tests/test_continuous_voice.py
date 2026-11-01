@@ -144,7 +144,7 @@ def test_rogue_retried_extraction_rejects_unconfirmed_source_before_model(config
     def forbidden(*a, **k): raise AssertionError('must not call extraction model')
     monkeypatch.setattr('lingxi.worker.complete', forbidden)
     from lingxi.worker import extract
-    extract(SimpleNamespace(payload={'message_id': source.id}))
+    extract(SimpleNamespace(payload={'message_id': source.id}, workspace_id=source.workspace_id))
     with SessionLocal() as db: assert not db.scalar(select(Candidate))
 
 

@@ -205,6 +205,7 @@ def checkpoint():
     from .auth_totp import TwoFactor
     from .memory import replay_ledger
     from .models import Memory, Message
+    from .memory_settings import MemoryConfiguration
     from .proactive import ContactPreference, ProactiveContact
     from . import proactive_completion
     from . import reminder_delivery
@@ -236,6 +237,7 @@ def checkpoint():
             'media_storage_runs':storage_checkpoint(db),
             'browser_notices':browser_notice_checkpoint(db),
             'memories':[view(row) for row in db.scalars(select(Memory))],
+            'memory_configurations':[view(row) for row in db.scalars(select(MemoryConfiguration))],
             'invalid_messages':[{'id':row.id,'status':row.status} for row in db.scalars(select(Message).where(Message.status.in_(['deleted','redacted','invalidated','superseded'])))],
             'topic_completions':proactive_completion.checkpoint(db),
             'reminder_deliveries':reminder_delivery.checkpoint(db),
@@ -442,6 +444,18 @@ def quarantine(data):
         # Indexes are derived data. Rebuild from current authority, and make
         # physical deletion cleanup retryable without replaying old user work.
         restored=uid()
+        # A restored bank may predate a model switch. Never reuse that bank's
+        # vectors; retain the latest mode but require fresh external validation.
+        from .memory_settings import MemoryConfiguration, MemoryFlight, configuration, selection
+        for values in data.get('memory_configurations', []):
+            row = configuration(db, values['workspace_id'], create=True)
+            row.mode = values['mode']
+            row.epoch = max(row.epoch, values['epoch'])+1
+            row.version = max(row.version, values['version'])+1
+            row.phase, row.pending, row.verification, row.rebuild_id = 'ready', {}, {}, None
+            row.embedding_fingerprint = selection(db, 'embedding', row.workspace_id)['fingerprint']
+        for item in db.scalars(select(MemoryFlight).where(MemoryFlight.status.in_(('running','unknown')))):
+            item.status = 'resolved'  # Host restore stopped Hindsight before quarantine.
         for memory in list(db.scalars(select(Memory))):
             invalidate_runs(db,memory.id)
             if memory.status=='deleted':MemoryService().forget(db,memory,journal=False)

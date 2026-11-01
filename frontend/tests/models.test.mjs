@@ -28,7 +28,7 @@ const setupUrl=compile('../src/ModelSetup.tsx');
 const apiUrl=compile('../src/api.ts');
 const formUrl=compile('../src/AddModelForm.tsx',{'./api':apiUrl,'./ModelSetup':setupUrl});
 const {AddModelForm}=await import(formUrl);
-const {ModelSetup,RoutingControls}=await import(setupUrl);
+const {ModelSetup,RoutingControls,MemoryControls}=await import(setupUrl);
 const uiUrl=compile('../src/ui.tsx',{'./api':apiUrl});
 const personaUrl=compile('../src/ConversationPersona.tsx',{'./api':apiUrl,'./ui':uiUrl});
 const times=compile('../src/MemoryTimes.tsx');
@@ -337,4 +337,81 @@ test('capability test prevents duplicate submits and refreshes failed model stat
   assert.match(document.querySelector('[role=alert]').textContent,/429.*额度/);
   assert.match(document.querySelector('tbody').textContent,/处理失败/);
   assert.equal(button.disabled,false);assert.equal(button.textContent,'验证能力');
+});
+const simpleMemory={version:1,mode:'simple',epoch:0,phase:'ready',rebuild_id:null,verification_error:null,purposes:[
+  {purpose:'extraction',source:'inherited',model_id:'chat',model:'chat-model',fingerprint:'a',state:'unverified',notice:'沿用固定对话模型'},
+  {purpose:'embedding',source:'builtin',model:'BAAI/bge-m3',fingerprint:'b',state:'downloading',notice:'正在下载固定版本'},
+  {purpose:'rerank',source:'builtin',model:'BAAI/bge-reranker-v2-m3',fingerprint:'c',state:'ready',notice:'CPU 已加载'}]};
+const memoryProps={models:['chat','extraction','embedding','rerank'].map(model),providers:[provider],policies:['chat','extraction','embedding','rerank'].map(policy)};
+const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
+
+test('simple memory mode displays inheritance and real loading state without independent selectors or paid calls',async t=>{
+  const calls=[];const request=async(url,method='GET')=>{calls.push({url,method});return url==='/api/memory-rebuilds'?[]:simpleMemory;};
+  await mount(t,MemoryControls,{...memoryProps,request});
+  assert.match(document.body.textContent,/BAAI\/bge-m3/);assert.match(document.body.textContent,/正在下载/);
+  assert.match(document.body.textContent,/沿用对话/);assert.equal(document.querySelector('select[aria-label="向量嵌入模型"]'),null);
+  assert.ok(calls.every(c=>c.method==='GET'));assert.match(document.body.textContent,/可能产生服务费用/);
+});
+
+test('memory mode switches require preview and explicit confirmation and preserve independent IDs',async t=>{
+  const calls=[];const request=async(url,method='GET',value)=>{
+    calls.push({url,method,value});
+    if(url==='/api/memory-rebuilds')return [];
+    if(url.endsWith('/preview'))return {preview_digest:'a'.repeat(64),preview_expires_at:2000000000,rebuild_required:true,active_memories:4,purposes:simpleMemory.purposes,notice:'需要暂停检索并后台重建'};
+    return method==='PUT'?{...simpleMemory,mode:'advanced',version:2,phase:'draining'}:simpleMemory;
+  };
+  await mount(t,MemoryControls,{...memoryProps,request});
+  await choose('select[aria-label="记忆模式"]','advanced');
+  assert.equal(document.querySelector('select[aria-label="向量嵌入模型"]').value,'embedding');
+  assert.equal(calls.filter(c=>c.method==='PUT').length,0);
+  await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.match(document.body.textContent,/有效记忆 4/);assert.equal(calls.filter(c=>c.method==='PUT').length,0);
+  await act(async()=>button('确认配置').click());
+  const put=calls.find(c=>c.method==='PUT');assert.equal(put.value.models.embedding,'embedding');assert.equal(put.value.preview_digest,'a'.repeat(64));
+  assert.match(document.body.textContent,/正在等待旧记忆请求结束/);
+});
+
+test('changing draft invalidates preview without saving or discarding advanced choices',async t=>{
+  const calls=[];const request=async(url,method='GET')=>{calls.push(method);return url==='/api/memory-rebuilds'?[]:url.endsWith('/preview')?{preview_digest:'a'.repeat(64),preview_expires_at:2000000000,rebuild_required:false,active_memories:0,purposes:[],notice:'预览'}:simpleMemory;};
+  await mount(t,MemoryControls,{...memoryProps,request});
+  await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.ok(button('确认配置'));await choose('select[aria-label="记忆模式"]','advanced');
+  assert.equal(button('确认配置'),undefined);assert.equal(document.querySelector('select[aria-label="记忆抽取模型"]').value,'extraction');
+  assert.equal(calls.includes('PUT'),false);
+});
+
+test('failed extraction validation retains chat availability and reports actual error',async t=>{
+  const request=async(url,method='GET')=>url==='/api/memory-rebuilds'?[]:method==='POST'?{...simpleMemory,verification_error:'结构化 JSON 不符合原文证据'}:simpleMemory;
+  await mount(t,MemoryControls,{...memoryProps,request});
+  await act(async()=>button('验证抽取').click());
+  assert.match(document.body.textContent,/抽取验证失败：结构化 JSON/);
+  assert.doesNotMatch(document.body.textContent,/抽取已验证/);assert.match(document.body.textContent,/文字聊天/);
+});
+
+test('duplicate validation clicks dispatch only one paid request',async t=>{
+  let finish,count=0;
+  const pending=new Promise(resolve=>finish=resolve);
+  const request=async(url,method='GET')=>{if(url==='/api/memory-rebuilds')return [];if(method==='POST'){count++;return pending;}return simpleMemory;};
+  await mount(t,MemoryControls,{...memoryProps,request});
+  await act(async()=>{button('验证抽取').click();button('验证抽取').click();});
+  assert.equal(count,1);await act(async()=>finish(simpleMemory));
+});
+
+test('blocked rebuild requires explicit service restart acknowledgement',async t=>{
+  const state={...simpleMemory,phase:'blocked',rebuild_id:'r1'},calls=[];
+  const request=async(url,method='GET',value)=>{calls.push({url,method,value});return url==='/api/memory-rebuilds'?[{id:'r1',status:'failed',total:3,ready:0,failed:0,pending:3,error:'旧请求未知'}]:state;};
+  await mount(t,MemoryControls,{...memoryProps,request});
+  assert.equal(button('重试重建').disabled,true);
+  await act(async()=>document.querySelector('input[type=checkbox]').click());
+  assert.equal(button('重试重建').disabled,false);
+  await act(async()=>button('重试重建').click());
+  assert.equal(calls.find(c=>c.url.endsWith('/retry')).value.acknowledge_service_restarted,true);
+});
+
+test('memory settings connection error is focusable and offers retry without an invented ready state',async t=>{
+  let fail=true;const request=async(url)=>{if(fail)throw Error('服务连接中断');return url==='/api/memory-rebuilds'?[]:simpleMemory;};
+  await mount(t,MemoryControls,{...memoryProps,request});
+  assert.equal(document.activeElement,document.querySelector('[role=alert]'));
+  assert.equal(button('确认配置'),undefined);fail=false;
+  await act(async()=>button('重新加载').click());assert.ok(document.querySelector('select[aria-label="记忆模式"]'));
 });

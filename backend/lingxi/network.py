@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base, SessionLocal, now
 from .security import decrypt, encrypt, validate_endpoint
 
-INTERNAL_HOSTS = frozenset({'localhost', '127.0.0.1', '::1', 'core', 'db', 'worker', 'hindsight', 'web'})
+INTERNAL_HOSTS = frozenset({'localhost', '127.0.0.1', '::1', 'core', 'db', 'worker', 'hindsight', 'web', 'memory-inference'})
 
 
 class SystemProxy(Base):

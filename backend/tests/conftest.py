@@ -12,6 +12,7 @@ os.environ['LINGXI_RUNTIME_DIR'] = TEMP.name
 os.environ['LINGXI_COOKIE_SECURE'] = 'false'
 os.environ['LINGXI_PUBLIC_ORIGIN'] = 'http://testserver'
 os.environ['LINGXI_HINDSIGHT_URL'] = 'http://127.0.0.1:1'
+os.environ['LINGXI_MEMORY_INFERENCE_URL'] = 'http://127.0.0.1:1'
 
 import pytest
 from fastapi.testclient import TestClient
