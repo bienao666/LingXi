@@ -167,12 +167,17 @@ def fork(conversation_id: str, body: ForkInput, ctx: Context):
     if persona:
         db.add(ConversationPersona(conversation_id=child.id, persona_id=persona.persona_id, inherit_default=persona.inherit_default))
     db.flush()
+    from .message_replies import resolve as resolve_reply, snapshot as reply_snapshot
+    original_run = (db.get(ChatRun, anchor.run_id) if anchor.run_id else None) if body.mode == 'edit' else source_run
+    original_reply = resolve_reply(db, original_run) if original_run else None
+    reply = reply_snapshot(db, child, original_reply.id) if original_reply else None
     if body.mode == 'edit':
         from .api import submit_chat
         from .media import MediaChatInput, MediaLink
         attachments = list(db.scalars(select(MediaLink.media_id).where(MediaLink.message_id == anchor.id)))
         run = submit_chat(MediaChatInput(conversation_id=child.id, request_id='branch:' + branch.id,
-            content=body.content, media_ids=attachments), ctx, fork_context=True)
+            content=body.content, media_ids=attachments,
+            reply_to_message_id=reply['message_id'] if reply else None), ctx, fork_context=True)
         generated = db.get(ChatRun, run['id'])
     else:
         from .assistants import chat_profile
@@ -185,6 +190,7 @@ def fork(conversation_id: str, body: ForkInput, ctx: Context):
             request_id='branch:' + branch.id, request_hash=digest, model_id=model.id,
             config={'model': model.name, 'provider_version': provider.version, 'policy_version': version,
                 'prompt_version': 'lingxi-expression-v2', 'persona': persona, **run_snapshot(db, user),
+                **({'reply_to':reply} if reply else {}),
                 'input_message_id': input_message.id, 'regeneration_of': anchor.run_id})
         db.add(generated)
         db.flush()

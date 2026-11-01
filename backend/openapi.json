@@ -13466,6 +13466,19 @@
             "minLength": 1,
             "title": "Content"
           },
+          "reply_to_message_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reply To Message Id"
+          },
           "media_ids": {
             "items": {
               "type": "string"
@@ -13702,6 +13715,16 @@
           "created_at": {
             "type": "number",
             "title": "Created At"
+          },
+          "reply_to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReplyView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "attachments": {
             "items": {
@@ -16660,6 +16683,50 @@
           "receipt"
         ],
         "title": "ReminderView"
+      },
+      "ReplyView": {
+        "properties": {
+          "message_id": {
+            "type": "string",
+            "title": "Message Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "default": ""
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "default": false
+          },
+          "characters": {
+            "type": "integer",
+            "title": "Characters",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "message_id",
+          "status"
+        ],
+        "title": "ReplyView"
       },
       "Resolution": {
         "properties": {

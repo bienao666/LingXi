@@ -4941,6 +4941,8 @@ export interface components {
             request_id: string;
             /** Content */
             content: string;
+            /** Reply To Message Id */
+            reply_to_message_id?: string | null;
             /** Media Ids */
             media_ids?: string[];
             /**
@@ -5033,6 +5035,7 @@ export interface components {
             run_id: string | null;
             /** Created At */
             created_at: number;
+            reply_to?: components["schemas"]["ReplyView"] | null;
             /** Attachments */
             attachments?: components["schemas"]["MediaView"][];
             /**
@@ -6251,6 +6254,30 @@ export interface components {
             receipt: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** ReplyView */
+        ReplyView: {
+            /** Message Id */
+            message_id: string;
+            /** Status */
+            status: string;
+            /** Role */
+            role?: string | null;
+            /**
+             * Content
+             * @default
+             */
+            content: string;
+            /**
+             * Truncated
+             * @default false
+             */
+            truncated: boolean;
+            /**
+             * Characters
+             * @default 0
+             */
+            characters: number;
         };
         /** Resolution */
         Resolution: {

@@ -132,5 +132,6 @@ def messages(conversation_id: str, ctx: Context,
                     break
     selected = rows[:limit]
     token = seal(user, scope, selected[-1][1]) if len(rows) > limit else None
+    from .message_replies import presentation
     return {'items': [view(m) | {'attachments': media_for_message(db, m),
-        'inherited': m.conversation_id != conversation_id} for m, _ in reversed(selected)], 'next_cursor': token}
+        'reply_to': presentation(db, m), 'inherited': m.conversation_id != conversation_id} for m, _ in reversed(selected)], 'next_cursor': token}

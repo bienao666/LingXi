@@ -249,6 +249,65 @@ test('chat attachments can enter collaboration while simple task assistance stay
 
 
 const historyMessage=(id,content=id)=>({id,role:'user',content,status:'completed',created_at:1,run_id:null});
+test('reply selection is text only, focuses composer and excludes execution modes',async t=>{
+ const requests=[];const original={...historyMessage('source','<img src=x onerror=alert(1)> 历史建议'),role:'assistant'};
+ await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},(u,o)=>{
+  if(u==='/api/chat'){requests.push(JSON.parse(o.body));return response({detail:'暂时不可用'},503);}
+  return response(u.startsWith('/api/message-pages?')?{items:[original],next_cursor:null}:defaults(u));
+ });
+ const mode=text=>[...document.querySelectorAll('label')].find(v=>v.textContent===text).querySelector('input');
+ await act(async()=>mode('任务协助').click());await click('回复引用');
+ assert.equal(document.activeElement.id,'chat-input');assert.equal(mode('任务协助').checked,false);
+ assert.equal(mode('任务协助').disabled,true);assert.equal(mode('助手协作').disabled,true);
+ assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='开启语音').disabled,true);
+ assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='选择文件').disabled,false);
+ const quote=document.querySelector('[aria-label="当前引用"]');assert.match(quote.textContent,/历史建议/);assert.equal(quote.querySelector('img'),null);
+ await input('先别聊');await click('发送消息');await click('发送消息');
+ assert.equal(requests.length,2);assert.equal(requests[0].reply_to_message_id,'source');assert.equal(requests[0].task_assist,false);assert.equal(requests[0].collaboration,null);
+ assert.equal(requests[0].request_id,requests[1].request_id);assert.ok(document.querySelector('[aria-label="当前引用"]'));
+ assert.equal(document.querySelector('#chat-input').value,'先别聊');
+ await click('取消引用');assert.equal(document.querySelector('[aria-label="当前引用"]'),null);
+ assert.equal(mode('任务协助').disabled,false);await click('发送消息');
+ assert.equal('reply_to_message_id' in requests[2],false);assert.notEqual(requests[2].request_id,requests[1].request_id);
+});
+
+test('changing selected reference changes retry key; successful send clears it',async t=>{
+ const requests=[];const originals=[historyMessage('one','原文一'),historyMessage('two','原文二')];let succeed=false;
+ await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},(u,o)=>{
+  if(u==='/api/chat'){requests.push(JSON.parse(o.body));return succeed?response({id:'sent'}):response({detail:'断线'},503);}
+  return response(u.startsWith('/api/message-pages?')?{items:originals,next_cursor:null}:defaults(u));
+ });
+ await click('回复引用');await input('解释这句');await click('发送消息');
+ await act(async()=>[...document.querySelectorAll('button')].filter(b=>b.textContent==='回复引用')[1].click());
+ succeed=true;await click('发送消息');
+ assert.equal(requests[1].reply_to_message_id,'two');assert.notEqual(requests[1].request_id,requests[0].request_id);
+ assert.equal(document.querySelector('[aria-label="当前引用"]'),null);assert.equal(document.querySelector('#chat-input').value,'');
+});
+
+test('saved references render safe provenance, unavailable references reveal no old content',async t=>{
+ await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},u=>response(u.startsWith('/api/message-pages?')?{items:[
+  {...historyMessage('redacted',''),status:'redacted'},
+  {...historyMessage('one','当前提问'),reply_to:{message_id:'source',status:'available',role:'assistant',content:'<img src=x onerror=alert(1)> 来源',truncated:true,characters:1600}},
+  {...historyMessage('two','后续提问'),reply_to:{message_id:'gone',status:'unavailable',content:'',truncated:false,characters:0}}
+ ],next_cursor:null}:defaults(u)));
+ assert.match(document.querySelector('.messages').textContent,/助手历史输出，不等于用户事实/);
+ assert.match(document.querySelector('.messages').textContent,/已截取前 1200 字符/);
+ assert.match(document.querySelector('.messages').textContent,/引用失效/);assert.equal(document.querySelector('.messages img'),null);
+ assert.match(document.querySelector('.messages').textContent,/这条消息已不可用/);assert.doesNotMatch(document.querySelector('.messages').textContent,/正在组织回复/);
+});
+
+test('conversation switch clears reference and cannot leak it to the next chat',async t=>{
+ const root=await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},u=>response(u.startsWith('/api/message-pages?')?{items:[historyMessage('old-source')],next_cursor:null}:u==='/api/conversations/other'?{...conversation,id:'other'}:defaults(u)));
+ await click('回复引用');assert.ok(document.querySelector('[aria-label="当前引用"]'));
+ await act(async()=>root.render(createElement(ChatPage,{hash:'#/chat/conversation?c=other'})));
+ assert.equal(document.querySelector('[aria-label="当前引用"]'),null);
+});
+
+test('running generation disables reply selection including control phrases',async t=>{
+ const previous=globalThis.EventSource;globalThis.EventSource=class{addEventListener(){}close(){}};t.after(()=>globalThis.EventSource=previous);
+ await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},u=>response(u.startsWith('/api/message-pages?')?{items:[historyMessage('source')],next_cursor:null}:u.startsWith('/api/chat-runs?')?[{id:'busy',status:'running',config:{},memory_refs:[]}]:defaults(u)));
+ assert.equal([...document.querySelectorAll('button')].find(b=>b.textContent==='回复引用').disabled,true);
+});
 test('old deep link retains title and actions even outside directory results',async t=>{
  await mount(t,ChatPage,{hash:'#/chat/conversation?c=conversation-one'},u=>response(u.startsWith('/api/conversation-pages?')?{items:[],next_cursor:null}:defaults(u)));
  assert.match(document.querySelector('.chat-main .pane-toolbar').textContent,/日常对话/);

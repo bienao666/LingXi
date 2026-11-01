@@ -41,8 +41,9 @@ export function VoiceSettings(){
   </div>;
 }
 
-export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:{conversationId:string;messages:Message[];runs:Run[];reload():Promise<void>;userBusy?:boolean}){
+export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,referenceSelected=false,onSessionChange}:{conversationId:string;messages:Message[];runs:Run[];reload():Promise<void>;userBusy?:boolean;referenceSelected?:boolean;onSessionChange?:(active:boolean)=>void}){
   const [session,setSession]=useState<VoiceSession|null>(null),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[draft,setDraft]=useState(''),[error,setError]=useState(''),[status,setStatus]=useState(''),[speaking,setSpeaking]=useState(false),[blocked,setBlocked]=useState(false);
+  useEffect(()=>{onSessionChange?.(!!session);},[session?.id,onSessionChange]);
   const [continuous,setContinuous]=useState(false),[listening,setListening]=useState(false),[realtimeBusy,setRealtimeBusy]=useState(false);
   const [nativeInput,setNativeInput]=useState(false),[liveCaption,setLiveCaption]=useState('');
   const nativeTurn=useRef<RealtimeTranscription|null>(null);
@@ -302,7 +303,7 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:
   // Another entry point can submit a text turn while this microphone is open.
   useEffect(()=>{if(active&&active.id!==initiated.current&&listeningRef.current)pauseListening('文字回复正在生成，聆听已暂停。');},[active?.id]);
   return <section className="voice-panel" aria-label="浏览器语音">
-    <div className="pane-toolbar"><strong>语音会话</strong><div className="actions">{!session?<button type="button" className="button" disabled={busy||!!active} onClick={()=>void startSession()}>{busy?'正在开启':'开启语音'}</button>:<button type="button" className="button" onClick={endSession}>结束语音</button>}<a href="#/settings/voice">语音配置</a></div></div>
+    <div className="pane-toolbar"><strong>语音会话</strong><div className="actions">{!session?<button type="button" className="button" disabled={busy||!!active||referenceSelected} onClick={()=>void startSession()}>{busy?'正在开启':'开启语音'}</button>:<button type="button" className="button" onClick={endSession}>结束语音</button>}<a href="#/settings/voice">语音配置</a></div></div>
     <label className="checkbox"><input type="checkbox" checked={session?session.mode==='continuous':continuous} disabled={!!session||busy} onChange={e=>setContinuous(e.target.checked)}/>连续对话</label>
     {(continuous||session?.mode==='continuous')&&<label className="checkbox"><input type="checkbox" checked={nativeInput} disabled={!!session||busy} onChange={e=>setNativeInput(e.target.checked)}/>实时字幕</label>}
     <label className="checkbox"><input type="checkbox" checked={session?!!session.allow_proactive:allowProactive} disabled={proactiveBusy||busy} onChange={e=>void changeProactive(e.target.checked)}/>主动开口</label>

@@ -18,6 +18,7 @@ from .db import Base, SessionLocal, now, uid
 from .models import ChatRun, Conversation, Message, Model, Provider, User
 from .schemas import ChatInput, MessageView
 from .web import Context, audit, owned, view
+from .message_replies import ReplyView
 
 router = APIRouter()
 MAX_FILE = 20 * 1024**2
@@ -102,12 +103,14 @@ class CollaborationOptions(BaseModel):
 
 
 class MediaChatInput(ChatInput):
+    reply_to_message_id: str | None = Field(default=None, min_length=1, max_length=64)
     media_ids: list[str] = Field(default_factory=list, max_length=10)
     task_assist: bool = False
     collaboration: CollaborationOptions | None = None
 
 
 class MediaMessageView(MessageView):
+    reply_to: ReplyView | None = None
     attachments: list[MediaView] = Field(default_factory=list)
     inherited: bool = False
 

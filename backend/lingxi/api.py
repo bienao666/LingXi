@@ -374,7 +374,9 @@ def messages(conversation_id: str, ctx: Context, before: float | None = None, li
     expire_delegations(db, user.id)
     from .branches import history
     items = history(db, conversation, include_unusable=True, limit=limit, before=before)
-    return [view(m) | {'attachments': media_for_message(db, m), 'inherited': m.conversation_id != conversation_id} for m in items]
+    from .message_replies import presentation
+    return [view(m) | {'attachments': media_for_message(db, m), 'reply_to': presentation(db, m),
+        'inherited': m.conversation_id != conversation_id} for m in items]
 
 
 def downloadable(data, filename, media_type):
@@ -388,10 +390,11 @@ def export_conversation(conversation_id: str, ctx: Context, format: str = 'markd
     from .delegation import expire_delegations
     expire_delegations(db, user.id)
     from .branches import history
-    items = [view(m, ('workspace_id',)) | {'attachments': media_for_message(db, m)} for m in history(db, c, include_unusable=True)]
+    from .message_replies import presentation, markdown as reply_markdown
+    items = [view(m, ('workspace_id',)) | {'attachments': media_for_message(db, m), 'reply_to': presentation(db, m)} for m in history(db, c, include_unusable=True)]
     if format == 'json':
         return downloadable(json.dumps({'title': c.title, 'messages': items}, ensure_ascii=False, indent=2), 'conversation.json', 'application/json')
-    return downloadable('# '+c.title+'\n\n'+'\n\n'.join(f"## {m['role']} · {m['status']}\n\n{m['content']}" + ''.join(f"\n\n附件 [{a['id']}]：{a['filename']}（{a['status']}）" for a in m['attachments']) for m in items), 'conversation.md', 'text/markdown')
+    return downloadable('# '+c.title+'\n\n'+'\n\n'.join(f"## {m['role']} · {m['status']}\n\n{m['content']}" + reply_markdown(m['reply_to']) + ''.join(f"\n\n附件 [{a['id']}]：{a['filename']}（{a['status']}）" for a in m['attachments']) for m in items), 'conversation.md', 'text/markdown')
 
 
 @app.post('/api/chat', response_model=ChatRunView)
@@ -406,6 +409,9 @@ def submit_chat(body: ChatInput, ctx, channel_context=None, fork_context=False, 
     media_ids = getattr(body, 'media_ids', [])
     task_assist = getattr(body, 'task_assist', False)
     collaboration = getattr(body, 'collaboration', None)
+    reply_id = getattr(body, 'reply_to_message_id', None)
+    if reply_id and (task_assist or collaboration or channel_context or voice_context):
+        raise HTTPException(422, '回复引用用于 Web 普通聊天，请先关闭任务协助、助手协作或语音模式')
     automatic_voice = bool(voice_context and voice_context.get('automatic'))
     if collaboration and task_assist:
         raise HTTPException(422, '任务协助与助手协作不能同时开启')
@@ -415,6 +421,8 @@ def submit_chat(body: ChatInput, ctx, channel_context=None, fork_context=False, 
         raise HTTPException(422, '任务协助目前仅支持 Web 文字消息，请移除附件或关闭任务协助')
     # Preserve old request hashes for text-only requests.
     hash_content = [body.conversation_id, body.content] + ([media_ids] if media_ids else [])
+    if reply_id:
+        hash_content += [{'reply_to_message_id':reply_id}]
     if task_assist:
         hash_content += [{'task_assist': True}]
     if automatic_voice:
@@ -428,14 +436,23 @@ def submit_chat(body: ChatInput, ctx, channel_context=None, fork_context=False, 
             raise HTTPException(409, '幂等请求 ID 已用于另一条消息')
         return view(existing)
     conversation = owned(db, Conversation, body.conversation_id, user, lock=True)
+    from .message_replies import snapshot as reply_snapshot
+    if reply_id:
+        from .channels import ChannelSession
+        from .voice import VoiceSession
+        if (db.scalar(select(ChannelSession).where(ChannelSession.conversation_id == conversation.id)) or
+                db.scalar(select(VoiceSession).where(VoiceSession.conversation_id == conversation.id,
+                    VoiceSession.status == 'active', VoiceSession.expires_at > now()))):
+            raise HTTPException(409, '请在独立 Web 文字会话中引用，或先结束实时语音')
+    reply = reply_snapshot(db, conversation, reply_id)
     if task_assist or collaboration:
         from .channels import ChannelSession
         if db.scalar(select(ChannelSession).where(ChannelSession.conversation_id == conversation.id)):
             raise HTTPException(409, 'QQ 会话尚未开放聊天任务协助，请使用独立 Web 对话')
     from .proactive import chat_control
-    control_reply = chat_control(db, user, conversation, body.content) if not channel_context and not media_ids and not fork_context and not automatic_voice else None
+    control_reply = chat_control(db, user, conversation, body.content) if not channel_context and not media_ids and not fork_context and not automatic_voice and not reply else None
     from .support import chat_control as support_control
-    support_result = support_control(db, user, conversation, body.content) if not channel_context and not media_ids and not fork_context and not voice_context else None
+    support_result = support_control(db, user, conversation, body.content) if not channel_context and not media_ids and not fork_context and not voice_context and not reply else None
     if support_result:
         control_reply = support_result['reply']
     if control_reply:
@@ -470,6 +487,7 @@ def submit_chat(body: ChatInput, ctx, channel_context=None, fork_context=False, 
                   request_hash=digest, model_id=model.id, config={'model': model.name, 'provider_version': provider.version,
                   'policy_version': version, 'prompt_version': 'lingxi-expression-v2', 'persona': persona,
                   **run_snapshot(db, user),
+                  **({'reply_to':reply} if reply else {}),
                   **({'routing': routing} if routing else {}),
                   **({'channel': channel_context} if channel_context else {}),
                   **({'voice_input': voice_context} if voice_context else {}),
@@ -478,6 +496,8 @@ def submit_chat(body: ChatInput, ctx, channel_context=None, fork_context=False, 
                                      'status': 'pending'}} if collaboration else {}),
                   **({'media_refs': [{'id': a.id, 'version': a.version} for a in attachments]} if attachments else {})})
     db.add(run)
+    if reply:
+        run.source_message_ids = [reply['message_id']]
     try:
         db.flush()
     except IntegrityError:
