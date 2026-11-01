@@ -343,8 +343,12 @@ async def read_audio(request):
 
 def audio_call(row, provider, kind, model, data=None, text=None, validation=False):
     started, status, error, usage = time.monotonic(), 'failed', None, {}
+    from .model_budgets import client as budget_client, BudgetExceeded
+    metadata = {'provider_id': provider.id, 'provider_version': provider.version,
+                'model': model, 'voice_config_version': row.version, 'validation': validation,
+                **({'voice': row.spec['voice'], 'speed': row.spec['speed']} if kind == 'tts' else {})}
     try:
-        with client_for(provider) as client:
+        with budget_client(provider, client_for, metadata) as client:
             if kind == 'asr':
                 import json
                 with client.stream('POST', 'audio/transcriptions', data={'model': model, 'language': row.spec['language'],
@@ -377,12 +381,12 @@ def audio_call(row, provider, kind, model, data=None, text=None, validation=Fals
         return value
     except Exception as exc:
         error = safe_error(exc)
+        if isinstance(exc, BudgetExceeded):
+            raise
         raise HTTPException(502, error) from None
     finally:
         record_call('voice:' + kind, kind, started, status, usage, error,
-                    config={'provider_id': provider.id, 'provider_version': provider.version,
-                            'model': model, 'voice_config_version': row.version, 'validation': validation,
-                            **({'voice': row.spec['voice'], 'speed': row.spec['speed']} if kind == 'tts' else {})})
+                    config=metadata)
 
 
 def recheck_config(db, user, version, kind, provider_version):

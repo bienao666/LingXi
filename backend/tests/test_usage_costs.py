@@ -1,5 +1,4 @@
 import time
-from contextlib import contextmanager
 
 import pytest
 from sqlalchemy import select
@@ -85,16 +84,11 @@ def test_call_freezes_rate_before_network_and_preserves_prompt_version(configure
     client=configured
     client.put('/api/admin/model-prices/chat',json=price())
     from lingxi import gateway
-    class Result:
-        def raise_for_status(self):pass
-        def json(self):return {'choices':[{'message':{'content':'正常回复'}}],'usage':{'prompt_tokens':1000000,'completion_tokens':500000}}
-    class Client:
-        def post(self,*args,**kwargs):
-            client.put('/api/admin/model-prices/chat',json=price(version=1,input_per_million='20'))
-            return Result()
-    @contextmanager
-    def fake(_):yield Client()
-    monkeypatch.setattr(gateway,'client_for',fake)
+    import httpx
+    def send(request):
+        client.put('/api/admin/model-prices/chat',json=price(version=1,input_per_million='20'))
+        return httpx.Response(200,json={'choices':[{'message':{'content':'正常回复'}}],'usage':{'prompt_tokens':1000000,'completion_tokens':500000}})
+    monkeypatch.setattr(gateway,'client_for',lambda p:httpx.Client(base_url=p.base_url+'/',transport=httpx.MockTransport(send)))
     with SessionLocal() as db:model,provider=db.get(Model,'chat'),db.get(Provider,'provider')
     assert gateway.complete(model,provider,[{'role':'user','content':'hello'}],purpose='chat',config={'prompt_version':'fixed-v9'})=='正常回复'
     with SessionLocal() as db:
@@ -107,20 +101,13 @@ def test_call_freezes_rate_before_network_and_preserves_prompt_version(configure
 def test_stream_cancel_records_usage_with_start_snapshot(configured,monkeypatch):
     from lingxi import gateway
     configured.put('/api/admin/model-prices/chat',json=price())
-    class Response:
-        def raise_for_status(self):pass
-        def iter_lines(self):
-            yield 'data: {"usage":{"prompt_tokens":100,"completion_tokens":10},"choices":[]}'
-            yield 'data: {"choices":[{"delta":{"content":"开始"}}]}'
-            yield 'data: [DONE]'
-    class Client:
-        @contextmanager
-        def stream(self,*a,**k):yield Response()
-    @contextmanager
-    def fake(_):yield Client()
-    monkeypatch.setattr(gateway,'client_for',fake)
+    import httpx
+    raw='data: {"usage":{"prompt_tokens":100,"completion_tokens":10},"choices":[]}\n\ndata: {"choices":[{"delta":{"content":"开始"}}]}\n\ndata: [DONE]\n\n'
+    monkeypatch.setattr(gateway,'client_for',lambda p:httpx.Client(base_url=p.base_url+'/',transport=httpx.MockTransport(lambda _:httpx.Response(200,text=raw))))
+    c=configured.post('/api/conversations',json={}).json()['id']
+    rid=configured.post('/api/chat',json={'conversation_id':c,'request_id':'cost-snapshot-001','content':'你好'}).json()['id']
     with SessionLocal() as db:model,provider=db.get(Model,'chat'),db.get(Provider,'provider')
-    stream=gateway.stream(model,provider,[{'role':'user','content':'hello'}],'missing-run',lambda:None,config={'prompt_version':'fixed-v10'})
+    stream=gateway.stream(model,provider,[{'role':'user','content':'hello'}],rid,lambda:None,config={'prompt_version':'fixed-v10'})
     assert next(stream)=='开始'
     stream.close()
     with SessionLocal() as db:
@@ -132,14 +119,8 @@ def test_stream_cancel_records_usage_with_start_snapshot(configured,monkeypatch)
 def test_failed_content_still_records_reported_billable_usage(configured,monkeypatch):
     from lingxi import gateway
     configured.put('/api/admin/model-prices/chat',json=price())
-    class Result:
-        def raise_for_status(self):pass
-        def json(self):return {'choices':[{'message':{'content':''}}],'usage':{'prompt_tokens':100,'completion_tokens':10}}
-    class Client:
-        def post(self,*a,**k):return Result()
-    @contextmanager
-    def fake(_):yield Client()
-    monkeypatch.setattr(gateway,'client_for',fake)
+    import httpx
+    monkeypatch.setattr(gateway,'client_for',lambda p:httpx.Client(base_url=p.base_url+'/',transport=httpx.MockTransport(lambda _:httpx.Response(200,json={'choices':[{'message':{'content':''}}],'usage':{'prompt_tokens':100,'completion_tokens':10}}))))
     with SessionLocal() as db:model,provider=db.get(Model,'chat'),db.get(Provider,'provider')
     with pytest.raises(Exception):gateway.complete(model,provider,[{'role':'user','content':'test'}],purpose='chat')
     with SessionLocal() as db:

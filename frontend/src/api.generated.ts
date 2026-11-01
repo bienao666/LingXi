@@ -3610,6 +3610,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/model-budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Budget */
+        get: operations["get_budget_api_admin_model_budgets_get"];
+        /** Confirm */
+        put: operations["confirm_api_admin_model_budgets_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/model-budgets/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_admin_model_budgets_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3918,6 +3953,71 @@ export interface components {
             origin: components["schemas"]["BranchLink"] | null;
             /** Children */
             children: components["schemas"]["BranchLink"][];
+        };
+        /** BudgetConfirm */
+        BudgetConfirm: {
+            /** Token */
+            token: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "request_attempts_not_money";
+        };
+        /** BudgetPreview */
+        BudgetPreview: {
+            /**
+             * Daily Limit
+             * @default 0
+             */
+            daily_limit: number;
+            /**
+             * Execution Limit
+             * @default 0
+             */
+            execution_limit: number;
+            /** Version */
+            version: number;
+        };
+        /** BudgetPreviewView */
+        BudgetPreviewView: {
+            /** Token */
+            token: string;
+            /** Version */
+            version: number;
+            before: components["schemas"]["Limits"];
+            after: components["schemas"]["Limits"];
+            /** Today Attempts */
+            today_attempts: number;
+            /** Expires At */
+            expires_at: number;
+            /** Note */
+            note: string;
+        };
+        /** BudgetView */
+        BudgetView: {
+            /**
+             * Daily Limit
+             * @default 0
+             */
+            daily_limit: number;
+            /**
+             * Execution Limit
+             * @default 0
+             */
+            execution_limit: number;
+            /** Version */
+            version: number;
+            /** Utc Day */
+            utc_day: string;
+            /** Today Attempts */
+            today_attempts: number;
+            /** Unsettled Attempts */
+            unsettled_attempts: number;
+            /** Recent Executions */
+            recent_executions: components["schemas"]["ExecutionUsage"][];
+            /** Note */
+            note: string;
         };
         /** CancelInput */
         CancelInput: {
@@ -4639,6 +4739,17 @@ export interface components {
             /** Total */
             total?: number | null;
         };
+        /** ExecutionUsage */
+        ExecutionUsage: {
+            /** Kind */
+            kind: string;
+            /** Id */
+            id: string;
+            /** Attempts */
+            attempts: number;
+            /** Last At */
+            last_at: number;
+        };
         /** ExportInput */
         ExportInput: {
             /**
@@ -4853,6 +4964,19 @@ export interface components {
             };
             /** Error */
             error: string | null;
+        };
+        /** Limits */
+        Limits: {
+            /**
+             * Daily Limit
+             * @default 0
+             */
+            daily_limit: number;
+            /**
+             * Execution Limit
+             * @default 0
+             */
+            execution_limit: number;
         };
         /** LinkChallenge */
         LinkChallenge: {
@@ -15266,6 +15390,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemoryOperationPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_budget_api_admin_model_budgets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetView"];
+                };
+            };
+        };
+    };
+    confirm_api_admin_model_budgets_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_admin_model_budgets_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetPreview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetPreviewView"];
                 };
             };
             /** @description Validation Error */

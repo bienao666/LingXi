@@ -14,6 +14,7 @@ from .security import decrypt, safe_error, validate_endpoint
 from .network import outbound_client
 from .providers import bind_protocol, protocol_for, require_capability
 from . import protocols
+from .model_budgets import client as budget_client, link as link_dispatches
 
 
 def resolve_model(db, purpose: str, model_id: str | None = None, verified: bool = True):
@@ -55,14 +56,17 @@ def record_call(model_id, purpose, started, status, usage=None, error=None, run_
     with SessionLocal.begin() as db:
         from .usage_costs import cost, attribution
         config = dict(config or {})
+        dispatches = config.pop('_dispatch_ids', [])
         price = config.pop('_price_snapshot', None)
         model = db.get(Model, model_id)
         provider = db.get(Provider, config.get('provider_id', '')) if not model else None
         workspace = model.workspace_id if model else provider.workspace_id if provider else 'personal'
         billing = cost(price, usage) | {'attribution': attribution(db, model_id, run_id, config, workspace)}
-        db.add(ModelCall(model_id=model_id, purpose=purpose, duration_ms=int((time.monotonic()-started)*1000),
+        call = ModelCall(model_id=model_id, purpose=purpose, duration_ms=int((time.monotonic()-started)*1000),
                          status=status, usage=usage or {}, error=error, run_id=run_id,
-                         config=config, billing=billing, workspace_id=workspace))
+                         config=config, billing=billing, workspace_id=workspace)
+        db.add(call); db.flush()
+        link_dispatches(db, call, dispatches)
 
 
 def complete(model: Model, provider: Provider, messages: list, purpose='extraction', config=None, max_tokens=2000) -> str:
@@ -73,7 +77,7 @@ def complete(model: Model, provider: Provider, messages: list, purpose='extracti
     config = base | (config or {}) | {'_price_snapshot': base['_price_snapshot']}
     usage = {}
     try:
-        with client_for(provider) as client:
+        with budget_client(provider, client_for, config) as client:
             data = compatible_json(client, provider, 'chat/completions',
                                    {'model': model.name, 'messages': messages, 'stream': False, 'max_tokens': max_tokens})
             usage = data.get('usage') or {}
@@ -190,7 +194,7 @@ def stream(model, provider, messages, run_id, check, config=None):
         check()
         kind = protocol_for(provider)
         route, payload = protocols.chat_request(kind, model.name, messages, stream=True, max_tokens=2048)
-        with client_for(provider) as client:
+        with budget_client(provider, client_for, config, run_id) as client:
             with client.stream('POST', route, json=payload) as response:
                 chunks = stream_chunks(response, check) if kind == 'openai' else protocols.stream_chunks(kind, response, check)
                 for text, tokens in chunks:
@@ -215,7 +219,7 @@ def test_model(db, model: Model):
     config = call_config(model, provider, model.purpose) | {'validation': True, 'probe_version': 'capabilities-v2'}
     usage = {}
     try:
-        with client_for(provider) as client:
+        with budget_client(provider, client_for, config) as client:
             if model.purpose == 'chat':
                 kind = protocol_for(provider)
                 route, payload = protocols.chat_request(kind, model.name, [{'role': 'user', 'content': '请用中文打个招呼。'}], stream=True, max_tokens=512)

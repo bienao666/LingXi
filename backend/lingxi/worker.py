@@ -467,6 +467,8 @@ def perform(job):
             if not current or current.lease_token != job.lease_token:
                 return
             retry = job.kind not in ('proactive_draft', 'emotion', 'chat', 'agent_plan', 'agent_node', 'agent_summary', 'plugin', 'channel_audio', 'channel_speech') and job.attempts < (3 if job.kind == 'task' else 5)
+            from .model_budgets import BudgetExceeded
+            retry = retry and not isinstance(exc, BudgetExceeded)
             if job.kind.startswith('agent_'):
                 from .agent_worker import fail_agent
                 fail_agent(db, job, error)

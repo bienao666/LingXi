@@ -31,7 +31,7 @@ test('overview never infers worker health from an empty queue',async t=>{
 });
 
 test('usage retains unknown accounting and shows soft UTC alert',async t=>{
- await mount(t,OperationsPages,{page:'usage'},u=>response(u.includes('preferences')?preferences:usage));
+ await mount(t,OperationsPages,{page:'usage'},u=>response(u.includes('model-budgets')?{version:0,daily_limit:0,execution_limit:0,today_attempts:0,unsettled_attempts:0,utc_day:'2026-11-01',recent_executions:[],note:'请求次数限制'}:u.includes('preferences')?preferences:usage));
  assert.match(document.body.textContent,/用量缺失 1 次/);assert.match(document.body.textContent,/调用费用未知/);assert.match(document.body.textContent,/已达到日用量告警/);assert.match(document.body.textContent,/不自动停用模型/);
 });
 

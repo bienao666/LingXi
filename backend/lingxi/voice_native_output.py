@@ -51,8 +51,12 @@ def native_tts(config, provider, model, text, voice, speed):
     status, error = 'failed', None
     pcm = bytearray()
     transcript = []
+    from .model_budgets import client as budget_client
+    metadata = {'provider_id': provider.id, 'provider_version': provider.version,
+                'model': model, 'voice_config_version': config.version,
+                'audio_transport': 'realtime', 'validation': True}
     try:
-        with client_for(provider) as client:
+        with budget_client(provider, client_for, metadata) as client:
             url = str(client.base_url.join('realtime'))
             with connect_ws(url, client, max_message_size_bytes=128 * 1024,
                             queue_size=16, keepalive_ping_interval_seconds=None) as ws:
@@ -117,9 +121,7 @@ def native_tts(config, provider, model, text, voice, speed):
         raise HTTPException(exc.status_code if isinstance(exc, HTTPException) else 502, error) from None
     finally:
         record_call('voice:realtime-tts', 'tts', started, status, {}, error,
-                    config={'provider_id': provider.id, 'provider_version': provider.version,
-                            'model': model, 'voice_config_version': config.version,
-                            'audio_transport': 'realtime', 'validation': True})
+                    config=metadata)
 
 
 @router.post('/api/voice/playbacks/{identity}/native-audio/{part}')

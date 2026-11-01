@@ -260,6 +260,9 @@ def validate_model(model_id: str, ctx: Context):
     try:
         test_model(db, model)
     except Exception as exc:
+        from .model_budgets import BudgetExceeded
+        if isinstance(exc, BudgetExceeded):
+            raise
         model.status = 'failed'
         db.commit()
         raise HTTPException(502, safe_error(exc)) from None
@@ -312,12 +315,16 @@ def internal_model(route: str, body: dict, request: Request, db=Depends(database
     config = call_config(model, provider, purpose)
     started = time.monotonic()
     try:
-        with client_for(provider) as client:
+        from .model_budgets import client as budget_client
+        with budget_client(provider, client_for, config) as client:
             data = compatible_json(client, provider, route, body | {'model':model.name})
         record_call(model.id, 'memory_'+purpose, started, 'completed', data.get('usage'), config=config)
         return data
     except Exception as exc:
         record_call(model.id, 'memory_'+purpose, started, 'failed', error=safe_error(exc), config=config)
+        from .model_budgets import BudgetExceeded
+        if isinstance(exc, BudgetExceeded):
+            raise
         raise HTTPException(502, safe_error(exc)) from None
 
 
@@ -929,3 +936,5 @@ app.include_router(model_call_router)
 
 from .memory_pages import router as memory_pages_router
 app.include_router(memory_pages_router)
+from .model_budgets import router as model_budgets_router
+app.include_router(model_budgets_router)

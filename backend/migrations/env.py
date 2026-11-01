@@ -7,6 +7,7 @@ from lingxi import emotions
 from lingxi import channel_tasks
 from lingxi import proactive_generation
 from lingxi import usage_costs
+from lingxi import model_budgets
 from lingxi import media_policy, media_retention
 from lingxi import system_settings, resources
 from lingxi import workspace_migrations, voice_realtime, voice_native_output

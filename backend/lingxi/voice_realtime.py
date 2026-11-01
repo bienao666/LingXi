@@ -205,7 +205,8 @@ def relay(identity, login_id, incoming, outgoing, stop):
             proxy_version = load_proxy().version
             # Use the same pinned DNS/TLS transport and HTTP(S)/SOCKS proxy as
             # other model calls. HTTPX-WS upgrades this checked HTTP(S) request.
-            with client_for(provider) as client:
+            from .model_budgets import client as budget_client
+            with budget_client(provider, client_for, config_snapshot) as client:
                 url = str(client.base_url.join('realtime')) + '?intent=transcription'
                 with connect_ws(url, client, max_message_size_bytes=128 * 1024, queue_size=16) as upstream:
                     upstream.send_json(initial)

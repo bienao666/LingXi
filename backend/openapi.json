@@ -9958,6 +9958,98 @@
           }
         }
       }
+    },
+    "/api/admin/model-budgets": {
+      "get": {
+        "summary": "Get Budget",
+        "operationId": "get_budget_api_admin_model_budgets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Confirm",
+        "operationId": "confirm_api_admin_model_budgets_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/model-budgets/previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_admin_model_budgets_previews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetPreview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetPreviewView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10791,6 +10883,154 @@
           "children"
         ],
         "title": "BranchRelations"
+      },
+      "BudgetConfirm": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 8192,
+            "minLength": 32,
+            "title": "Token"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "request_attempts_not_money",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "acknowledgement"
+        ],
+        "title": "BudgetConfirm"
+      },
+      "BudgetPreview": {
+        "properties": {
+          "daily_limit": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Daily Limit",
+            "default": 0
+          },
+          "execution_limit": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Execution Limit",
+            "default": 0
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "BudgetPreview"
+      },
+      "BudgetPreviewView": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "before": {
+            "$ref": "#/components/schemas/Limits"
+          },
+          "after": {
+            "$ref": "#/components/schemas/Limits"
+          },
+          "today_attempts": {
+            "type": "integer",
+            "title": "Today Attempts"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "version",
+          "before",
+          "after",
+          "today_attempts",
+          "expires_at",
+          "note"
+        ],
+        "title": "BudgetPreviewView"
+      },
+      "BudgetView": {
+        "properties": {
+          "daily_limit": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Daily Limit",
+            "default": 0
+          },
+          "execution_limit": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Execution Limit",
+            "default": 0
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "utc_day": {
+            "type": "string",
+            "title": "Utc Day"
+          },
+          "today_attempts": {
+            "type": "integer",
+            "title": "Today Attempts"
+          },
+          "unsettled_attempts": {
+            "type": "integer",
+            "title": "Unsettled Attempts"
+          },
+          "recent_executions": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionUsage"
+            },
+            "type": "array",
+            "title": "Recent Executions"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "utc_day",
+          "today_attempts",
+          "unsettled_attempts",
+          "recent_executions",
+          "note"
+        ],
+        "title": "BudgetView"
       },
       "CancelInput": {
         "properties": {
@@ -12652,6 +12892,34 @@
         ],
         "title": "ExcerptView"
       },
+      "ExecutionUsage": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "last_at": {
+            "type": "number",
+            "title": "Last At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "attempts",
+          "last_at"
+        ],
+        "title": "ExecutionUsage"
+      },
       "ExportInput": {
         "properties": {
           "format": {
@@ -13233,6 +13501,27 @@
           "error"
         ],
         "title": "InvocationView"
+      },
+      "Limits": {
+        "properties": {
+          "daily_limit": {
+            "type": "integer",
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Daily Limit",
+            "default": 0
+          },
+          "execution_limit": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Execution Limit",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Limits"
       },
       "LinkChallenge": {
         "properties": {
