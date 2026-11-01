@@ -12,7 +12,7 @@ const window=new Window({url:'http://localhost/#/channels/instances'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true,location:window.location});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
-const {AgentRuns}=await import(compile('../src/AgentRuns.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui}),'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./api':api,'./ui':ui}));
+const {AgentRuns}=await import(compile('../src/AgentRuns.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui,'./MediaStorage':compile('../src/MediaStorage.tsx',{'./api':api,'./ui':ui})}),'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./api':api,'./ui':ui}));
 const response=(value,status=200)=>new Response(JSON.stringify(value),{status});
 const run={id:'run-one',title:'评审协作',goal:'评估项目方案',status:'running',version:4,config:{model:'fixture'},decision:{mode:'delegate',reason:'两项可独立分析',nodes:2},calls_used:2,max_calls:12,result:{},memory_refs:[],error:null,created_at:1,updated_at:1};
 const node={id:'node-one',key:'n0',title:'范围分析',instruction:'比较范围',agent_id:'a',capability:'reason',depends_on:[],config:{name:'资料研究',model:'fixture',persona:{version:1},role:{version:2},plugin_id:'lingxi.builtin',plugin_version:'1.0.0'},context:{memory_status:'not_allowed'},result:{},status:'running',attempt:1,error:null};

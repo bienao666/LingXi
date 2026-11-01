@@ -376,6 +376,9 @@ def export_job(job):
 
 
 def finish_failed(db, job, error):
+    if job.kind in ('media_storage_scan', 'media_storage_cleanup'):
+        from .media_storage import fail
+        fail(db, job)
     if job.kind == 'proactive_draft':
         from .proactive_generation import failed
         failed(db, job)
@@ -446,6 +449,7 @@ def perform(job):
         from .task_worker import execute_task, fire_reminder
         from .agent_worker import execute_plan, execute_node, execute_summary
         from .media import parse_media, cleanup_media
+        from .media_storage import execute_scan as storage_scan, execute_cleanup as storage_cleanup
         from .channel_media import ingest
         from .channel_audio import transcribe
         from .channel_speech import synthesize
@@ -455,7 +459,8 @@ def perform(job):
         from .proactive_generation import execute as compose_proactive
         {'chat_action_cleanup': cleanup_action, 'agent_plan': execute_plan, 'agent_node': execute_node, 'agent_summary': execute_summary, 'chat': generate, 'extract': extract, 'index': index, 'cleanup': cleanup, 'export': export_job,
          'task': execute_task, 'reminder': fire_reminder, 'channel_media': ingest, 'channel_audio': transcribe, 'channel_speech': synthesize, 'media_parse': parse_media, 'media_cleanup': cleanup_media,
-         'plugin': execute_plugin, 'emotion': analyze, 'proactive_draft': compose_proactive}[job.kind](job)
+         'plugin': execute_plugin, 'emotion': analyze, 'proactive_draft': compose_proactive,
+         'media_storage_scan': storage_scan, 'media_storage_cleanup': storage_cleanup}[job.kind](job)
         with SessionLocal.begin() as db:
             owns(db, job)
             db.get(Job, job.id).status = 'completed'
@@ -466,7 +471,7 @@ def perform(job):
                                 .execution_options(populate_existing=True))
             if not current or current.lease_token != job.lease_token:
                 return
-            retry = job.kind not in ('proactive_draft', 'emotion', 'chat', 'agent_plan', 'agent_node', 'agent_summary', 'plugin', 'channel_audio', 'channel_speech') and job.attempts < (3 if job.kind == 'task' else 5)
+            retry = job.kind not in ('media_storage_cleanup', 'proactive_draft', 'emotion', 'chat', 'agent_plan', 'agent_node', 'agent_summary', 'plugin', 'channel_audio', 'channel_speech') and job.attempts < (3 if job.kind == 'task' else 5)
             from .model_budgets import BudgetExceeded
             retry = retry and not isinstance(exc, BudgetExceeded)
             if job.kind.startswith('agent_'):

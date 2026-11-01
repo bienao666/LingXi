@@ -22,7 +22,7 @@ const window=new Window({url:'http://localhost/#/tasks/list'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
-const {TaskPages}=await import(compile('../src/TaskPages.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui}),'./api':api,'./ui':ui,'./AgentRuns':compile('../src/AgentRuns.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui}),'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./api':api,'./ui':ui})}));
+const {TaskPages}=await import(compile('../src/TaskPages.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui,'./MediaStorage':compile('../src/MediaStorage.tsx',{'./api':api,'./ui':ui})}),'./api':api,'./ui':ui,'./AgentRuns':compile('../src/AgentRuns.tsx',{'./MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui,'./MediaStorage':compile('../src/MediaStorage.tsx',{'./api':api,'./ui':ui})}),'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./api':api,'./ui':ui})}));
 const response=(value,status=200)=>new Response(JSON.stringify(value),{status});
 const task={id:'task-1',title:'准备演示',skill_id:'project.plan',skill_version:'1.0.0',status:'queued',
   version:3,created_at:1,updated_at:1,cancel_requested:false,error:null,input:{goal:'准备演示'},config:{},result:{},

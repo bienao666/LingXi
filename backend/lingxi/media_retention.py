@@ -162,6 +162,7 @@ def referenced(identity, user):
     from .media import Media, MediaLink
     from .channel_media import ChannelAttachment
     from .channel_tasks import ChannelTask
+    from .channel_artifacts import ArtifactReply
     from .delegation import AgentNode, AgentRun
     from .tasks import WorkTask
     from .plugins import PluginInvocation
@@ -183,7 +184,7 @@ def referenced(identity, user):
             or_(cast(AgentNode.config, Text).contains(identity), cast(AgentNode.context, Text).contains(identity)))
             .exists().correlate(Media),
         has(WorkTask, WorkTask.config, WorkTask.input, WorkTask.result),
-        has(ChannelTask, ChannelTask.media_refs), has(Memory, Memory.provenance, Memory.source_ids),
+        has(ChannelTask, ChannelTask.media_refs), has(ArtifactReply, ArtifactReply.plan), has(Memory, Memory.provenance, Memory.source_ids),
         has(Candidate, Candidate.origin, Candidate.source_id),
         has(PluginInvocation, PluginInvocation.config, PluginInvocation.input, PluginInvocation.result),
         has(Job, Job.payload, extra=(Job.status.in_(('pending', 'running')),)))

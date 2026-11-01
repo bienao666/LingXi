@@ -1605,6 +1605,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/media-storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_admin_media_storage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-storage/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runs */
+        get: operations["runs_api_admin_media_storage_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-storage/scans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start */
+        post: operations["start_api_admin_media_storage_scans_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-storage/runs/{identity}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_admin_media_storage_runs__identity__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/media-storage/runs/{identity}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel */
+        post: operations["cancel_api_admin_media_storage_runs__identity__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agents": {
         parameters: {
             query?: never;
@@ -7250,6 +7335,143 @@ export interface components {
             /** Output Description */
             output_description: string;
         };
+        /** StorageConfirm */
+        StorageConfirm: {
+            /** Digest */
+            digest: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "remove_untracked_media_files";
+        };
+        /** StorageItem */
+        StorageItem: {
+            /** Key */
+            key: string;
+            /** Bytes */
+            bytes: number;
+            /** Modified At */
+            modified_at: number;
+        };
+        /** StorageOverview */
+        StorageOverview: {
+            /** Records */
+            records: number;
+            /** Logical Bytes */
+            logical_bytes: number;
+            /** Deleted Records */
+            deleted_records: number;
+            /** Disk Status */
+            disk_status: string;
+            /** Free Bytes */
+            free_bytes: number | null;
+            /** Total Bytes */
+            total_bytes: number | null;
+        };
+        /** StorageResult */
+        StorageResult: {
+            /** Key */
+            key: string;
+            /** Bytes */
+            bytes: number;
+            /** Modified At */
+            modified_at: number;
+            /** Status */
+            status: string;
+        };
+        /** StorageRunView */
+        StorageRunView: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Days */
+            days: number;
+            /** Created At */
+            created_at: number;
+            /** Expires At */
+            expires_at: number;
+            /** Finished At */
+            finished_at: number | null;
+            /** Digest */
+            digest: string;
+            /** Items */
+            items: components["schemas"]["StorageItem"][];
+            /** Results */
+            results: components["schemas"]["StorageResult"][];
+            summary: components["schemas"]["StorageSummary"];
+            /** Error */
+            error: string | null;
+        };
+        /** StorageScanInput */
+        StorageScanInput: {
+            /** Request Id */
+            request_id: string;
+            /**
+             * Days
+             * @default 2
+             */
+            days: number;
+        };
+        /** StorageSummary */
+        StorageSummary: {
+            /**
+             * Entries
+             * @default 0
+             */
+            entries: number;
+            /**
+             * Recognized
+             * @default 0
+             */
+            recognized: number;
+            /**
+             * Tracked
+             * @default 0
+             */
+            tracked: number;
+            /**
+             * Retained
+             * @default 0
+             */
+            retained: number;
+            /**
+             * Recent
+             * @default 0
+             */
+            recent: number;
+            /**
+             * Ignored
+             * @default 0
+             */
+            ignored: number;
+            /**
+             * Recognized Bytes
+             * @default 0
+             */
+            recognized_bytes: number;
+            /**
+             * Candidate Bytes
+             * @default 0
+             */
+            candidate_bytes: number;
+            /**
+             * Partial
+             * @default false
+             */
+            partial: boolean;
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /**
+             * Reference Limited
+             * @default false
+             */
+            reference_limited: boolean;
+        };
         /** StoreInput */
         StoreInput: {
             /** Version */
@@ -11648,6 +11870,145 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArtifactReplyView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_admin_media_storage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageOverview"];
+                };
+            };
+        };
+    };
+    runs_api_admin_media_storage_runs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageRunView"][];
+                };
+            };
+        };
+    };
+    start_api_admin_media_storage_scans_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageScanInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageRunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_admin_media_storage_runs__identity__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorageConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageRunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_api_admin_media_storage_runs__identity__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StorageRunView"];
                 };
             };
             /** @description Validation Error */

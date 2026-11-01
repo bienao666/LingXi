@@ -3,6 +3,7 @@ import {api} from './api';
 import type {MediaItem, MediaDetail, MediaPage, Vision} from './api';
 import type {components} from './api.generated';
 import {ErrorNotice, formatTime, Modal, useResource} from './ui';
+import {MediaStorage} from './MediaStorage';
 
 const states:Record<string,string>={pending:'等待解析',fetching:'等待接收',transcribing:'正在识别',processing:'正在解析',ready:'可用附件',failed:'解析失败',deleted:'已删除',revoked:'来源失效'};
 export const mediaSize=(n:number)=> n>=1024**2?`${(n/1024**2).toLocaleString('zh-CN',{maximumFractionDigits:1})} MiB`:`${Math.ceil(n/1024).toLocaleString('zh-CN')} KiB`;
@@ -34,7 +35,7 @@ export function MediaPolicySettings(){
 }
 
 export function MediaSettings(){
-  return <div className="page-stack"><div className="pane-toolbar"><h2>媒体配置</h2><a className="button" href="#/data/files">管理文件</a></div><MediaPolicySettings/><MediaRetentionSettings/>
+  return <div className="page-stack"><div className="pane-toolbar"><h2>媒体配置</h2><a className="button" href="#/data/files">管理文件</a></div><MediaPolicySettings/><MediaRetentionSettings/><MediaStorage/>
     <section className="data-card form-stack"><h3>解析能力</h3><p>允许的附件仍须通过文件内容、权限和解析预算检查。改名或选择类型不会增加解析能力。</p>
       <div className="table-scroll"><table><caption>当前解析方式与限制</caption><thead><tr><th>类型</th><th>处理方式</th><th>边界</th></tr></thead><tbody>
         <tr><td>文字与文档</td><td>提取正文并保留行、页、段落或工作表位置</td><td>扫描 PDF 的专门 OCR 尚未接入；超出预算明确报错</td></tr>

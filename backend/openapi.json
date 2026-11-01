@@ -4691,6 +4691,172 @@
         }
       }
     },
+    "/api/admin/media-storage": {
+      "get": {
+        "summary": "Overview",
+        "operationId": "overview_api_admin_media_storage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-storage/runs": {
+      "get": {
+        "summary": "Runs",
+        "operationId": "runs_api_admin_media_storage_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StorageRunView"
+                  },
+                  "type": "array",
+                  "title": "Response Runs Api Admin Media Storage Runs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-storage/scans": {
+      "post": {
+        "summary": "Start",
+        "operationId": "start_api_admin_media_storage_scans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageScanInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageRunView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-storage/runs/{identity}/confirm": {
+      "post": {
+        "summary": "Confirm",
+        "operationId": "confirm_api_admin_media_storage_runs__identity__confirm_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StorageConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageRunView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/media-storage/runs/{identity}/cancel": {
+      "post": {
+        "summary": "Cancel",
+        "operationId": "cancel_api_admin_media_storage_runs__identity__cancel_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageRunView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/agents": {
       "get": {
         "summary": "Available Agents",
@@ -19018,6 +19184,296 @@
           "output_description"
         ],
         "title": "SkillView"
+      },
+      "StorageConfirm": {
+        "properties": {
+          "digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Digest"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "remove_untracked_media_files",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "digest",
+          "acknowledgement"
+        ],
+        "title": "StorageConfirm"
+      },
+      "StorageItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          },
+          "modified_at": {
+            "type": "number",
+            "title": "Modified At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "bytes",
+          "modified_at"
+        ],
+        "title": "StorageItem"
+      },
+      "StorageOverview": {
+        "properties": {
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "logical_bytes": {
+            "type": "integer",
+            "title": "Logical Bytes"
+          },
+          "deleted_records": {
+            "type": "integer",
+            "title": "Deleted Records"
+          },
+          "disk_status": {
+            "type": "string",
+            "title": "Disk Status"
+          },
+          "free_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Bytes"
+          },
+          "total_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "records",
+          "logical_bytes",
+          "deleted_records",
+          "disk_status",
+          "free_bytes",
+          "total_bytes"
+        ],
+        "title": "StorageOverview"
+      },
+      "StorageResult": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          },
+          "modified_at": {
+            "type": "number",
+            "title": "Modified At"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "bytes",
+          "modified_at",
+          "status"
+        ],
+        "title": "StorageResult"
+      },
+      "StorageRunView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "days": {
+            "type": "integer",
+            "title": "Days"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "digest": {
+            "type": "string",
+            "title": "Digest"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StorageItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/StorageResult"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/StorageSummary"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "days",
+          "created_at",
+          "expires_at",
+          "finished_at",
+          "digest",
+          "items",
+          "results",
+          "summary",
+          "error"
+        ],
+        "title": "StorageRunView"
+      },
+      "StorageScanInput": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Request Id"
+          },
+          "days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 2.0,
+            "title": "Days",
+            "default": 2
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "StorageScanInput"
+      },
+      "StorageSummary": {
+        "properties": {
+          "entries": {
+            "type": "integer",
+            "title": "Entries",
+            "default": 0
+          },
+          "recognized": {
+            "type": "integer",
+            "title": "Recognized",
+            "default": 0
+          },
+          "tracked": {
+            "type": "integer",
+            "title": "Tracked",
+            "default": 0
+          },
+          "retained": {
+            "type": "integer",
+            "title": "Retained",
+            "default": 0
+          },
+          "recent": {
+            "type": "integer",
+            "title": "Recent",
+            "default": 0
+          },
+          "ignored": {
+            "type": "integer",
+            "title": "Ignored",
+            "default": 0
+          },
+          "recognized_bytes": {
+            "type": "integer",
+            "title": "Recognized Bytes",
+            "default": 0
+          },
+          "candidate_bytes": {
+            "type": "integer",
+            "title": "Candidate Bytes",
+            "default": 0
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial",
+            "default": false
+          },
+          "has_more": {
+            "type": "boolean",
+            "title": "Has More",
+            "default": false
+          },
+          "reference_limited": {
+            "type": "boolean",
+            "title": "Reference Limited",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "StorageSummary"
       },
       "StoreInput": {
         "properties": {
