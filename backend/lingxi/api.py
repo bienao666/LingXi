@@ -972,3 +972,5 @@ from .audio_costs import router as audio_costs_router
 app.include_router(audio_costs_router)
 from .reminder_delivery import router as reminder_delivery_router
 app.include_router(reminder_delivery_router)
+from .configuration_bundles import router as configuration_bundle_router
+app.include_router(configuration_bundle_router)

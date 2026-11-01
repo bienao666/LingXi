@@ -11031,6 +11031,116 @@
           }
         }
       }
+    },
+    "/api/admin/configuration-bundles": {
+      "get": {
+        "summary": "Get State",
+        "operationId": "get_state_api_admin_configuration_bundles_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationState"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Confirm",
+        "operationId": "confirm_api_admin_configuration_bundles_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/configuration-bundles/export": {
+      "get": {
+        "summary": "Export",
+        "operationId": "export_api_admin_configuration_bundles_export_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/configuration-bundles/previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_admin_configuration_bundles_previews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigurationImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13380,6 +13490,266 @@
           "after"
         ],
         "title": "ConfigChange"
+      },
+      "ConfigurationConfirm": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 32768,
+            "minLength": 10,
+            "title": "Token"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "const": "atomic_configuration_changes",
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "acknowledgement"
+        ],
+        "title": "ConfigurationConfirm"
+      },
+      "ConfigurationDifference": {
+        "properties": {
+          "module": {
+            "type": "string",
+            "enum": [
+              "workspace",
+              "media",
+              "operations",
+              "model_budget"
+            ],
+            "title": "Module"
+          },
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "module",
+          "field",
+          "before",
+          "after"
+        ],
+        "title": "ConfigurationDifference"
+      },
+      "ConfigurationDocument": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "const": "lingxi-configuration-bundle/v1",
+            "title": "Format"
+          },
+          "modules": {
+            "$ref": "#/components/schemas/ConfigurationModules"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "format",
+          "modules"
+        ],
+        "title": "ConfigurationDocument"
+      },
+      "ConfigurationImport": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ConfigurationDocument"
+          },
+          "versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "object",
+            "maxProperties": 4,
+            "minProperties": 1,
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document",
+          "versions"
+        ],
+        "title": "ConfigurationImport"
+      },
+      "ConfigurationModules": {
+        "properties": {
+          "workspace": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Defaults"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "media": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MediaLimits"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationalValues"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model_budget": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Limits"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConfigurationModules"
+      },
+      "ConfigurationPreview": {
+        "properties": {
+          "versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "object",
+            "title": "Versions"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationDifference"
+            },
+            "type": "array",
+            "title": "Changes"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "versions",
+          "changes",
+          "token",
+          "expires_at",
+          "note"
+        ],
+        "title": "ConfigurationPreview"
+      },
+      "ConfigurationState": {
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/ConfigurationDocument"
+          },
+          "versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "object",
+            "title": "Versions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document",
+          "versions"
+        ],
+        "title": "ConfigurationState"
       },
       "Confirm": {
         "properties": {
@@ -17285,6 +17655,29 @@
           "checked_at"
         ],
         "title": "OperationalHealth"
+      },
+      "OperationalValues": {
+        "properties": {
+          "log_retention_days": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 7.0,
+            "title": "Log Retention Days"
+          },
+          "daily_token_alert": {
+            "type": "integer",
+            "maximum": 2000000000.0,
+            "minimum": 0.0,
+            "title": "Daily Token Alert"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "log_retention_days",
+          "daily_token_alert"
+        ],
+        "title": "OperationalValues"
       },
       "OpsPreferenceInput": {
         "properties": {

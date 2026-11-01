@@ -18,7 +18,8 @@ const window=new Window({url:'http://localhost/#/settings/general'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api}),proxy=compile('../src/ProxySettings.tsx',{'./api':api});
-const {SystemSettings}=await import(compile('../src/SystemSettings.tsx',{'./api':api,'./ui':ui,'./ProxySettings':proxy}));
+const bundles=compile('../src/ConfigurationBundles.tsx',{'./api':api,'./ui':ui});
+const {SystemSettings}=await import(compile('../src/SystemSettings.tsx',{'./api':api,'./ui':ui,'./ProxySettings':proxy,'./ConfigurationBundles':bundles}));
 const config={workspace_name:'个人工作空间',default_timezone:'Asia/Shanghai',default_persona_id:null,history_budget_bytes:48000};
 const current={version:0,config,updated_at:null};
 const checked={before:current,after:{...config,workspace_name:'研究空间'},changes:[{field:'workspace_name',before:config.workspace_name,after:'研究空间'}],action:'edit',source_version:null,token:'preview-token-opaque',expires_at:Date.now()/1000+300,note:'新回合生效，已有授权保持原值。'};
@@ -30,6 +31,7 @@ async function mount(t,handler=()=>undefined){
     if(url==='/api/personas')return response([{id:'p1',name:'专注伙伴',version:2,enabled:true}]);
     if(url==='/api/admin/system-settings/revisions')return response({items:[],next_before:null});
     if(url==='/api/admin/proxy')return response({enabled:false,http_proxy:'',https_proxy:'',all_proxy:'',no_proxy:[],protected_no_proxy:[],version:0});
+    if(url==='/api/admin/configuration-bundles')return response({versions:{workspace:0,media:1,operations:0,model_budget:0}});
     throw new Error('unexpected '+url);
   };
   const root=createRoot(document.getElementById('root'));

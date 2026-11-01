@@ -4053,6 +4053,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/configuration-bundles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get State */
+        get: operations["get_state_api_admin_configuration_bundles_get"];
+        /** Confirm */
+        put: operations["confirm_api_admin_configuration_bundles_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/configuration-bundles/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export */
+        get: operations["export_api_admin_configuration_bundles_export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/configuration-bundles/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_admin_configuration_bundles_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4981,6 +5033,77 @@ export interface components {
             before: string | number | null;
             /** After */
             after: string | number | null;
+        };
+        /** ConfigurationConfirm */
+        ConfigurationConfirm: {
+            /** Token */
+            token: string;
+            /**
+             * Acknowledgement
+             * @constant
+             */
+            acknowledgement: "atomic_configuration_changes";
+        };
+        /** ConfigurationDifference */
+        ConfigurationDifference: {
+            /**
+             * Module
+             * @enum {string}
+             */
+            module: "workspace" | "media" | "operations" | "model_budget";
+            /** Field */
+            field: string;
+            /** Before */
+            before: string | number | string[] | null;
+            /** After */
+            after: string | number | string[] | null;
+        };
+        /** ConfigurationDocument */
+        ConfigurationDocument: {
+            /**
+             * Format
+             * @constant
+             */
+            format: "lingxi-configuration-bundle/v1";
+            modules: components["schemas"]["ConfigurationModules"];
+        };
+        /** ConfigurationImport */
+        ConfigurationImport: {
+            document: components["schemas"]["ConfigurationDocument"];
+            /** Versions */
+            versions: {
+                [key: string]: number;
+            };
+        };
+        /** ConfigurationModules */
+        ConfigurationModules: {
+            workspace?: components["schemas"]["Defaults"] | null;
+            media?: components["schemas"]["MediaLimits"] | null;
+            operations?: components["schemas"]["OperationalValues"] | null;
+            model_budget?: components["schemas"]["Limits"] | null;
+        };
+        /** ConfigurationPreview */
+        ConfigurationPreview: {
+            /** Versions */
+            versions: {
+                [key: string]: number;
+            };
+            /** Changes */
+            changes: components["schemas"]["ConfigurationDifference"][];
+            /** Token */
+            token: string;
+            /** Expires At */
+            expires_at: number;
+            /** Note */
+            note: string;
+        };
+        /** ConfigurationState */
+        ConfigurationState: {
+            document: components["schemas"]["ConfigurationDocument"];
+            /** Versions */
+            versions: {
+                [key: string]: number;
+            };
         };
         /** Confirm */
         Confirm: {
@@ -6459,6 +6582,13 @@ export interface components {
             };
             /** Checked At */
             checked_at: number;
+        };
+        /** OperationalValues */
+        OperationalValues: {
+            /** Log Retention Days */
+            log_retention_days: number;
+            /** Daily Token Alert */
+            daily_token_alert: number;
         };
         /** OpsPreferenceInput */
         OpsPreferenceInput: {
@@ -17330,6 +17460,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReminderDeliveryView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_state_api_admin_configuration_bundles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationState"];
+                };
+            };
+        };
+    };
+    confirm_api_admin_configuration_bundles_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigurationConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_api_admin_configuration_bundles_export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationDocument"];
+                };
+            };
+        };
+    };
+    preview_api_admin_configuration_bundles_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfigurationImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationPreview"];
                 };
             };
             /** @description Validation Error */

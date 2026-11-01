@@ -4,6 +4,7 @@ import type {AssistantProfile} from './api';
 import type {components} from './api.generated';
 import {ErrorNotice, Modal, formatTime, useResource} from './ui';
 import {ProxySettings} from './ProxySettings';
+import {ConfigurationBundles} from './ConfigurationBundles';
 
 type Settings = components['schemas']['SettingsView'];
 type Defaults = components['schemas']['Defaults'];
@@ -73,6 +74,7 @@ export function SystemSettings() {
       {!history.data&&!records.length?<p role="status">{history.error?'历史读取失败；重新加载可重试。':'正在读取配置历史…'}</p>:!records.length?<p className="muted">尚无更改记录；首次确认时会保留初始配置。</p>:records.map(r=><div className="revision-record" key={r.version}><div className="pane-toolbar"><strong>v{r.version} · {actions[r.action]||r.action}{r.source_version!==null?` · 来源 v${r.source_version}`:''}</strong><button className="button" disabled={loading||!ready||r.version===settings.data?.version} onClick={()=>void makePreview({action:'rollback',source_version:r.version})} aria-label={`预览回退至 v${r.version}`}>预览回退</button></div><small className="muted">{formatTime(r.created_at)}</small><details><summary>查看配置</summary><dl className="config-values">{Object.entries(r.config).map(([key,value])=><React.Fragment key={key}><dt>{labels[key]}</dt><dd>{display(key,value)}</dd></React.Fragment>)}</dl></details></div>)}
       {history.data?.next_before!==null&&history.data?.next_before!==undefined&&<button className="button" disabled={loading} onClick={()=>setBefore(history.data!.next_before!)}>更多版本</button>}
     </section>
+    <ConfigurationBundles onApplied={reload}/>
     <ProxySettings embedded/>
     {importing&&<Modal title="导入配置" dismissible={!loading} close={()=>{setImporting(false);setError('');}}><form className="form-stack" onSubmit={e=>{e.preventDefault();setError('');try{if(new TextEncoder().encode(documentText).length>16384)throw new Error('配置文件不能超过 16 KiB');const doc=JSON.parse(documentText) as ConfigDocument;void makePreview({action:'import',document:doc});}catch(e){setError(e instanceof SyntaxError?'JSON 格式不正确，请检查配置文件。':(e as Error).message);}}}>
       <p className="muted">仅接受灵犀基础配置格式。人格引用必须属于当前账号且有效；不导入模型、密钥、代理和授权。</p>
