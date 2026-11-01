@@ -126,7 +126,19 @@ class MemoryService:
         return [by_document[document] for document in documents if document in by_document][:12]
 
     def remember(self, db, user_id, content, category, source_ids, **extra):
-        memory = Memory(user_id=user_id, content=content, category=category, source_ids=source_ids, **extra)
+        from fastapi import HTTPException
+        from .memory_sources import resolve
+        user = db.get(User, user_id)
+        workspace_id = extra.pop('workspace_id', user.workspace_id if user else None)
+        if not user or workspace_id != user.workspace_id:
+            raise HTTPException(409, '记忆主体或工作区已变化，不能保存')
+        for identity in source_ids:
+            if ':' in identity:
+                continue  # Server-created manual/adoption markers; not client-provided paths.
+            source = resolve(db, identity, workspace_id, user_id)
+            if not source or source.role != 'user' or source.status != 'completed':
+                raise HTTPException(409, '记忆原文已失效或超出当前范围，不能保存')
+        memory = Memory(user_id=user_id, workspace_id=workspace_id, content=content, category=category, source_ids=source_ids, **extra)
         db.add(memory)
         db.flush()
         enqueue(db, f'index:{memory.id}:1', 'index', {'memory_id': memory.id, 'version': 1})
@@ -156,11 +168,13 @@ class MemoryService:
         from .agent_memory import invalidate_derived
         invalidate_derived(db,'memories',memory.id)
         for source_id in memory.source_ids:
-            source = db.get(Message, source_id)
-            if source and source.status == 'completed':
+            from .memory_sources import resolve
+            source = resolve(db, source_id, memory.workspace_id, memory.user_id, allow_deleted=True)
+            if source and source.role == 'user' and source.status == 'completed':
                 source.status = 'superseded'
                 invalidate_source(db, source_id)
-        for candidate in db.scalars(select(Candidate).where(Candidate.memory_id == memory.id)):
+        for candidate in db.scalars(select(Candidate).where(Candidate.memory_id == memory.id,
+                Candidate.workspace_id == memory.workspace_id, Candidate.user_id == memory.user_id)):
             candidate.status = 'invalidated'
             if candidate.origin:
                 candidate.content=''
@@ -184,18 +198,26 @@ class MemoryService:
         invalidate_derived(db,'memories',memory.id)
         # Remove original dialogue evidence too; pending extraction must not resurrect it.
         source_ids = set(s for s in memory.source_ids if ':' not in s)
-        for source in db.scalars(select(Message).where(Message.id.in_(source_ids))):
+        from .memory_sources import resolve
+        owned_sources = set()
+        for source_id in source_ids:
+            source = resolve(db, source_id, memory.workspace_id, memory.user_id, allow_deleted=True)
+            if not source or source.role != 'user':
+                continue
+            owned_sources.add(source.id)
             source.status, source.content = 'redacted', ''
             invalidate_source(db, source.id)
-        for candidate in db.scalars(select(Candidate).where(Candidate.source_id.in_(source_ids))):
+        for candidate in db.scalars(select(Candidate).where(Candidate.source_id.in_(owned_sources),
+                Candidate.workspace_id == memory.workspace_id, Candidate.user_id == memory.user_id)):
             candidate.status, candidate.content = 'invalidated', ''
         for run in db.scalars(select(ChatRun)):
-            if source_ids.intersection(run.source_message_ids):
+            if owned_sources.intersection(run.source_message_ids):
                 invalidate_run(db, run)
-        for candidate in db.scalars(select(Candidate).where(Candidate.memory_id == memory.id)):
+        for candidate in db.scalars(select(Candidate).where(Candidate.memory_id == memory.id,
+                Candidate.workspace_id == memory.workspace_id, Candidate.user_id == memory.user_id)):
             candidate.status, candidate.content = 'invalidated', ''
             candidate.origin={k:v for k,v in candidate.origin.items() if k in ('kind','run_id','node_id','round')}
-        operation = Operation(user_id=memory.user_id, kind='delete', target_id=memory.id)
+        operation = Operation(user_id=memory.user_id, workspace_id=memory.workspace_id, kind='delete', target_id=memory.id)
         db.add(operation)
         db.flush()
         enqueue(db, f'delete:{operation.id}', 'cleanup', {'user_id': memory.user_id, 'documents': documents,
@@ -314,28 +336,36 @@ def delete_conversation(db, conversation, delete_memories, journal=True):
                        'delete_memories': delete_memories})
     from .delegation import invalidate_delegations
     invalidate_delegations(db, conversation_id=conversation.id)
-    sources = set(db.scalars(select(Message.id).where(Message.conversation_id == conversation.id)))
+    sources = set(db.scalars(select(Message.id).where(Message.conversation_id == conversation.id,
+        Message.workspace_id == conversation.workspace_id)))
     from .media import Media, MediaLink, forget_media
     # Media is a user asset: remove only attachments no longer used by another live conversation.
     media_ids = list(db.scalars(select(MediaLink.media_id).where(MediaLink.message_id.in_(sources))).unique())
     for media_id in media_ids:
         other = db.scalar(select(MediaLink.id).join(Message, Message.id == MediaLink.message_id)
                           .join(Conversation, Conversation.id == Message.conversation_id)
-                          .where(MediaLink.media_id == media_id, Conversation.id != conversation.id, Conversation.deleted == False).limit(1))
+                          .where(MediaLink.media_id == media_id, Conversation.id != conversation.id,
+                              Conversation.deleted == False, Conversation.user_id == conversation.user_id,
+                              Conversation.workspace_id == conversation.workspace_id,
+                              Message.workspace_id == conversation.workspace_id).limit(1))
         item = db.get(Media, media_id)
-        if not other and item and item.status != 'deleted':
+        if (not other and item and item.status != 'deleted' and item.user_id == conversation.user_id
+                and item.workspace_id == conversation.workspace_id):
             forget_media(db, item, journal=journal)
     from .proactive import invalidate_topics
     invalidate_topics(db, conversation_id=conversation.id)
-    for candidate in db.scalars(select(Candidate).where(Candidate.source_id.in_(sources))):
+    for candidate in db.scalars(select(Candidate).where(Candidate.source_id.in_(sources),
+            Candidate.workspace_id == conversation.workspace_id, Candidate.user_id == conversation.user_id)):
         candidate.status, candidate.content = 'invalidated', ''
     if delete_memories:
-        for memory in db.scalars(select(Memory).where(Memory.user_id == conversation.user_id, Memory.status != 'deleted')):
+        for memory in db.scalars(select(Memory).where(Memory.user_id == conversation.user_id,
+                Memory.workspace_id == conversation.workspace_id, Memory.status != 'deleted')):
             if sources.intersection(memory.source_ids):
                 MemoryService().forget(db, memory, journal=journal)
     conversation.deleted = True
     conversation.title = '已删除对话'
-    for run in db.scalars(select(ChatRun).where(ChatRun.conversation_id == conversation.id)):
+    for run in db.scalars(select(ChatRun).where(ChatRun.conversation_id == conversation.id,
+            ChatRun.workspace_id == conversation.workspace_id, ChatRun.user_id == conversation.user_id)):
         from .conversation_context import invalidate as invalidate_context
         invalidate_context(db, run.id)
         from .chat_actions import invalidate as invalidate_action
@@ -344,7 +374,7 @@ def delete_conversation(db, conversation, delete_memories, journal=True):
         if run.config.get('task_assist'):
             run.config = run.config | {'task_assist': run.config['task_assist'] | {'status': 'invalidated'}}
         db.query(RunEvent).filter(RunEvent.run_id == run.id).delete()
-    for message in db.scalars(select(Message).where(Message.conversation_id == conversation.id)):
+    for message in db.scalars(select(Message).where(Message.id.in_(sources))):
         message.content, message.status = '', 'deleted'
         # Forks reference these IDs; their queued and completed answers must expire too.
         invalidate_source(db, message.id)

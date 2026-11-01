@@ -180,7 +180,9 @@ def test_correction_and_deletion_scrub_completed_snapshot(configured, monkeypatc
     cid, ids, captured = setup(configured, monkeypatch)
     rid = submit(configured, cid); process(rid)
     with SessionLocal.begin() as db:
-        row = db.scalar(select(ConversationContext)); source_id = next(iter(row.source_hashes))
+        row = db.scalar(select(ConversationContext))
+        # A personal fact must be anchored in user evidence, not an assistant quote.
+        source_id = next(identity for identity in row.source_hashes if db.get(Message, identity).role == 'user')
         memory = MemoryService().remember(db, 'owner', '蓝桥项目使用茶色界面', 'projects', [source_id])
         MemoryService().forget(db, memory)
     evidence = configured.get('/api/chat-runs/' + rid + '/context').json()
@@ -270,7 +272,8 @@ def test_correction_scrubs_snapshot_and_future_context(configured, monkeypatch):
     cid, _, _ = setup(configured, monkeypatch)
     rid = submit(configured, cid); process(rid)
     with SessionLocal.begin() as db:
-        row = db.scalar(select(ConversationContext)); source_id = next(iter(row.source_hashes))
+        row = db.scalar(select(ConversationContext))
+        source_id = next(identity for identity in row.source_hashes if db.get(Message, identity).role == 'user')
         memory = MemoryService().remember(db, 'owner', '蓝桥项目旧约定', 'projects', [source_id])
         MemoryService().correct(db, memory, {'content': '蓝桥项目新约定', 'category': 'projects', 'subject': 'self'})
     result = configured.get('/api/chat-runs/' + rid + '/context').json()

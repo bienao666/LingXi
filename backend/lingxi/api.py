@@ -379,8 +379,10 @@ def rename_conversation(conversation_id: str, body: ConversationInput, ctx: Cont
 def linked_memories(conversation_id: str, ctx: Context):
     db, user, _ = ctx
     owned(db, Conversation, conversation_id, user)
-    sources = set(db.scalars(select(Message.id).where(Message.conversation_id == conversation_id)))
-    return [view(m) for m in db.scalars(select(Memory).where(Memory.user_id == user.id, Memory.status != 'deleted'))
+    sources = set(db.scalars(select(Message.id).where(Message.conversation_id == conversation_id,
+        Message.workspace_id == user.workspace_id)))
+    return [view(m) for m in db.scalars(select(Memory).where(Memory.user_id == user.id,
+            Memory.workspace_id == user.workspace_id, Memory.status != 'deleted'))
             if sources.intersection(m.source_ids)]
 
 
@@ -658,9 +660,9 @@ def memory_sources(memory_id: str, ctx: Context):
             'content':'用户核对并采纳的子助手提议；原始分析仅校验结构与来源，不表示独立事实核验。',
             'origin':memory.provenance})
     for source_id in memory.source_ids:
-        message = db.get(Message, source_id)
-        c = db.get(Conversation, message.conversation_id) if message else None
-        if message and c and c.user_id == user.id and not c.deleted:
+        from .memory_sources import resolve
+        message = resolve(db, source_id, user.workspace_id, user.id)
+        if message and message.status in ('completed', 'superseded'):
             sources.append({'id': source_id, 'content': message.content, 'role': message.role, 'created_at': message.created_at})
         else:
             sources.append({'id': source_id, 'content': '用户手动记录／纠正，或原会话已删除', 'role': 'source'})
@@ -773,10 +775,8 @@ def candidate_action(candidate_id: str, body: CandidateAction, ctx: Context):
             audit(db,user,'candidate_confirm',candidate_id)
         return view(result)
     candidate = owned(db, Candidate, candidate_id, user, lock=True)
-    source = db.get(Message, candidate.source_id)
-    conversation = db.get(Conversation, source.conversation_id) if source else None
-    if not conversation or conversation.deleted or not source or source.status != 'completed':
-        raise HTTPException(409, '候选来源已失效')
+    from .memory_review import dialogue_source
+    dialogue_source(db, candidate, user)
     if candidate.status != 'pending':
         return view(candidate)
     candidate.status = 'rejected'

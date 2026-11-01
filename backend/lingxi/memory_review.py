@@ -59,13 +59,14 @@ class CandidateReviewPreview(BaseModel):
 def dialogue_source(db, candidate, user, lock=False):
     if candidate.origin.get('kind') == 'agent':
         raise HTTPException(409, '协作候选请使用原有的来源采纳流程')
-    source = db.get(Message, candidate.source_id, populate_existing=True)
-    conversation = db.get(Conversation, source.conversation_id, populate_existing=True) if source else None
-    if (not source or source.role != 'user' or source.status != 'completed' or not conversation or conversation.deleted
-            or conversation.user_id != user.id or conversation.workspace_id != user.workspace_id
+    from .memory_sources import resolve, run_matches
+    source = resolve(db, candidate.source_id, user.workspace_id, user.id)
+    if (not source or source.role != 'user' or source.status != 'completed'
             or not candidate.content or candidate.content not in source.content):
         raise HTTPException(409, '候选原文已变化、删除或不属于当前账号，请重新核对')
     run = db.get(ChatRun, source.run_id, populate_existing=True) if source.run_id else None
+    if not run_matches(run, source, user.id, user.workspace_id):
+        raise HTTPException(409, '候选执行来源超出当前范围，请重新核对')
     if run and run.config.get('voice_input', {}).get('automatic'):
         raise HTTPException(409, '自动语音转写不能直接保存为长期记忆')
     if run and (scope := run.config.get('channel')):

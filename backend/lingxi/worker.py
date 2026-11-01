@@ -269,19 +269,26 @@ content 必须等于原文中的完整 quote，不得改写、推断或补充。
 
 
 def extract(job):
+    from .memory_sources import resolve, run_matches
     with SessionLocal() as db:
-        source = db.get(Message, job.payload['message_id'])
+        source = resolve(db, job.payload['message_id'], job.workspace_id)
+        if not source or source.role != 'user' or source.status != 'completed':
+            return
+        conversation = db.get(Conversation, source.conversation_id)
+        user_id, conversation_id = conversation.user_id, conversation.id
         source_run = db.get(ChatRun, source.run_id) if source and source.run_id else None
+        source_run_id = source.run_id
+        if not run_matches(source_run, source, user_id, job.workspace_id):
+            return
         if source_run and source_run.config.get('voice_input', {}).get('automatic'):
             return
         if source_run and (scope := source_run.config.get('channel')):
             from .channel_gateway import channel_scope_valid
             if scope.get('audio_unconfirmed') or not scope.get('memory_allowed') or not channel_scope_valid(db, scope):
                 return
-        conversation = db.get(Conversation, source.conversation_id) if source else None
-        if not source or source.role != 'user' or source.status != 'completed' or not conversation or conversation.deleted:
-            return
         model, provider, _ = resolve_model(db, 'extraction')
+        if model.workspace_id != job.workspace_id or provider.workspace_id != job.workspace_id:
+            return
         original, user_id, source_id = source.content, conversation.user_id, source.id
     output = complete(model, provider, [{'role': 'system', 'content': EXTRACTION_PROMPT},
                                         {'role': 'user', 'content': original}])
@@ -299,17 +306,26 @@ def extract(job):
             from .channel_gateway import channel_scope_valid
             if scope.get('audio_unconfirmed') or not scope.get('memory_allowed') or not channel_scope_valid(db, scope, locked=True):
                 return
-        source = db.scalar(select(Message).where(Message.id == source_id).with_for_update())
-        conversation = db.get(Conversation, source.conversation_id)
+        # Deletion takes this same conversation fence before scanning linked
+        # memories. Otherwise a late auto-save could miss its deletion scan.
+        conversation = db.scalar(select(Conversation).where(Conversation.id == conversation_id,
+            Conversation.workspace_id == job.workspace_id, Conversation.user_id == user_id,
+            Conversation.deleted == False).with_for_update().execution_options(populate_existing=True))
+        if not conversation:
+            return
+        source = resolve(db, source_id, job.workspace_id, user_id, lock=True)
+        if (not source or source.conversation_id != conversation_id or source.role != 'user'
+                or source.status != 'completed' or source.content != original or source.run_id != source_run_id):
+            return
         source_run = db.get(ChatRun, source.run_id) if source.run_id else None
+        if not run_matches(source_run, source, user_id, job.workspace_id):
+            return
         if source_run and source_run.config.get('voice_input', {}).get('automatic'):
             return
         if source_run and (scope := source_run.config.get('channel')):
             from .channel_gateway import channel_scope_valid
             if scope.get('audio_unconfirmed') or not scope.get('memory_allowed') or not channel_scope_valid(db, scope):
                 return
-        if source.status != 'completed' or conversation.deleted or source.content != original:
-            return
         user = db.get(User, user_id)
         for item in items[:5]:
             content = item.get('content', '')
@@ -319,7 +335,8 @@ def extract(job):
             fp = fingerprint(content)
             if db.scalar(select(Candidate).where(Candidate.source_id == source_id, Candidate.fingerprint == fp)):
                 continue
-            existing = db.scalars(select(Memory).where(Memory.user_id == user_id, Memory.status == 'active')).all()
+            existing = db.scalars(select(Memory).where(Memory.user_id == user_id,
+                Memory.workspace_id == job.workspace_id, Memory.status == 'active')).all()
             if any(m.content == content for m in existing):
                 continue
             subject = str(item.get('subject', 'unknown'))[:150]
@@ -329,7 +346,7 @@ def extract(job):
             risky = bool(re.search(r'如果|假如|假设|扮演|朋友|他说|她说|今天|暂时|这次|「|“|"|病|药|密码|密钥|身份证|银行|账号|住址|抑郁|情绪', original))
             conflict = any(m.category == category and m.subject == subject for m in existing)
             auto = user.auto_memory and explicit and subject == 'self' and category in ('profile', 'preferences') and simple and not risky and item.get('sensitive') is False and not conflict
-            candidate = Candidate(user_id=user_id, source_id=source_id, fingerprint=fp, content=content,
+            candidate = Candidate(user_id=user_id, workspace_id=job.workspace_id, source_id=source_id, fingerprint=fp, content=content,
                                   category=category, subject=subject, evidence='explicit' if explicit else 'inferred',
                                   reason='明确低风险自述' if auto else '需核对主体、敏感性或事实冲突',
                                   status='confirmed' if auto else 'pending')
