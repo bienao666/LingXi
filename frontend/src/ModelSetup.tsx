@@ -8,6 +8,22 @@ export type ModelPolicy = {purpose: string; model_id: string; version: number};
 type RoutingInput = Required<components['schemas']['RoutingInput']>;
 type RoutingView = Required<components['schemas']['RoutingView']>;
 type RoutingPreview = components['schemas']['RoutingPreview'];
+const selectionLabels = {priority:'候选顺序',estimated_cost:'参考费用',observed_latency:'历史耗时'};
+
+function SelectionSummary({selection,models}: {selection: RoutingPreview['selection']; models: Model[]}) {
+  if(!selection)return null;
+  const status=(value:string)=>({ready:'可比较',missing_price:'价格缺失或失效',currency_mismatch:'币种不一致',insufficient_samples:'样本不足'}[value]||'不可比较');
+  return <section className="form-stack" aria-label="选择依据">
+    <h4>选择依据</h4><p>{selection.reason}</p>
+    <p>实际比较：{selectionLabels[selection.applied as keyof typeof selectionLabels]||selection.applied} · 首选：{models.find(m=>m.id===selection.selected_model_id)?.name||'无适合候选'}</p>
+    {!!selection.evidence?.length&&<ul className="form-stack">{selection.evidence.map(item=><li key={item.model_id}>
+      <strong>{models.find(m=>m.id===item.model_id)?.name||item.model_id}</strong> · {status(item.status)}
+      {item.reference_cost!=null&&<small className="block muted">参考估算 {item.reference_cost} {item.currency} · 价格 v{item.price_version}</small>}
+      {selection.strategy==='observed_latency'&&<small className="block muted">有效样本 {item.samples} 个 · 总耗时中位数 {item.median_ms==null?'未知':`${item.median_ms} ms`}</small>}
+    </li>)}</ul>}
+    <p className="muted">这是预览时按最低上下文筛选的快照。新回合按实际图片、上下文和最新证据重新选择；运行中的回合不重新排序。</p>
+  </section>;
+}
 
 export function RoutingControls({models, providers, primary, request}: {
   models: Model[]; providers: Provider[]; primary?: ModelPolicy;
@@ -21,7 +37,9 @@ export function RoutingControls({models, providers, primary, request}: {
     let current=true;setError('');setPreview(undefined);setPending(undefined);setForm(undefined);
     void request<RoutingView>('/api/model-routing').then(value=>{if(current){setSaved(value);setForm({
       version:value.version,mode:value.mode,candidate_ids:value.candidate_ids,allow_fallback:value.allow_fallback,
-      cross_provider:value.cross_provider,minimum_context:value.minimum_context});}}).catch(e=>{if(current)setError((e as Error).message);});
+      cross_provider:value.cross_provider,minimum_context:value.minimum_context,
+      selection_strategy:value.selection_strategy||'priority',reference_currency:value.reference_currency||'CNY',
+      reference_input_tokens:value.reference_input_tokens??1000,reference_output_tokens:value.reference_output_tokens??1000});}}).catch(e=>{if(current)setError((e as Error).message);});
     return ()=>{current=false;};
   },[request,primary?.version,revision]);
   const update=(values:Partial<RoutingInput>)=>{setForm(f=>f?{...f,...values}:f);setPreview(undefined);setPending(undefined);setNotice('');};
@@ -30,7 +48,7 @@ export function RoutingControls({models, providers, primary, request}: {
   const routed=form?.mode==='automatic'||form?.allow_fallback;
   return <section className="data-card form-stack" aria-labelledby="routing-controls-title">
     <h3 id="routing-controls-title">自动选模</h3>
-    <p className="muted">默认固定模型。开启后按候选顺序筛选已验证的能力与上下文；不推测费用或速度。仅适用于 Web／QQ 普通聊天最终回复，人格指定模型、任务、子助手、记忆和语音保持各自配置。</p>
+    <p className="muted">默认固定模型。自动模式先筛选授权、能力与上下文，再按候选顺序、参考费用或历史耗时选择。仅适用于 Web／QQ 普通聊天最终回复，人格指定模型、任务、子助手、记忆和语音保持各自配置。</p>
     {error&&<p role="alert" className="error">{error}</p>}
     {notice&&<p role="status">{notice}</p>}
     {!form?<><p role="status" className="muted">{error?'路由配置未加载':'正在加载路由配置…'}</p>{error&&<button className="button" onClick={()=>reload(x=>x+1)}>重新加载</button>}</>:
@@ -43,6 +61,16 @@ export function RoutingControls({models, providers, primary, request}: {
       {saved&&!saved.current&&<p role="status" className="error">{saved.notice}。重新核对候选并预览；也可关闭路由恢复固定配置。</p>}
       <fieldset disabled={busy} className="form-stack"><legend>调用策略</legend>
         <label>选模方式<select aria-label="选模方式" value={form.mode} onChange={e=>update({mode:e.target.value as RoutingInput['mode']})}><option value="fixed">固定模型</option><option value="automatic">自动选模</option></select></label>
+        {form.mode==='automatic'&&<>
+          <label>比较策略<select aria-label="比较策略" value={form.selection_strategy} onChange={e=>update({selection_strategy:e.target.value as RoutingInput['selection_strategy']})}>{Object.entries(selectionLabels).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
+          {form.selection_strategy==='estimated_cost'&&<>
+            <label>参考币种<select aria-label="参考币种" value={form.reference_currency} onChange={e=>update({reference_currency:e.target.value as RoutingInput['reference_currency']})}><option value="CNY">CNY</option><option value="USD">USD</option></select></label>
+            <label>参考输入<input aria-label="参考输入" type="number" min={1} max={2000000} value={form.reference_input_tokens} onChange={e=>update({reference_input_tokens:Number(e.target.value)})} required/></label>
+            <label>参考输出<input aria-label="参考输出" type="number" min={1} max={2000000} value={form.reference_output_tokens} onChange={e=>update({reference_output_tokens:Number(e.target.value)})} required/></label>
+            <p className="muted">单位为 token。使用「用量预算」中当前连接版本的人工价格，不含缓存优惠；只是固定参考用量的估算，不是本轮账单或金额限额。任一适合候选缺价、失效或币种不一致时保留候选顺序，不自动换汇。</p>
+          </>}
+          {form.selection_strategy==='observed_latency'&&<p className="muted">比较近七天、同模型与连接协议版本的成功普通聊天总耗时中位数；每个模型最多扫描最近 200 条、取 20 个有效样本，至少需 3 个。不是首字延迟或模型质量评测，不额外调用模型测速；样本不足时保留候选顺序。</p>}
+        </>}
         <label className="checkbox"><input type="checkbox" checked={form.allow_fallback} onChange={e=>update({allow_fallback:e.target.checked})}/>允许受控降级</label>
         <p className="muted">未输出任何文字时，遇限流、部分服务故障或网络超时，最多再调用一个已授权备用模型。已有部分回答则停止并显示错误；不会重新执行工具。</p>
         {routed&&<>
@@ -66,6 +94,7 @@ export function RoutingControls({models, providers, primary, request}: {
       <p>选模：{pending.mode==='automatic'?'自动选模':'固定模型'} · 降级：{pending.allow_fallback?'最多一个备用':'关闭'} · 跨连接：{pending.cross_provider?'允许所列接收者':'关闭'}</p>
       {preview.recipients.map(r=><div key={r.model_id}><strong>{r.model} · {r.provider_name}</strong><p className="wrap">{r.base_url}</p><small>{r.protocol} · 配置 v{r.provider_version} · 上下文 {r.context_window}</small></div>)}
       {!preview.recipients.length&&<p>关闭自动选模与降级，恢复固定配置。</p>}
+      <SelectionSummary selection={preview.selection} models={models}/>
       <p className="muted">预览五分钟内有效。确认或关闭路由将使尚在进行的旧路由回合停止。</p>
       <div className="actions"><button type="button" className="button primary" disabled={busy} onClick={async()=>{
         if(busy)return;setBusy(true);setError('');

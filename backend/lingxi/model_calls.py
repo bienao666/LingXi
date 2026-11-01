@@ -66,6 +66,12 @@ def entry(row):
     if isinstance(routing, dict) and type(routing.get('version')) is int:
         config['routing'] = {'version': routing['version'],
             'attempt_count': len(routing['attempts']) if isinstance(routing.get('attempts'), list) else 1}
+        selection = routing.get('selection')
+        if isinstance(selection, dict):
+            # Whitelist ranking labels, never serialize arbitrary plan/history.
+            for key in ('strategy', 'applied'):
+                if selection.get(key) in ('priority', 'estimated_cost', 'observed_latency'):
+                    config['routing']['selection_' + key] = selection[key]
     stored = row.billing or {}
     billing = {k: v for k, v in stored.items() if k in {'status', 'reason', 'amount', 'currency'}
         and type(v) in (str, type(None))}

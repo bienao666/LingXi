@@ -6633,6 +6633,28 @@ export interface components {
              * @default 8192
              */
             minimum_context: number;
+            /**
+             * Selection Strategy
+             * @default priority
+             * @enum {string}
+             */
+            selection_strategy: "priority" | "estimated_cost" | "observed_latency";
+            /**
+             * Reference Currency
+             * @default CNY
+             * @enum {string}
+             */
+            reference_currency: "CNY" | "USD";
+            /**
+             * Reference Input Tokens
+             * @default 1000
+             */
+            reference_input_tokens: number;
+            /**
+             * Reference Output Tokens
+             * @default 1000
+             */
+            reference_output_tokens: number;
             /** Preview Digest */
             preview_digest: string;
             /** Preview Expires At */
@@ -6665,6 +6687,28 @@ export interface components {
              * @default 8192
              */
             minimum_context: number;
+            /**
+             * Selection Strategy
+             * @default priority
+             * @enum {string}
+             */
+            selection_strategy: "priority" | "estimated_cost" | "observed_latency";
+            /**
+             * Reference Currency
+             * @default CNY
+             * @enum {string}
+             */
+            reference_currency: "CNY" | "USD";
+            /**
+             * Reference Input Tokens
+             * @default 1000
+             */
+            reference_input_tokens: number;
+            /**
+             * Reference Output Tokens
+             * @default 1000
+             */
+            reference_output_tokens: number;
         };
         /** RoutingPreview */
         RoutingPreview: {
@@ -6676,6 +6720,7 @@ export interface components {
             recipients: components["schemas"]["Recipient"][];
             /** Notice */
             notice: string;
+            selection: components["schemas"]["SelectionDecision"];
         };
         /** RoutingView */
         RoutingView: {
@@ -6704,6 +6749,28 @@ export interface components {
              * @default 8192
              */
             minimum_context: number;
+            /**
+             * Selection Strategy
+             * @default priority
+             * @enum {string}
+             */
+            selection_strategy: "priority" | "estimated_cost" | "observed_latency";
+            /**
+             * Reference Currency
+             * @default CNY
+             * @enum {string}
+             */
+            reference_currency: "CNY" | "USD";
+            /**
+             * Reference Input Tokens
+             * @default 1000
+             */
+            reference_input_tokens: number;
+            /**
+             * Reference Output Tokens
+             * @default 1000
+             */
+            reference_output_tokens: number;
             /** Recipients */
             recipients?: components["schemas"]["Recipient"][];
             /**
@@ -6838,6 +6905,41 @@ export interface components {
              * @default 12
              */
             max_calls: number;
+        };
+        /** SelectionDecision */
+        SelectionDecision: {
+            /** Strategy */
+            strategy: string;
+            /** Applied */
+            applied: string;
+            /** Reason */
+            reason: string;
+            /** Selected Model Id */
+            selected_model_id?: string | null;
+            /** Evaluated At */
+            evaluated_at: number;
+            /** Evidence */
+            evidence?: components["schemas"]["SelectionEvidence"][];
+        };
+        /** SelectionEvidence */
+        SelectionEvidence: {
+            /** Model Id */
+            model_id: string;
+            /** Status */
+            status: string;
+            /** Reference Cost */
+            reference_cost?: string | null;
+            /** Currency */
+            currency?: string | null;
+            /** Price Version */
+            price_version?: number | null;
+            /**
+             * Samples
+             * @default 0
+             */
+            samples: number;
+            /** Median Ms */
+            median_ms?: string | null;
         };
         /** SelectionView */
         SelectionView: {

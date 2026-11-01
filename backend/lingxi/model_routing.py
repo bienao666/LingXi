@@ -17,6 +17,7 @@ from .db import Base, SessionLocal, now
 from .config import settings as runtime_settings
 from .models import Model, Policy, Provider, User
 from .web import Context, audit
+from .model_selection import SelectionDecision, rank
 
 router = APIRouter()
 
@@ -37,6 +38,10 @@ class RoutingInput(BaseModel):
     allow_fallback: bool = False
     cross_provider: bool = False
     minimum_context: int = Field(default=8192, ge=2048, le=2000000)
+    selection_strategy: Literal['priority', 'estimated_cost', 'observed_latency'] = 'priority'
+    reference_currency: Literal['CNY', 'USD'] = 'CNY'
+    reference_input_tokens: int = Field(default=1000, ge=1, le=2000000)
+    reference_output_tokens: int = Field(default=1000, ge=1, le=2000000)
 
     @model_validator(mode='after')
     def unique_candidates(self):
@@ -74,10 +79,11 @@ class RoutingPreview(BaseModel):
     preview_expires_at: int
     recipients: list[Recipient]
     notice: str
+    selection: SelectionDecision
 
 
 NOTICE = ('仅用于普通聊天最终回复。候选服务可能接收当前问题、授权历史、记忆和附件；'
-          '内网授权不代表本地模型或禁止云端外发。按列表顺序筛选，不推测价格或延迟。'
+          '内网授权不代表本地模型或禁止云端外发。先过滤授权与能力，再按所选策略比较；证据不足保留候选顺序。'
           '最多两次最终回复调用；已有文字、取消或资料失效时不降级。'
           '人格指定模型、任务协助、子助手、记忆、语音继续固定配置。')
 
@@ -179,8 +185,13 @@ def preview(ctx: Context, body: RoutingInput):
     db, user, _ = ctx
     config = build(db, user, body)
     expires = int(now()) + 300
+    allowed = [(p, eligible(db, user, p, {'context': body.minimum_context, 'vision': False}))
+               for p in config['recipients']]
+    if body.mode == 'fixed':
+        allowed = [(p, pair) for p, pair in allowed if p['model_id'] == body.candidate_ids[0]]
+    _, selection = rank(db, user, config, [(p, pair) for p, pair in allowed if pair])
     return {'preview_digest': digest(config, body.version, user, expires), 'preview_expires_at': expires,
-            'recipients': config['recipients'], 'notice': NOTICE}
+            'recipients': config['recipients'], 'notice': NOTICE, 'selection': selection}
 
 
 @router.put('/api/model-routing', response_model=RoutingView)
@@ -246,12 +257,16 @@ def select_chat(db, user, conversation, content, media_ids, explicit_id=None, *,
         allowed = [(p, pair) for p, pair in allowed if p['model_id'] == row.config['candidate_ids'][0]]
     if not allowed:
         raise HTTPException(409, '授权候选中没有满足上下文、视觉和可用状态的对话模型')
+    allowed, selection = rank(db, user, row.config, allowed)
     chosen, (model, provider) = allowed[0]
     # Same context payload on fallback; a smaller model cannot silently lose data.
-    fallback = [p for p, pair in matches if pair and p['model_id'] != model.id
-                and p['context_window'] >= model.context_window][:1] if row.config['allow_fallback'] else []
+    fallback_allowed = [(p, pair) for p, pair in matches if pair and p['model_id'] != model.id
+                        and p['context_window'] >= model.context_window]
+    fallback_allowed, fallback_selection = rank(db, user, row.config, fallback_allowed) if row.config['allow_fallback'] else ([], None)
+    fallback = [p for p, _ in fallback_allowed[:1]]
     plan = {'version': row.version, 'user_id': user.id, 'mode': row.config['mode'],
-            'requirement': requirement, 'candidates': [chosen] + fallback, 'attempts': []}
+            'requirement': requirement, 'candidates': [chosen] + fallback, 'attempts': [],
+            'selection': selection, 'fallback_selection': fallback_selection}
     return model, provider, row.config['policy_version'], plan
 
 

@@ -17528,6 +17528,39 @@
             "title": "Minimum Context",
             "default": 8192
           },
+          "selection_strategy": {
+            "type": "string",
+            "enum": [
+              "priority",
+              "estimated_cost",
+              "observed_latency"
+            ],
+            "title": "Selection Strategy",
+            "default": "priority"
+          },
+          "reference_currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Reference Currency",
+            "default": "CNY"
+          },
+          "reference_input_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Input Tokens",
+            "default": 1000
+          },
+          "reference_output_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Output Tokens",
+            "default": 1000
+          },
           "preview_digest": {
             "type": "string",
             "pattern": "^[a-f0-9]{64}$",
@@ -17587,6 +17620,39 @@
             "minimum": 2048.0,
             "title": "Minimum Context",
             "default": 8192
+          },
+          "selection_strategy": {
+            "type": "string",
+            "enum": [
+              "priority",
+              "estimated_cost",
+              "observed_latency"
+            ],
+            "title": "Selection Strategy",
+            "default": "priority"
+          },
+          "reference_currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Reference Currency",
+            "default": "CNY"
+          },
+          "reference_input_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Input Tokens",
+            "default": 1000
+          },
+          "reference_output_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Output Tokens",
+            "default": 1000
           }
         },
         "additionalProperties": false,
@@ -17616,6 +17682,9 @@
           "notice": {
             "type": "string",
             "title": "Notice"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/SelectionDecision"
           }
         },
         "type": "object",
@@ -17623,7 +17692,8 @@
           "preview_digest",
           "preview_expires_at",
           "recipients",
-          "notice"
+          "notice",
+          "selection"
         ],
         "title": "RoutingPreview"
       },
@@ -17667,6 +17737,39 @@
             "minimum": 2048.0,
             "title": "Minimum Context",
             "default": 8192
+          },
+          "selection_strategy": {
+            "type": "string",
+            "enum": [
+              "priority",
+              "estimated_cost",
+              "observed_latency"
+            ],
+            "title": "Selection Strategy",
+            "default": "priority"
+          },
+          "reference_currency": {
+            "type": "string",
+            "enum": [
+              "CNY",
+              "USD"
+            ],
+            "title": "Reference Currency",
+            "default": "CNY"
+          },
+          "reference_input_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Input Tokens",
+            "default": 1000
+          },
+          "reference_output_tokens": {
+            "type": "integer",
+            "maximum": 2000000.0,
+            "minimum": 1.0,
+            "title": "Reference Output Tokens",
+            "default": 1000
           },
           "recipients": {
             "items": {
@@ -17951,6 +18054,119 @@
           "agent_ids"
         ],
         "title": "Selection"
+      },
+      "SelectionDecision": {
+        "properties": {
+          "strategy": {
+            "type": "string",
+            "title": "Strategy"
+          },
+          "applied": {
+            "type": "string",
+            "title": "Applied"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "selected_model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Model Id"
+          },
+          "evaluated_at": {
+            "type": "number",
+            "title": "Evaluated At"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/SelectionEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strategy",
+          "applied",
+          "reason",
+          "evaluated_at"
+        ],
+        "title": "SelectionDecision"
+      },
+      "SelectionEvidence": {
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "title": "Model Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "reference_cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference Cost"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "price_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Version"
+          },
+          "samples": {
+            "type": "integer",
+            "title": "Samples",
+            "default": 0
+          },
+          "median_ms": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model_id",
+          "status"
+        ],
+        "title": "SelectionEvidence"
       },
       "SelectionView": {
         "properties": {

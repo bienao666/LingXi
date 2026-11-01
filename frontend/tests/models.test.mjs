@@ -69,6 +69,56 @@ test('empty setup guides user to connections without claiming ready',async t=>{
 });
 
 const routingDefault={version:0,mode:'fixed',candidate_ids:[],allow_fallback:false,cross_provider:false,minimum_context:8192,recipients:[],current:true,notice:''};
+test('routing strategy settings and evidence require explicit confirmation',async t=>{
+  const requests=[];
+  const request=async(url,method='GET',value)=>{
+    requests.push({method,value});
+    if(method==='GET')return routingDefault;
+    if(method==='POST')return {preview_digest:'c'.repeat(64),preview_expires_at:2000000000,recipients:[],notice:'已过滤授权',
+      selection:{strategy:'estimated_cost',applied:'priority',selected_model_id:'chat',reason:'部分价格缺失，保留候选顺序',
+        evidence:[{model_id:'chat',status:'missing_price',samples:0},{model_id:'backup',status:'ready',reference_cost:'0.000000000002',currency:'USD',price_version:3,samples:0}]}};
+    return {...value,version:1,current:true};
+  };
+  await mount(t,RoutingControls,{models:[model('chat'),model('backup')],providers:[provider],primary:policy('chat'),request});
+  assert.equal(document.querySelector('select[aria-label="比较策略"]'),null);
+  await choose('select[aria-label="选模方式"]','automatic');
+  assert.equal(document.querySelector('select[aria-label="比较策略"]').value,'priority');
+  await choose('select[aria-label="比较策略"]','estimated_cost');
+  await choose('select[aria-label="参考币种"]','USD');
+  assert.equal(document.querySelector('input[aria-label="参考输入"]').value,'1000');
+  await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.match(document.querySelector('[aria-label="选择依据"]').textContent,/价格缺失.*候选顺序/);
+  assert.match(document.body.textContent,/0.000000000002 USD/);
+  assert.equal(requests.filter(r=>r.method==='PUT').length,0);
+  await clickText('确认策略');
+  const saved=requests.find(r=>r.method==='PUT').value;
+  assert.equal(saved.selection_strategy,'estimated_cost');assert.equal(saved.reference_currency,'USD');
+  assert.equal(saved.reference_input_tokens,1000);assert.equal(saved.reference_output_tokens,1000);
+});
+
+test('strategy edits invalidate preview and latency explains its limits',async t=>{
+  const request=async(url,method='GET')=>method==='GET'?{...routingDefault,mode:'automatic',selection_strategy:'estimated_cost'}:
+    {preview_digest:'a'.repeat(64),recipients:[],notice:'预览',selection:{strategy:'estimated_cost',applied:'priority',reason:'证据不足',evidence:[]}};
+  await mount(t,RoutingControls,{models:[model('chat')],providers:[provider],primary:policy('chat'),request});
+  await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.ok(document.querySelector('[aria-label="策略预览"]'));
+  await choose('select[aria-label="比较策略"]','observed_latency');
+  assert.equal(document.querySelector('[aria-label="策略预览"]'),null);
+  assert.equal(document.querySelector('[aria-label="参考输入"]'),null);
+  assert.match(document.body.textContent,/至少需 3 个/);
+  assert.match(document.body.textContent,/不额外调用模型测速/);
+});
+
+test('latency evidence never labels missing measurements as zero',async t=>{
+  const request=async(url,method='GET')=>method==='GET'?{...routingDefault,mode:'automatic',selection_strategy:'observed_latency'}:
+    {preview_digest:'a'.repeat(64),recipients:[],notice:'预览',selection:{strategy:'observed_latency',applied:'priority',reason:'样本不足',
+      evidence:[{model_id:'chat',status:'insufficient_samples',samples:0,median_ms:null}]}};
+  await mount(t,RoutingControls,{models:[model('chat')],providers:[provider],primary:policy('chat'),request});
+  await act(async()=>document.querySelector('form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));
+  assert.match(document.body.textContent,/有效样本 0 个 · 总耗时中位数 未知/);
+  assert.doesNotMatch(document.body.textContent,/中位数 0 ms/);
+});
+
 test('routing defaults to fixed and never saves before explicit preview confirmation',async t=>{
   const requests=[];
   const request=async(url,method='GET',value)=>{

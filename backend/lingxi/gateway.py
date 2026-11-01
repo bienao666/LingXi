@@ -45,7 +45,7 @@ def call_config(model, provider, purpose):
     with SessionLocal() as db:
         policy = db.get(Policy, purpose)
         from .usage_costs import snapshot
-        return {'model': model.name, 'provider_version': provider.version,
+        return {'model': model.name, 'provider_id': provider.id, 'provider_version': provider.version,
                 '_price_snapshot': snapshot(db, model, provider),
                 'provider_protocol': protocol_for(provider),
                 'policy_version': policy.version if policy and policy.model_id == model.id else None,
