@@ -1,13 +1,15 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {api} from './api';
-import type {Provider,ProviderModelCatalog,Message,Run} from './api';
+import type {Provider,ProviderModelCatalog,Message,Run,ChatAction} from './api';
 import type {components} from './api.generated';
 import {ErrorNotice,useResource} from './ui';
 import {audioDevices,Microphone} from './voiceAudio';
 import {RealtimeTranscription,VoiceRealtime} from './VoiceRealtime';
+import {AgentToolScope} from './AgentTools';
 type Config=components['schemas']['VoiceSettingsView'];
 type VoiceSession=components['schemas']['VoiceSessionView'];
 type Playback=components['schemas']['PlaybackView'];
+type Collaboration=components['schemas']['CollaborationOptions'];
 type PersonaVoice=components['schemas']['PersonaVoiceView'];
 const defaults:Config={enabled:false,version:0,asr:{provider_id:'',model:''},tts:{provider_id:'',model:''},realtime_asr:{provider_id:'',model:''},realtime_tts:{provider_id:'',model:''},realtime_language_field:'language',language:'zh',voice:'alloy',speed:1,follow_persona:false,checks:{asr:false,tts:false}};
 
@@ -41,9 +43,10 @@ export function VoiceSettings(){
   </div>;
 }
 
-export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,referenceSelected=false,onSessionChange}:{conversationId:string;messages:Message[];runs:Run[];reload():Promise<void>;userBusy?:boolean;referenceSelected?:boolean;onSessionChange?:(active:boolean)=>void}){
+export function VoicePanel({conversationId,messages,runs,actions=[],reload,userBusy=false,referenceSelected=false,onSessionChange}:{conversationId:string;messages:Message[];runs:Run[];actions?:ChatAction[];reload():Promise<void>;userBusy?:boolean;referenceSelected?:boolean;onSessionChange?:(active:boolean)=>void}){
   const [session,setSession]=useState<VoiceSession|null>(null),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[draft,setDraft]=useState(''),[error,setError]=useState(''),[status,setStatus]=useState(''),[speaking,setSpeaking]=useState(false),[blocked,setBlocked]=useState(false);
   useEffect(()=>{onSessionChange?.(!!session);},[session?.id,onSessionChange]);
+  const [collaborate,setCollaborate]=useState(false),[shareMemory,setShareMemory]=useState(false),[allowFiles,setAllowFiles]=useState(false),[proposeMemory,setProposeMemory]=useState(false),[maxCalls,setMaxCalls]=useState(12),[toolKeys,setToolKeys]=useState<string[]>([]);
   const [continuous,setContinuous]=useState(false),[listening,setListening]=useState(false),[realtimeBusy,setRealtimeBusy]=useState(false);
   const [nativeInput,setNativeInput]=useState(false),[liveCaption,setLiveCaption]=useState('');
   const nativeTurn=useRef<RealtimeTranscription|null>(null);
@@ -52,7 +55,7 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
   const voiceClaimController=useRef<AbortController|null>(null);
   const [devices,setDevices]=useState<MediaDeviceInfo[]>([]),[inputDevice,setInputDevice]=useState(''),[outputDevice,setOutputDevice]=useState('');
   const mic=useRef(new Microphone()),continuousMic=useRef(new Microphone()),audio=useRef<HTMLAudioElement>(null),alive=useRef(true),sessionRef=useRef<VoiceSession|null>(null),playback=useRef<Playback|null>(null),control=useRef<AbortController|null>(null),playGeneration=useRef(0),audioURL=useRef('');
-  const pending=useRef<{content:string;id:string;automatic:boolean}|null>(null),initiated=useRef(''),awaiting=useRef(false),listeningRef=useRef(false),voiceGeneration=useRef(0),inputControl=useRef<AbortController|null>(null);
+  const pending=useRef<{content:string;id:string;automatic:boolean;collaboration:Collaboration|null}|null>(null),initiated=useRef(''),awaiting=useRef(false),listeningRef=useRef(false),voiceGeneration=useRef(0),inputControl=useRef<AbortController|null>(null);
   const openGeneration=useRef(0),cancelPlay=useRef<(()=>void)|null>(null);
   const active=runs.find(r=>['queued','running'].includes(r.status));
   const [speechLabel,setSpeechLabel]=useState('');
@@ -80,7 +83,7 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
     if(!plan||!sid)return;
     setError('');
     try{
-      if(plan.proactive){
+      if(plan.proactive||plan.collaboration){
         const current=await api<Playback>(`/api/voice/playbacks/${plan.id}`);
         if(current.status!=='active')throw new Error('主动播报已停止，请阅读文字记录');
       }
@@ -90,7 +93,7 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
       setBlocked(false);setSpeaking(true);
     }catch(e){
       if(generation!==playGeneration.current)return;
-      if(plan.proactive)await stopPlayback().catch(()=>{});
+      if(plan.proactive||plan.collaboration)await stopPlayback().catch(()=>{});
       setError((e as Error).message);
     }
   }
@@ -100,7 +103,7 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
     pauseListening();control.current?.abort();cancelPlay.current?.();mic.current.discard();audio.current?.pause();
     if(audioURL.current){URL.revokeObjectURL(audioURL.current);audioURL.current='';}
     playback.current=null;initiated.current='';awaiting.current=false;pending.current=null;
-    if(alive.current){setSession(null);setAllowProactive(false);setProactiveBusy(false);setSpeechLabel('');setRecording(false);setSpeaking(false);setBlocked(false);setBusy(false);setDraft('');setStatus('语音已结束，文字对话及后台任务继续保留。');}
+    if(alive.current){setCollaborate(false);setShareMemory(false);setAllowFiles(false);setProposeMemory(false);setToolKeys([]);setSession(null);setAllowProactive(false);setProactiveBusy(false);setSpeechLabel('');setRecording(false);setSpeaking(false);setBlocked(false);setBusy(false);setDraft('');setStatus('语音已结束，文字对话及后台任务继续保留。');}
     if(s)void api(`/api/voice/sessions/${s.id}`,'DELETE').catch(()=>{});
   }
   useEffect(()=>{alive.current=true;const stop=()=>{if(document.hidden)endSession();};const offline=()=>endSession();document.addEventListener('visibilitychange',stop);window.addEventListener('offline',offline);return()=>{alive.current=false;endSession();document.removeEventListener('visibilitychange',stop);window.removeEventListener('offline',offline);};},[conversationId]);
@@ -135,15 +138,37 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
   }
   async function sendTranscript(content:string,automatic:boolean){
     const s=sessionRef.current;if(!s||!content.trim())return;
-    if(!pending.current||pending.current.content!==content||pending.current.automatic!==automatic)pending.current={id:crypto.randomUUID(),content,automatic};
+    const collaboration:Collaboration|null=!automatic&&collaborate?{share_memory:shareMemory,propose_memory:proposeMemory,allow_files:allowFiles,max_calls:maxCalls,tool_keys:[...toolKeys]}:null;
+    if(pending.current?.collaboration&&(pending.current.content!==content||pending.current.automatic!==automatic)){setError('协作提交结果待核对，请沿用原转写重试，或先查看任务记录。');return;}
+    if(!pending.current||pending.current.content!==content||pending.current.automatic!==automatic)pending.current={id:crypto.randomUUID(),content,automatic,collaboration};
     const request=pending.current;awaiting.current=true;continuousMic.current.setDetection('paused');setBusy(true);setError('');
     try{
       await stopPlayback();if(sessionRef.current?.id!==s.id)return;
-      const run=await api<Run>(`/api/voice/sessions/${s.id}/messages`,'POST',{content:content.trim(),request_id:request.id,...(automatic?{automatic:true}:{})});
-      if(sessionRef.current?.id===s.id){initiated.current=run.id;pending.current=null;setDraft('');setStatus('正在生成回复…');await reload();}
+      const run=await api<Run>(`/api/voice/sessions/${s.id}/messages`,'POST',{content:content.trim(),request_id:request.id,...(automatic?{automatic:true}:{}),...(request.collaboration?{collaboration:request.collaboration}:{})});
+      if(sessionRef.current?.id===s.id){initiated.current=run.id;pending.current=null;setDraft('');setCollaborate(false);setShareMemory(false);setAllowFiles(false);setProposeMemory(false);setToolKeys([]);setStatus('正在生成回复…');await reload();}
     }catch(e){if(sessionRef.current?.id===s.id){awaiting.current=false;setDraft(content);failListening((e as Error).message);}}
     finally{if(alive.current&&sessionRef.current?.id===s.id)setBusy(false);}
   }
+  async function readCollaboration(messageId:string){
+    const s=sessionRef.current;if(!s||busy||active)return;
+    pauseListening();setBusy(true);setError('');
+    try{
+      await stopPlayback();const epoch=playGeneration.current;
+      const plan=await api<Playback>(`/api/voice/sessions/${s.id}/playbacks`,'POST',{message_id:messageId});
+      if(sessionRef.current?.id!==s.id||document.hidden||epoch!==playGeneration.current)return;
+      if(plan.status!=='active'){setStatus('本次汇总已播完或停止，请阅读文字；不会重放。');return;}
+      void speakRef.current(plan);
+    }catch(e){if(sessionRef.current?.id===s.id)setError((e as Error).message);}
+    finally{if(alive.current&&sessionRef.current?.id===s.id)setBusy(false);}
+  }
+  useEffect(()=>{
+    if(!session)return;
+    let checking=false,live=true;
+    const timer=setInterval(()=>{const p=playback.current;if(!p?.collaboration||checking)return;checking=true;
+      void api<Playback>(`/api/voice/playbacks/${p.id}`).then(value=>{if(live&&playback.current?.id===p.id&&value.status!=='active')void stopPlayback().catch(()=>{});})
+      .catch(e=>{if(live&&playback.current?.id===p.id){void stopPlayback().catch(()=>{});failListening(e.message);}}).finally(()=>{checking=false;});},1000);
+    return()=>{live=false;clearInterval(timer);};
+  },[session?.id]);
   async function automaticTurn(blob:Blob,generation:number){
     voiceActivity();userSpeaking.current=false;    const s=sessionRef.current;if(!s||generation!==voiceGeneration.current||!listeningRef.current)return;
     continuousMic.current.setDetection('paused');setBusy(true);setError('');setStatus('正在转写；本段将自动发送，不自动保存记忆。');
@@ -324,10 +349,13 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false,r
         {blocked&&<button type="button" className="button" onClick={()=>void resumePlayback()}>继续播报</button>}
       </div>
       {session.mode!=='continuous'&&<VoiceRealtime sessionId={session.id} inputDevice={inputDevice} disabled={busy||recording||!!active||!!draft} onBeforeStart={async()=>{voiceActivity();await stopPlayback();}} onBusy={setRealtimeBusy} onFinal={text=>{setDraft(text);setStatus('请核对最终转写，确认发送后才进入聊天和记忆流程。');}}/>}
-      {draft&&<div className="form-stack"><label>{pending.current?.automatic?'待核对发送状态':'核对转写'}<textarea value={draft} maxLength={12000} rows={3} disabled={busy||!!pending.current?.automatic} onChange={e=>setDraft(e.target.value)}/></label>
+      {draft&&<div className="form-stack"><label>{pending.current?.automatic?'待核对发送状态':'核对转写'}<textarea value={draft} maxLength={12000} rows={3} disabled={busy||!!pending.current?.automatic||!!pending.current?.collaboration} onChange={e=>setDraft(e.target.value)}/></label>
         {pending.current?.automatic&&<p className="muted">自动发送结果待核对。重试沿用同一请求，不能改变原转写或将它改为已确认事实；丢弃草稿不会取消已提交的回复。</p>}
-        <div className="actions"><button type="button" className="button primary" disabled={busy||!!active||!draft.trim()} onClick={()=>void sendTranscript(draft,!!pending.current?.automatic)}>{pending.current?.automatic?'重试发送':'确认发送'}</button><button type="button" className="button" disabled={busy} onClick={()=>{setDraft('');pending.current=null;setStatus('临时转写已丢弃。');}}>丢弃转写</button></div>
+        {session.mode==='manual'&&<fieldset disabled={busy||!!pending.current}><legend>本条协作</legend><label className="checkbox"><input type="checkbox" checked={collaborate} onChange={e=>setCollaborate(e.target.checked)}/>助手协作</label><p className="muted">核对完整转写及下列范围后，点击确认发送才委派。主助手自动判断直接处理或分工，最多 8 个节点、3 个并发；可能多次计费。普通语音不执行任务，连续聆听不自动委派。</p>{collaborate&&<div className="form-stack"><label className="checkbox"><input type="checkbox" checked={shareMemory} onChange={e=>setShareMemory(e.target.checked)}/>共享相关记忆</label><label className="checkbox"><input type="checkbox" checked={proposeMemory} onChange={e=>setProposeMemory(e.target.checked)}/>允许候选记忆（逐项确认）</label><label className="checkbox"><input type="checkbox" checked={allowFiles} onChange={e=>setAllowFiles(e.target.checked)}/>允许资料清单</label><AgentToolScope value={toolKeys} change={setToolKeys} disabled={busy||!!pending.current}/><label>调用上限<select value={maxCalls} onChange={e=>setMaxCalls(Number(e.target.value))}>{[6,12,20,30].map(n=><option value={n} key={n}>{n} 次</option>)}</select></label><p className="muted">仅此条生效，目标最多 6000 字符。远程工具仍需在协作详情逐次核对并确认，语音不代替授权。汇总回到原会话；点击朗读才播报，结束语音不取消任务。</p></div>}</fieldset>}
+        {pending.current?.collaboration&&<p className="muted">协作提交结果待核对，转写、范围及请求编号已固定；重试不会重复派发。丢弃转写不取消可能已提交的任务，请先核对任务记录。</p>}
+        <div className="actions"><button type="button" className="button primary" disabled={busy||!!active||!draft.trim()||(collaborate&&draft.trim().length>6000)} onClick={()=>void sendTranscript(draft,!!pending.current?.automatic)}>{pending.current?.automatic?'重试发送':'确认发送'}</button><button type="button" className="button" disabled={busy} onClick={()=>{setDraft('');pending.current=null;setStatus('临时转写已丢弃。');}}>丢弃转写</button></div>
       </div>}
+      {actions.filter(a=>a.voice_result_message_id&&['completed','partial'].includes(a.status)&&runs.some(r=>r.id===a.run_id&&r.config?.voice_session_id===session.id)).map(a=><div className="data-card" key={a.id}><strong>{a.title} · 协作汇总</strong><p className="muted">已回传原会话；仅结构与引用校验，外部效果以回执核对。朗读可能计费，停止或结束不自动重播。</p><button type="button" className="button" disabled={busy||recording||realtimeBusy||!!active||speaking} onClick={()=>void readCollaboration(a.voice_result_message_id!)}>朗读汇总</button></div>)}
     </>}
     <audio ref={audio} className="sr-only" aria-label="灵犀合成语音"/>
   </section>;

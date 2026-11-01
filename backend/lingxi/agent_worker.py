@@ -3,7 +3,7 @@ import json
 from fastapi import HTTPException
 from sqlalchemy import select
 from .db import SessionLocal, now
-from .models import Memory, User, Conversation, Message, Job
+from .models import Memory, User, Conversation, Message, Job, ChatRun
 from .assistants import AssistantProfile
 from .memory import usable, MemoryService
 from .tasks import scheduled_job, append_result, list_resource, FileListInput
@@ -444,7 +444,10 @@ def execute_summary(job):
         MemoryService().submit_agent_candidates(db,run,nodes)
         # Exactly one main-assistant output; child nodes never write conversations.
         from .chat_actions import for_target
-        if not run.result_message_id and run.conversation_id and not for_target(db, run.id):
+        from .voice_agents import confirmed
+        action = for_target(db, run.id)
+        voice_result = bool(action and confirmed(db.get(ChatRun, action.run_id)))
+        if not run.result_message_id and run.conversation_id and (not action or voice_result):
             owner = db.get(User, run.user_id)
             content = f'协作任务「{run.title}」'+('部分完成' if run.status=='partial' else '已形成汇总')+'\n\n'+parsed.summary
             content += '\n\n'+'\n'.join(f'- {f.text}（节点：{", ".join(f.evidence_ids)}）' for f in parsed.findings)

@@ -12444,6 +12444,17 @@
               }
             ],
             "title": "Collaboration"
+          },
+          "voice_result_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voice Result Message Id"
           }
         },
         "type": "object",
@@ -16658,6 +16669,11 @@
       },
       "PlaybackView": {
         "properties": {
+          "collaboration": {
+            "type": "boolean",
+            "title": "Collaboration",
+            "default": false
+          },
           "proactive": {
             "type": "boolean",
             "title": "Proactive",
@@ -21775,6 +21791,16 @@
       },
       "VoiceMessageInput": {
         "properties": {
+          "collaboration": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CollaborationOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "content": {
             "type": "string",
             "maxLength": 12000,
@@ -21793,6 +21819,7 @@
             "default": false
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "content",

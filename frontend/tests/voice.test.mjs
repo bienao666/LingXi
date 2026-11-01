@@ -14,10 +14,10 @@ const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api}),actualAudio=compile('../src/voiceAudio.ts');
 const {pcmWav}=await import(actualAudio);
 const fakeAudio=url(`export {Pcm24Encoder} from '${actualAudio}';export class Microphone{async start(){globalThis.micStarts++;}async listen(device,callbacks){globalThis.micStarts++;globalThis.listeningCallbacks=callbacks;if(globalThis.listenGate)await globalThis.listenGate;}setDetection(mode){globalThis.detectionModes.push(mode);}async finish(){return new Blob(['test']);}discard(){globalThis.micDiscards++;}} export async function audioDevices(){return [];}`);
-const {VoiceSettings,VoicePanel}=await import(compile('../src/VoicePages.tsx',{'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}),'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}));
+const {VoiceSettings,VoicePanel}=await import(compile('../src/VoicePages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}),'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}));
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 const config={enabled:true,version:1,asr:{provider_id:'p',model:'asr'},tts:{provider_id:'p',model:'tts'},language:'zh',voice:'alloy',speed:1,checks:{asr:true,tts:true}};
-const session={id:'voice',conversation_id:'conversation',status:'active',expires_at:Date.now()/1000+900,config_version:1};
+const session={id:'voice',conversation_id:'conversation',status:'active',expires_at:Date.now()/1000+900,config_version:1,mode:'manual'};
 async function mount(t,component,props,handler){document.body.innerHTML='<div id="root"></div>';globalThis.micStarts=0;globalThis.micDiscards=0;globalThis.detectionModes=[];globalThis.listeningCallbacks=null;globalThis.listenGate=null;globalThis.fetch=async(u,o)=>handler(u,o);const root=createRoot(document.getElementById('root'));t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});await act(async()=>root.render(createElement(component,props)));return root;}
 async function click(text){const b=[...document.querySelectorAll('button')].find(v=>v.textContent===text);assert.ok(b,text);await act(async()=>b.click());}
 
@@ -383,4 +383,55 @@ for(const waitAt of ['audio','output-device'])test('barge-in discards late proac
  await proactiveSwitch();await enableContinuous();await click('开始聆听');await tick();assert.ok(finish);
  await act(async()=>listeningCallbacks.start());await act(async()=>finish());assert.equal(plays,0);
  const receipt=writes.find(w=>w.u.endsWith('/progress'));assert.deepEqual(JSON.parse(receipt.o.body),{completed_parts:0,stop:true});
+});
+
+async function voiceDraft(){await click('开启语音');await click('开始录音');await click('结束录音');}
+async function toggleChoice(label){const e=[...document.querySelectorAll('input[type=checkbox]')].find(e=>e.closest('label').textContent===label);assert.ok(e,label);await act(async()=>e.click());return e;}
+
+test('confirmed voice collaboration requires explicit per-turn scopes and resets after submit',async t=>{
+ const writes=[];await mount(t,VoicePanel,voiceProps,(u,o)=>{writes.push({u,o});return response(u==='/api/agent-tools'?[]:u.endsWith('/transcriptions')?{text:'请分析项目风险'}:u.endsWith('/messages')?{id:'run'}:session);});
+ await voiceDraft();const choice=[...document.querySelectorAll('input')].find(e=>e.closest('label')?.textContent==='助手协作');assert.equal(choice.checked,false);
+ await toggleChoice('助手协作');await toggleChoice('共享相关记忆');await click('确认发送');
+ const payload=JSON.parse(writes.find(r=>r.u.endsWith('/messages')).o.body);
+ assert.deepEqual(payload.collaboration,{share_memory:true,propose_memory:false,allow_files:false,max_calls:12,tool_keys:[]});
+ assert.ok(!payload.automatic);assert.ok(!writes.some(r=>r.u.includes('/confirm')));
+ await click('开始录音');await click('结束录音');assert.equal([...document.querySelectorAll('input')].find(e=>e.closest('label')?.textContent==='助手协作').checked,false);
+});
+
+test('uncertain voice collaboration freezes source, grants and request id on retry',async t=>{
+ const writes=[];await mount(t,VoicePanel,voiceProps,(u,o)=>{writes.push({u,o});return u.endsWith('/messages')?response({detail:'结果未知'},503):response(u==='/api/agent-tools'?[]:u.endsWith('/transcriptions')?{text:'请分析项目风险'}:session);});
+ await voiceDraft();await toggleChoice('助手协作');await click('确认发送');assert.equal(document.querySelector('textarea').disabled,true);
+ assert.equal([...document.querySelectorAll('input')].find(e=>e.closest('label')?.textContent==='助手协作').closest('fieldset').disabled,true);
+ await click('确认发送');const bodies=writes.filter(r=>r.u.endsWith('/messages')).map(r=>JSON.parse(r.o.body));assert.deepEqual(bodies[0],bodies[1]);
+ assert.match(document.body.textContent,/丢弃转写不取消可能已提交的任务/);await click('丢弃转写');assert.ok(!writes.some(r=>r.u.includes('/cancel')));
+});
+
+const voiceResultProps={...voiceProps,runs:[{id:'origin',status:'completed',config:{voice_session_id:'voice'}}],messages:[{id:'agent-result',role:'assistant',status:'completed',content:'汇总。'}],actions:[{id:'action',run_id:'origin',title:'项目建议',status:'completed',voice_result_message_id:'agent-result'}]};
+const resultPlan={id:'result-play',message_id:'agent-result',parts:['汇总。'],confirmed_parts:0,status:'active',collaboration:true};
+
+test('completed collaboration never autoplays and reading uses only owned message id',async t=>{
+ const writes=[];const create=URL.createObjectURL;URL.createObjectURL=()=> 'blob:result';t.after(()=>{URL.createObjectURL=create;});
+ await mount(t,VoicePanel,voiceResultProps,(u,o)=>{writes.push({u,o});return u.includes('/audio/')?new Response(new Blob(['wav'])):response(u==='/api/voice/config'?config:u.endsWith('/playbacks')?resultPlan:session);});
+ const player=document.querySelector('audio');player.play=async()=>{throw new Error('blocked');};player.pause=()=>{};
+ await click('开启语音');assert.equal(writes.filter(r=>r.u.endsWith('/playbacks')).length,0);assert.equal(micStarts,0);
+ await click('朗读汇总');assert.deepEqual(JSON.parse(writes.find(r=>r.u.endsWith('/playbacks')).o.body),{message_id:'agent-result'});
+ assert.equal(writes.filter(r=>r.u.includes('/audio/')).length,1);assert.match(document.body.textContent,/浏览器阻止自动播放/);
+ await click('结束语音');assert.ok(!writes.some(r=>r.u.includes('/cancel')));
+});
+
+test('stopped collaboration receipt never triggers another paid synthesis',async t=>{
+ const writes=[];await mount(t,VoicePanel,voiceResultProps,(u,o)=>{writes.push(u);return response(u.endsWith('/playbacks')?{...resultPlan,status:'stopped'}:session);});
+ await click('开启语音');await click('朗读汇总');assert.match(document.body.textContent,/不会重放/);assert.ok(!writes.some(u=>u.includes('/audio/')));
+});
+
+test('late collaboration playback is discarded after ending the session',async t=>{
+ let finish;const writes=[];await mount(t,VoicePanel,voiceResultProps,(u,o)=>{writes.push(u);return u.endsWith('/playbacks')?new Promise(r=>finish=r):response(session);});
+ await click('开启语音');await click('朗读汇总');assert.ok(finish);await click('结束语音');await act(async()=>finish(response(resultPlan)));assert.ok(!writes.some(u=>u.includes('/audio/')));
+});
+
+test('collaboration source loss stops playing without crediting unfinished audio',async t=>{
+ const tick=proactiveClock(t),writes=[];await mount(t,VoicePanel,voiceResultProps,(u,o)=>{writes.push({u,o});return u.includes('/audio/')?new Response(new Blob(['wav'])):u.endsWith('/result-play')?response({detail:'协作来源已失效'},409):response(u==='/api/voice/config'?config:u.endsWith('/playbacks')?resultPlan:session);});
+ const player=document.querySelector('audio');player.play=async()=>{};player.pause=()=>{};
+ await click('开启语音');await click('朗读汇总');await tick();assert.match(document.body.textContent,/协作来源已失效/);
+ const ack=writes.find(r=>r.u.endsWith('/progress'));assert.deepEqual(JSON.parse(ack.o.body),{completed_parts:0,stop:true});
 });

@@ -4607,6 +4607,8 @@ export interface components {
             collaboration?: {
                 [key: string]: unknown;
             } | null;
+            /** Voice Result Message Id */
+            voice_result_message_id?: string | null;
         };
         /** ChatRunView */
         ChatRunView: {
@@ -6209,6 +6211,11 @@ export interface components {
         };
         /** PlaybackView */
         PlaybackView: {
+            /**
+             * Collaboration
+             * @default false
+             */
+            collaboration: boolean;
             /**
              * Proactive
              * @default false
@@ -8398,6 +8405,7 @@ export interface components {
         };
         /** VoiceMessageInput */
         VoiceMessageInput: {
+            collaboration?: components["schemas"]["CollaborationOptions"] | null;
             /** Content */
             content: string;
             /** Request Id */

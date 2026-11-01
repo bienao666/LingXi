@@ -39,6 +39,7 @@ class ChatActionView(BaseModel):
     due_at: float | None = None
     timezone: str | None = None
     collaboration: dict | None = None
+    voice_result_message_id: str | None = None
 
 
 class Proposal(BaseModel):
@@ -115,7 +116,10 @@ def action_view(db, action):
                 or target.status == 'invalidated' or not valid_origin(db, action)):
             return base
         nodes = list(db.scalars(select(AgentNode).where(AgentNode.run_id == target.id).order_by(AgentNode.key)))
-        return base | {'title': target.title, 'status': target.status, 'version': target.version,
+        from .voice_agents import confirmed
+        parent = db.get(ChatRun, action.run_id)
+        return base | {'voice_result_message_id': target.result_message_id if confirmed(parent) else None,
+            'title': target.title, 'status': target.status, 'version': target.version,
             'error': target.error, 'result': target.result if target.status in ('completed', 'partial') else {},
             'collaboration': {'decision': target.decision, 'calls_used': target.calls_used,
                 'max_calls': target.max_calls, 'share_memory': target.config.get('share_memory', False),
@@ -205,8 +209,9 @@ def dispatch(job, model, provider, run_id, source_id, query):
         config = run.config.get('task_assist')
         if not config:
             return False
-        # These entry points do not carry a user grant for chat dispatch yet.
-        if (run.config.get('channel') or run.config.get('voice_session_id') or
+        from .voice_agents import confirmed
+        # Only confirmed manual voice carries a per-turn collaboration grant.
+        if (run.config.get('channel') or (run.config.get('voice_session_id') and not confirmed(run)) or
                 (run.config.get('media_refs') and config.get('mode') != 'collaboration')):
             raise HTTPException(409, '任务协助目前仅支持 Web 文字消息')
         run.source_message_ids = [source_id]

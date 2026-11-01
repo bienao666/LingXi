@@ -70,6 +70,12 @@ def test_automatic_input_cannot_change_preferences_or_enable_tools(configured, m
     def forbidden(*args, **kwargs): raise AssertionError('unconfirmed transcript is not authorization')
     monkeypatch.setattr('lingxi.proactive.chat_control', forbidden)
     result = send(configured, s, content=text, task_assist=True, collaboration={'goal': 'execute'})
+    assert result.status_code == 422, result.text
+    with SessionLocal() as db:
+        assert db.scalar(select(ChatRun.id)) is None
+        assert db.scalar(select(Job.id)) is None
+    # A legitimate ordinary continuous turn still works without authorization fields.
+    result = send(configured, s, content=text)
     assert result.status_code == 200, result.text
     with SessionLocal() as db:
         run = db.get(ChatRun, result.json()['id'])

@@ -11,13 +11,14 @@ import wave
 from types import SimpleNamespace
 from typing import Literal
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import JSON, Boolean, Float, Integer, String, UniqueConstraint, func, select
 from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base, now, uid
 from .gateway import client_for, record_call
 from .models import Audit, ChatRun, Conversation, LoginSession, Message, Provider, User
 from .schemas import ChatRunView
+from .media import CollaborationOptions
 from .security import safe_error
 from .web import Context, audit, owned, view
 
@@ -113,6 +114,8 @@ class TranscriptView(BaseModel):
 
 
 class VoiceMessageInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    collaboration: CollaborationOptions | None = None
     content: str = Field(min_length=1, max_length=12000)
     request_id: str = Field(min_length=8, max_length=100)
     automatic: bool = False
@@ -128,6 +131,7 @@ class PlaybackAck(BaseModel):
 
 
 class PlaybackView(BaseModel):
+    collaboration: bool = False
     proactive: bool = False
     contact_id: str | None = None
     id: str
@@ -192,10 +196,12 @@ def speech_snapshot(config, run):
 def playback_speech(db, playback, user, config, lock=False):
     message = db.get(Message, playback.message_id)
     run = db.get(ChatRun, message.run_id) if message and message.run_id else None
+    from .voice_agents import result_origin
+    if not run:run = result_origin(db, message, user)
     # Existing pre-feature rounds keep their original system-default behavior.
     from .proactive_voice import entry_for
     entry = entry_for(db, playback)
-    speech = entry.speech if entry else (run.config.get('speech') or {'voice': config.spec['voice'], 'source': 'system'})
+    speech = entry.speech if entry else ((run.config.get('speech') if run else None) or {'voice': config.spec['voice'], 'source': 'system'})
     if speech.get('source') == 'persona':
         live_persona(db, speech.get('persona_id'), user, lock)
     if not voice_checked(db, config, speech.get('voice')):
@@ -221,8 +227,10 @@ def playback_view(db, playback, parts):
     run = db.get(ChatRun, message.run_id) if message and message.run_id else None
     from .proactive_voice import entry_for
     entry = entry_for(db, playback)
-    speech = entry.speech if entry else (run.config.get('speech') or {})
-    return view(playback) | {'proactive': bool(entry), 'contact_id': entry.contact_id if entry else None, 'parts': parts, 'voice': speech.get('voice', ''),
+    from .voice_agents import result_origin
+    origin = result_origin(db, message, db.get(User, playback.user_id)) if not run else None
+    speech = entry.speech if entry else ((run or origin).config.get('speech') if run or origin else {}) or {}
+    return view(playback) | {'collaboration': bool(origin), 'proactive': bool(entry), 'contact_id': entry.contact_id if entry else None, 'parts': parts, 'voice': speech.get('voice', ''),
         'voice_source': speech.get('source', 'system'), 'persona_name': speech.get('persona_name', ''),
         'persona_version': speech.get('persona_version', 0)}
 
@@ -578,7 +586,7 @@ async def transcribe(identity: str, request: Request, ctx: Context):
 @router.post('/api/voice/sessions/{identity}/messages', response_model=ChatRunView)
 def voice_message(identity: str, body: VoiceMessageInput, ctx: Context):
     from .api import submit_chat
-    from .schemas import ChatInput
+    from .media import MediaChatInput
     db, user, login = ctx
     db.scalar(select(User).where(User.id == user.id).with_for_update())
     session = active_session(db, user, login, identity, True)
@@ -588,7 +596,9 @@ def voice_message(identity: str, body: VoiceMessageInput, ctx: Context):
     replay = previous is not None
     if body.automatic and session.mode != 'continuous':
         raise HTTPException(409, '请先明确开启连续对话')
-    result = submit_chat(ChatInput(conversation_id=session.conversation_id,
+    if body.collaboration is not None and (body.automatic or session.mode != 'manual'):
+        raise HTTPException(422, '助手协作须在手动语音中核对转写并明确确认；连续转写不执行协作')
+    result = submit_chat(MediaChatInput(conversation_id=session.conversation_id,
                                   **body.model_dump(exclude={'automatic'})), ctx,
                          voice_context={'automatic': body.automatic, 'confirmed': not body.automatic})
     run = db.get(ChatRun, result['id'])
@@ -635,6 +645,9 @@ def playback_source(db, playback, user):
     message = db.get(Message, playback.message_id)
     conversation = db.get(Conversation, message.conversation_id) if message else None
     run = db.get(ChatRun, message.run_id) if message and message.run_id else None if message else None
+    from .voice_agents import result_origin
+    if not run:
+        run = result_origin(db, message, user)
     if (not conversation or conversation.deleted or conversation.user_id != user.id or
             conversation.workspace_id != user.workspace_id or message.role != 'assistant' or
             message.status != 'completed' or not run or run.status != 'completed' or
@@ -649,6 +662,8 @@ def start_playback(identity: str, body: PlaybackInput, ctx: Context):
     session = active_session(db, user, login, identity, True)
     message = db.get(Message, body.message_id)
     run = db.get(ChatRun, message.run_id) if message and message.run_id else None if message else None
+    from .voice_agents import result_origin
+    if not run:run = result_origin(db, message, user)
     if (not message or message.conversation_id != session.conversation_id or not run or
             run.config.get('voice_session_id') != identity):
         raise HTTPException(404, '当前语音会话没有此回复')
@@ -725,6 +740,10 @@ def heard_history(db, run, history):
     for message in history:
         previous = db.get(ChatRun, message.run_id) if message.run_id else None
         from .proactive_voice import VoiceContact
+        from .voice_agents import result_origin
+        if message.role == 'assistant' and not previous:
+            try:previous = result_origin(db, message, db.get(User, run.user_id))
+            except HTTPException:continue
         entry = db.scalar(select(VoiceContact).where(VoiceContact.message_id == message.id,
             VoiceContact.user_id == run.user_id, VoiceContact.workspace_id == run.workspace_id)) if message.role == 'assistant' else None
         playback = None

@@ -15,7 +15,7 @@ const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api}),set
 const {ChatPage,ChatActionCard,MessageFork,HistoryBrowser,ContextEvidence,AgentCandidateReview}=await import(compile('../src/pages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),
  './api':api,'./ModelSetup':setup,'./AddModelForm':compile('../src/AddModelForm.tsx',{'./api':api,'./ModelSetup':setup}),
  './ModelCalls':compile('../src/ModelCalls.tsx',{'./api':api,'./ui':ui}),'./ConversationPersona':compile('../src/ConversationPersona.tsx',{'./api':api,'./ui':ui}),
- './VoicePages':compile('../src/VoicePages.tsx',{'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),
+ './VoicePages':compile('../src/VoicePages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),
  './MediaPages':compile('../src/MediaPages.tsx',{'./api':api,'./ui':ui,'./MediaStorage':compile('../src/MediaStorage.tsx',{'./api':api,'./ui':ui})}),
  './MemoryPaging':compile('../src/MemoryPaging.tsx',{'./api':api}),
   'react-markdown':pathToFileURL(require.resolve('react-markdown')).href

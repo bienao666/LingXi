@@ -35,7 +35,7 @@ class AgentRun(Entity, Base):
     max_calls: Mapped[int] = mapped_column(Integer, default=12)
     cancel_requested: Mapped[bool] = mapped_column(Boolean, default=False)
     conversation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    result_message_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    result_message_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     result: Mapped[dict] = mapped_column(JSON, default=dict)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[float] = mapped_column(Float, default=now)
