@@ -59,6 +59,8 @@ def open_connection(identity, token, self_id):
             documents_interrupted(db, identity, row.connection_id)
         from .proactive_channels import interrupted
         interrupted(db,identity)
+        from .reminder_delivery import interrupted as reminder_interrupted
+        reminder_interrupted(db, identity)
         row.connection_id, row.lease_until = connection, now()+90
         row.login_state, row.last_seen = 'checking', now()
         # A send from a lost connection may already have reached QQ. Do not requeue it.
@@ -79,6 +81,8 @@ def close_connection(identity, connection):
             documents_interrupted(db, identity, connection)
             from .proactive_channels import interrupted
             interrupted(db,identity,connection)
+            from .reminder_delivery import interrupted as reminder_interrupted
+            reminder_interrupted(db, identity, connection)
             row.connection_id, row.lease_until, row.login_state = None, 0, 'unknown'
             for delivery in db.scalars(select(ChannelDelivery).where(ChannelDelivery.channel_id == identity,
                                                                      ChannelDelivery.status == 'sending')):
@@ -158,6 +162,8 @@ def receive_event(identity, connection, event):
             else:
                 from .proactive_channels import receive_receipt
                 receive_receipt(db,channel,echo,event)
+                from .reminder_delivery import receive_receipt as reminder_receipt
+                reminder_receipt(db, channel, echo, event)
                 delivery = db.scalar(select(ChannelDelivery).where(ChannelDelivery.channel_id == identity,
                                                                    ChannelDelivery.echo == echo).with_for_update())
                 if delivery and delivery.status in ('sending', 'unknown'):
@@ -305,6 +311,9 @@ def prepare_outbound(identity, connection):
             action = prepare(db, channel, connection)
             if action:
                 return action
+    from .reminder_delivery import prepare as prepare_reminder
+    result = prepare_reminder(identity, connection)
+    if result is not None: return result
     from .proactive_channels import prepare
     return prepare(identity,connection)
 

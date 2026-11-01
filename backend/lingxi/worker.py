@@ -571,6 +571,11 @@ def main():
             if time.monotonic() >= next_proactive_check:
                 next_proactive_check = time.monotonic()+15
                 try:
+                    from .reminder_delivery import reconcile as reconcile_reminders
+                    reconcile_reminders()
+                except Exception:
+                    logging.error('Reminder delivery reconciliation unavailable')
+                try:
                     from .proactive import tick
                     tick()
                 except Exception as exc:

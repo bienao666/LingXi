@@ -188,6 +188,10 @@ def require_capability(db, user, capability_id, plugin_id='lingxi.builtin', rele
 
 
 def invalidate_invocations(db, user, installation_id, reason):
+    installation = db.get(PluginInstallation, installation_id)
+    if installation and installation.plugin_id == 'lingxi.builtin':
+        from .reminder_delivery import invalidate as invalidate_reminders
+        invalidate_reminders(db, user_id=user.id, reason='提醒能力已停用或撤销；需重新确认投递')
     from .server_documents import invalidate_plugin
     invalidate_plugin(db, user, installation_id)
     from .plugin_oauth import invalidate_installation

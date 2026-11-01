@@ -3951,6 +3951,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/reminder-targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reminder Targets */
+        get: operations["reminder_targets_api_reminder_targets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{identity}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Delivery */
+        get: operations["get_delivery_api_reminders__identity__delivery_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{identity}/delivery/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_reminders__identity__delivery_previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{identity}/delivery/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm */
+        post: operations["confirm_api_reminders__identity__delivery_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/reminders/{identity}/delivery/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Action */
+        post: operations["action_api_reminders__identity__delivery_action_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5101,6 +5186,57 @@ export interface components {
             tool_keys?: string[];
             /** Media Ids */
             media_ids?: string[];
+        };
+        /** DeliveryAction */
+        DeliveryAction: {
+            /** Version */
+            version: number;
+            /**
+             * Acknowledgement
+             * @enum {string}
+             */
+            acknowledgement: "cancel_without_resend" | "checked_no_resend";
+        };
+        /** DeliveryConfirm */
+        DeliveryConfirm: {
+            /** Token */
+            token: string;
+            /**
+             * Acknowledgement
+             * @enum {string}
+             */
+            acknowledgement: "send_this_reminder_to_selected_qq" | "store_this_reminder_only";
+        };
+        /** DeliveryInput */
+        DeliveryInput: {
+            /** Reminder Version */
+            reminder_version: number;
+            /** Delivery Version */
+            delivery_version: number;
+            target: components["schemas"]["ContactTarget"];
+            /**
+             * Wait Hours
+             * @default 1
+             */
+            wait_hours: number;
+        };
+        /** DeliveryPreview */
+        DeliveryPreview: {
+            /** Token */
+            token: string;
+            /** Expires At */
+            expires_at: number;
+            /** Reminder Version */
+            reminder_version: number;
+            /** Title */
+            title: string;
+            /** Content */
+            content: string;
+            /** Due At */
+            due_at: number;
+            /** Timezone */
+            timezone: string;
+            after: components["schemas"]["ReminderDeliveryView"];
         };
         /** DeliveryReview */
         DeliveryReview: {
@@ -6917,6 +7053,37 @@ export interface components {
             status: components["schemas"]["SecurityView"];
             /** Recovery Codes */
             recovery_codes: string[];
+        };
+        /** ReminderDeliveryView */
+        ReminderDeliveryView: {
+            /**
+             * Version
+             * @default 0
+             */
+            version: number;
+            /** Reminder Version */
+            reminder_version: number;
+            target?: components["schemas"]["ContactTarget"];
+            /**
+             * Target Label
+             * @default 仅存站内
+             */
+            target_label: string;
+            /**
+             * Status
+             * @default station_only
+             */
+            status: string;
+            /** Expires At */
+            expires_at?: number | null;
+            /** Sent At */
+            sent_at?: number | null;
+            /** Protocol Message Id */
+            protocol_message_id?: string | null;
+            /** Reviewed At */
+            reviewed_at?: number | null;
+            /** Error */
+            error?: string | null;
         };
         /** ReminderInput */
         ReminderInput: {
@@ -16877,6 +17044,162 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AudioPriceView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reminder_targets_api_reminder_targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetOption"][];
+                };
+            };
+        };
+    };
+    get_delivery_api_reminders__identity__delivery_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderDeliveryView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_reminders__identity__delivery_previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_api_reminders__identity__delivery_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderDeliveryView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    action_api_reminders__identity__delivery_action_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReminderDeliveryView"];
                 };
             };
             /** @description Validation Error */

@@ -10752,6 +10752,214 @@
           }
         }
       }
+    },
+    "/api/reminder-targets": {
+      "get": {
+        "summary": "Reminder Targets",
+        "operationId": "reminder_targets_api_reminder_targets_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TargetOption"
+                  },
+                  "type": "array",
+                  "title": "Response Reminder Targets Api Reminder Targets Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/{identity}/delivery": {
+      "get": {
+        "summary": "Get Delivery",
+        "operationId": "get_delivery_api_reminders__identity__delivery_get",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/{identity}/delivery/previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_reminders__identity__delivery_previews_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/{identity}/delivery/confirm": {
+      "post": {
+        "summary": "Confirm",
+        "operationId": "confirm_api_reminders__identity__delivery_confirm_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/{identity}/delivery/action": {
+      "post": {
+        "summary": "Action",
+        "operationId": "action_api_reminders__identity__delivery_action_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13643,6 +13851,134 @@
           "goal"
         ],
         "title": "DelegationInput"
+      },
+      "DeliveryAction": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "enum": [
+              "cancel_without_resend",
+              "checked_no_resend"
+            ],
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "acknowledgement"
+        ],
+        "title": "DeliveryAction"
+      },
+      "DeliveryConfirm": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "maxLength": 12000,
+            "minLength": 10,
+            "title": "Token"
+          },
+          "acknowledgement": {
+            "type": "string",
+            "enum": [
+              "send_this_reminder_to_selected_qq",
+              "store_this_reminder_only"
+            ],
+            "title": "Acknowledgement"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "token",
+          "acknowledgement"
+        ],
+        "title": "DeliveryConfirm"
+      },
+      "DeliveryInput": {
+        "properties": {
+          "reminder_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reminder Version"
+          },
+          "delivery_version": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Delivery Version"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ContactTarget"
+          },
+          "wait_hours": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Wait Hours",
+            "default": 1
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reminder_version",
+          "delivery_version",
+          "target"
+        ],
+        "title": "DeliveryInput"
+      },
+      "DeliveryPreview": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "reminder_version": {
+            "type": "integer",
+            "title": "Reminder Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "due_at": {
+            "type": "number",
+            "title": "Due At"
+          },
+          "timezone": {
+            "type": "string",
+            "title": "Timezone"
+          },
+          "after": {
+            "$ref": "#/components/schemas/ReminderDeliveryView"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token",
+          "expires_at",
+          "reminder_version",
+          "title",
+          "content",
+          "due_at",
+          "timezone",
+          "after"
+        ],
+        "title": "DeliveryPreview"
       },
       "DeliveryReview": {
         "properties": {
@@ -18182,6 +18518,92 @@
           "recovery_codes"
         ],
         "title": "RecoveryView"
+      },
+      "ReminderDeliveryView": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "default": 0
+          },
+          "reminder_version": {
+            "type": "integer",
+            "title": "Reminder Version"
+          },
+          "target": {
+            "$ref": "#/components/schemas/ContactTarget"
+          },
+          "target_label": {
+            "type": "string",
+            "title": "Target Label",
+            "default": "仅存站内"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "station_only"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "sent_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sent At"
+          },
+          "protocol_message_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Protocol Message Id"
+          },
+          "reviewed_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reminder_version"
+        ],
+        "title": "ReminderDeliveryView"
       },
       "ReminderInput": {
         "properties": {

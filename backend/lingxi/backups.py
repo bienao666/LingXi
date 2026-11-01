@@ -206,6 +206,7 @@ def checkpoint():
     from .models import Memory, Message
     from .proactive import ContactPreference, ProactiveContact
     from . import proactive_completion
+    from . import reminder_delivery
     from .proactive_channels import ProactiveDelivery
     from .plugins import PluginInvocation, PluginRelease, PluginInstallation
     from .channel_speech import checkpoint as speech_checkpoint
@@ -235,6 +236,7 @@ def checkpoint():
             'memories':[view(row) for row in db.scalars(select(Memory))],
             'invalid_messages':[{'id':row.id,'status':row.status} for row in db.scalars(select(Message).where(Message.status.in_(['deleted','redacted','invalidated','superseded'])))],
             'topic_completions':proactive_completion.checkpoint(db),
+            'reminder_deliveries':reminder_delivery.checkpoint(db),
             'contact_preferences':[view(row) for row in db.scalars(select(ContactPreference))],
             'proactive_drafts':[view(row) | {'status':'invalidated','content':'',
                 'version':row.version+1,'error':'恢复隔离：保留计费屏障，不恢复构思正文'} for row in db.scalars(select(ProactiveDraft))],
@@ -277,6 +279,7 @@ def quarantine(data):
     from .plugin_api import PluginConnection
     from .proactive import ContactPreference, ProactiveContact
     from . import proactive_completion
+    from . import reminder_delivery
     from .proactive_channels import ContactRoute, ContactTarget, ProactiveDelivery, stop_delivery
     from .plugin_events import PluginEvent, EventSubscription, invalidate_subscription
     from .plugin_agents import PluginAgentBinding
@@ -304,6 +307,7 @@ def quarantine(data):
     from .model_budgets import validate_checkpoint as validate_budgets, restore as restore_budgets
     validate_budgets(data['model_budgets'], data['users'][0])
     proactive_completion.validate_checkpoint(data.get('topic_completions', []), data['users'][0])
+    reminder_delivery.validate_checkpoint(data.get('reminder_deliveries', []), data['users'][0])
     # Validate all records before changing the journal or database.
     entries=[json.loads(line) for line in data['ledger'].splitlines() if line.strip()]
     with SessionLocal.begin() as db:
@@ -366,6 +370,7 @@ def quarantine(data):
         for values in data.get('proactive_contacts',[]):db.merge(ProactiveContact(**values))
         for values in data.get('proactive_deliveries',[]):db.merge(ProactiveDelivery(**values))
         proactive_completion.restore(db, data.get('topic_completions', []))
+        reminder_delivery.restore(db, data.get('reminder_deliveries', []))
         for values in data['backup_runs']:db.merge(BackupRun(**values))
         db.flush()
         for preference in db.scalars(select(ContactPreference)):preference.enabled=False;preference.version+=1

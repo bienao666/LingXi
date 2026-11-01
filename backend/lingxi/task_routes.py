@@ -242,6 +242,8 @@ def edit_reminder(identity: str, body: ReminderUpdate, ctx: Context):
         raise HTTPException(409, '提醒已变化或已到期，请重新加载；已触发提醒不能改写')
     bounded_due(body.due_at)
     check_conversation(db, body.conversation_id, user)
+    from .reminder_delivery import invalidate
+    invalidate(db, reminder_id=row.id, reason='提醒内容或时间已修改，请重新确认 QQ 投递')
     for key, value in body.model_dump(exclude={'version'}).items():
         setattr(row, key, value)
     row.version, row.updated_at, row.status, row.error = row.version + 1, now(), 'scheduled', None
@@ -254,6 +256,7 @@ def edit_reminder(identity: str, body: ReminderUpdate, ctx: Context):
 @router.post('/api/reminders/{identity}/cancel', response_model=ReminderView)
 def cancel_reminder(identity: str, body: VersionInput, ctx: Context):
     db, user, _ = ctx
+    serial_owner(db, user)
     row = owned(db, Reminder, identity, user, lock=True)
     reminder_view(db, row)
     if row.version != body.version:
@@ -261,6 +264,8 @@ def cancel_reminder(identity: str, body: VersionInput, ctx: Context):
     if row.status != 'scheduled':
         raise HTTPException(409, '提醒已触发或已取消，不能撤回已发生的记录')
     row.status, row.version, row.updated_at = 'cancelled', row.version + 1, now()
+    from .reminder_delivery import invalidate
+    invalidate(db, reminder_id=row.id, reason='用户取消提醒')
     audit(db, user, 'reminder_cancel', row.id)
     return reminder_view(db, row)
 

@@ -256,6 +256,8 @@ def invalidate_channel_runs(db, channel_id, binding_id=None):
     invalidate_tasks(db, channel_id=channel_id, binding_id=binding_id)
     from .proactive_channels import invalidate
     invalidate(db,channel_id=channel_id,binding_id=binding_id,reason='QQ 平台或身份授权已修改或撤销')
+    from .reminder_delivery import invalidate as invalidate_reminders
+    invalidate_reminders(db, channel_id=channel_id, binding_id=binding_id)
     from .memory import invalidate_run
     for run in db.scalars(select(ChatRun).where(ChatRun.status.in_(['queued', 'running']))):
         scope = run.config.get('channel', {})

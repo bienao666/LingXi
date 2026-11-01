@@ -194,7 +194,14 @@ def fail_task(db, job, error, retry):
 def fire_reminder(job):
     with SessionLocal.begin() as db:
         locked_job(db, job)
-        row = db.scalar(select(Reminder).where(Reminder.id == job.payload['reminder_id']).with_for_update())
+        initial = db.get(Reminder, job.payload['reminder_id'])
+        if not initial: return
+        owner = db.get(User, initial.user_id)
+        if not owner or owner.workspace_id != initial.workspace_id: return
+        from .plugins import owner_lock
+        owner_lock(db, owner)
+        row = db.scalar(select(Reminder).where(Reminder.id == job.payload['reminder_id'])
+                        .with_for_update().execution_options(populate_existing=True))
         if not row or row.version != job.payload['version'] or row.status != 'scheduled':
             return
         if row.due_at > now():
@@ -218,6 +225,8 @@ def fire_reminder(job):
             db.add(ReminderReceipt(workspace_id=row.workspace_id, user_id=row.user_id,
                 reminder_id=row.id, reminder_version=row.version, message_id=message_id))
         row.status, row.updated_at, row.error = 'fired', now(), None
+        from .reminder_delivery import enqueue
+        enqueue(db, row)
 
 
 def fail_reminder(db, job, error):
