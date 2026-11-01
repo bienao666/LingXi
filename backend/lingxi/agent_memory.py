@@ -119,7 +119,8 @@ def invalidate_derived(db, kind, identity):
         if matches(memory.provenance):
             MemoryService().forget(db,memory)
         elif any(matches(revision.get('provenance',{})) for revision in memory.revisions):
-            memory.revisions=[{**r,'content':'','provenance':{}} if matches(r.get('provenance',{})) else r for r in memory.revisions]
+            memory.revisions=[{**r,'content':'','provenance':{},'subject':'unknown',
+                'event_at':None,'valid_from':None,'valid_to':None} if matches(r.get('provenance',{})) else r for r in memory.revisions]
 
 
 def sources_for(db, candidate, user):

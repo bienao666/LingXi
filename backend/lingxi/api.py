@@ -653,7 +653,16 @@ def correct_memory(memory_id: str, body: MemoryInput, ctx: Context):
     memory = owned(db, Memory, memory_id, user, lock=True)
     if memory.status == 'deleted' or body.version != memory.version:
         raise HTTPException(409, '记忆已变化或删除，请刷新')
-    MemoryService().correct(db, memory, body.model_dump(exclude={'version'}))
+    # PATCH preserves omitted metadata, including legacy time strings. New or
+    # explicitly changed values are validated, together with the retained bound.
+    values = body.model_dump(exclude={'version'}, exclude_unset=True)
+    if any(key in values for key in ('valid_from', 'valid_to')):
+        from .memory_time import check_period
+        try:
+            check_period({key: values.get(key, getattr(memory, key)) for key in ('valid_from', 'valid_to')})
+        except ValueError:
+            raise HTTPException(422, '生效／结束时间无效或顺序冲突，请同时核对两个时间；留空可清除') from None
+    MemoryService().correct(db, memory, values)
     audit(db, user, 'memory_correct', memory_id)
     return view(memory)
 
@@ -784,7 +793,7 @@ def download_export(operation_id: str, ctx: Context):
     rows = [view(m, ('workspace_id', 'user_id')) for m in db.scalars(select(Memory).where(Memory.user_id == user.id, Memory.workspace_id == user.workspace_id, Memory.status != 'deleted'))]
     if operation.result['format'] == 'json':
         return downloadable(json.dumps(rows, ensure_ascii=False, indent=2), 'lingxi-memories.json', 'application/json')
-    result = '# 灵犀长期记忆\n\n'+'\n\n'.join(f"## {m['category']} · v{m['version']}\n\n{m['content']}\n\n来源：{', '.join(m['source_ids'])}\n状态：{m['status']} / {m['index_status']}" for m in rows)
+    result = '# 灵犀长期记忆\n\n'+'\n\n'.join(f"## {m['category']} · v{m['version']}\n\n{m['content']}\n\n主体：{m['subject']}\n事件时间：{m['event_at'] or '未说明'}\n生效时间：{m['valid_from'] or '未说明'}\n结束时间：{m['valid_to'] or '未说明'}\n来源：{', '.join(m['source_ids'])}\n状态：{m['status']} / {m['index_status']}" for m in rows)
     return downloadable(result, 'lingxi-memories.md', 'text/markdown')
 
 

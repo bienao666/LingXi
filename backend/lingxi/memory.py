@@ -137,6 +137,8 @@ class MemoryService:
         old_doc = doc_id(memory)
         memory.revisions = memory.revisions + [{'version': memory.version, 'content': memory.content,
                             'source_ids': memory.source_ids, 'provenance':memory.provenance,
+                            'subject': memory.subject, 'category': memory.category,
+                            'event_at': memory.event_at, 'valid_from': memory.valid_from, 'valid_to': memory.valid_to,
                             'recorded_at': now(), 'status': 'superseded'}]
         memory.version += 1
         for key, value in values.items():
@@ -167,6 +169,8 @@ class MemoryService:
         memory.status = 'deleted'
         memory.index_status = 'deleting'
         memory.content = ''
+        memory.subject = 'unknown'
+        memory.event_at = memory.valid_from = memory.valid_to = None
         documents = [f'{memory.id}-v{v}' for v in range(1, memory.version + 1)]
         memory.revisions = []
         memory.provenance = {}

@@ -101,3 +101,42 @@ test('confirmed candidate mutation refreshes the current page and preserves revi
   await click('确认保存');assert.ok(calls.some(([url,method])=>url==='/api/memory-candidates/c1/actions'&&method==='POST'));
   assert.match(document.body.textContent,/已确认/);assert.equal(buttons('确认保存').length,0);
 });
+
+async function setInput(selector,value){
+  await act(async()=>{const input=document.querySelector(selector);assert.ok(input,selector);Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set.call(input,value);input.dispatchEvent(new window.Event('input',{bubbles:true}));});
+}
+async function submitEditor(){await act(async()=>document.querySelector('dialog form').dispatchEvent(new window.Event('submit',{bubbles:true,cancelable:true})));}
+
+test('memory editing preserves untouched legacy times and sends explicit clear only for edited fields',async t=>{
+  const calls=[];
+  await mount(t,async(url,options)=>{if(options.method==='PATCH'){calls.push(JSON.parse(options.body));return response({});}return response(page([{...memory('temporal'),event_at:'去年春天',valid_from:'2024-01-01',valid_to:'2024-12-31'}]));});
+  assert.match(document.body.textContent,/事件时间：去年春天/);
+  await click('纠正记忆');
+  assert.equal(document.querySelector('[name=event_at]').value,'去年春天');
+  assert.equal(document.querySelector('[name=valid_to]').value,'2024-12-31');
+  await setInput('[name=valid_to]','');await submitEditor();
+  assert.equal(calls.length,1);assert.equal(calls[0].valid_to,null);
+  assert.equal(Object.hasOwn(calls[0],'event_at'),false);assert.equal(Object.hasOwn(calls[0],'valid_from'),false);
+  assert.equal(calls[0].version,1);assert.equal(document.querySelector('dialog'),null);
+});
+
+test('new memory submits explicit dates and empty dates as unknown with a bounded pending state',async t=>{
+  let finish;const calls=[];
+  await mount(t,async(url,options)=>{if(options.method==='POST'){calls.push(JSON.parse(options.body));return await new Promise(resolve=>finish=resolve);}return response(page([]));});
+  await click('新增记忆');document.querySelector('textarea[name=content]').value='真实用户手动事实';await setInput('[name=event_at]','2026-11-01');
+  await submitEditor();await submitEditor();
+  assert.equal(calls.length,1);assert.equal(calls[0].event_at,'2026-11-01');assert.equal(calls[0].valid_from,null);
+  assert.equal(buttons('正在保存')[0].disabled,true);assert.equal(document.querySelector('dialog button[aria-label=关闭新增记忆]').disabled,true);
+  assert.match(document.body.textContent,/不会自动删除或覆盖/);
+  await act(async()=>finish(response({})));assert.equal(document.querySelector('dialog'),null);
+});
+
+test('time validation failure stays in editor and can be corrected without losing input',async t=>{
+  let attempts=0;
+  await mount(t,async(url,options)=>options.method==='POST'?(++attempts===1?response({detail:[]},422):response({})):response(page([])));
+  await click('新增记忆');document.querySelector('textarea[name=content]').value='真实用户手动事实';await setInput('[name=valid_from]','2026-02-30');await submitEditor();
+  assert.ok(document.querySelector('dialog'));assert.match(document.querySelector('dialog [role=alert]').textContent,/时间格式、日期和先后顺序/);
+  assert.equal(document.activeElement,document.querySelector('dialog [role=alert]'));
+  assert.equal(document.querySelector('[name=valid_from]').value,'2026-02-30');
+  await setInput('[name=valid_from]','2026-02-28');await submitEditor();assert.equal(document.querySelector('dialog'),null);
+});

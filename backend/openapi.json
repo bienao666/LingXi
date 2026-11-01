@@ -15809,7 +15809,8 @@
                 "type": "null"
               }
             ],
-            "title": "Event At"
+            "title": "Event At",
+            "description": "事件发生日期或带时区的 ISO 8601 时间；null 表示未说明"
           },
           "valid_from": {
             "anyOf": [
@@ -15821,7 +15822,8 @@
                 "type": "null"
               }
             ],
-            "title": "Valid From"
+            "title": "Valid From",
+            "description": "事实适用期间起点；不作为保留或授权开关"
           },
           "valid_to": {
             "anyOf": [
@@ -15833,7 +15835,8 @@
                 "type": "null"
               }
             ],
-            "title": "Valid To"
+            "title": "Valid To",
+            "description": "事实适用期间终点；不是自动删除时间"
           },
           "version": {
             "type": "integer",
@@ -15953,7 +15956,8 @@
                 "type": "null"
               }
             ],
-            "title": "Event At"
+            "title": "Event At",
+            "description": "事件发生日期或带时区的 ISO 8601 时间；null 表示未说明"
           },
           "valid_from": {
             "anyOf": [
@@ -15965,7 +15969,8 @@
                 "type": "null"
               }
             ],
-            "title": "Valid From"
+            "title": "Valid From",
+            "description": "事实适用期间起点；不作为保留或授权开关"
           },
           "valid_to": {
             "anyOf": [
@@ -15977,7 +15982,8 @@
                 "type": "null"
               }
             ],
-            "title": "Valid To"
+            "title": "Valid To",
+            "description": "事实适用期间终点；不是自动删除时间"
           },
           "version": {
             "type": "integer",

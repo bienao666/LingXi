@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Any
 
 Purpose = Literal['chat', 'extraction', 'embedding', 'rerank']
@@ -43,14 +43,29 @@ class ChatInput(BaseModel):
     content: str = Field(min_length=1, max_length=12000)
 
 
-class MemoryInput(BaseModel):
+class MemoryFields(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
     category: Category = 'preferences'
     subject: str = Field(default='self', min_length=1, max_length=150)
-    event_at: str | None = Field(default=None, max_length=100)
-    valid_from: str | None = Field(default=None, max_length=100)
-    valid_to: str | None = Field(default=None, max_length=100)
+    event_at: str | None = Field(default=None, max_length=100, description='事件发生日期或带时区的 ISO 8601 时间；null 表示未说明')
+    valid_from: str | None = Field(default=None, max_length=100, description='事实适用期间起点；不作为保留或授权开关')
+    valid_to: str | None = Field(default=None, max_length=100, description='事实适用期间终点；不是自动删除时间')
     version: int = Field(default=1, ge=1)
+
+
+class MemoryInput(MemoryFields):
+    @field_validator('event_at', 'valid_from', 'valid_to')
+    @classmethod
+    def temporal_value(cls, value):
+        from .memory_time import instant
+        instant(value)
+        return value
+
+    @model_validator(mode='after')
+    def temporal_period(self):
+        from .memory_time import check_period
+        check_period(self.model_dump())
+        return self
 
 
 class CandidateAction(BaseModel):
@@ -117,7 +132,7 @@ class ChatRunView(BaseModel):
     next_seq: int
 
 
-class MemoryView(MemoryInput):
+class MemoryView(MemoryFields):
     id: str
     status: str
     index_status: str

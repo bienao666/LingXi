@@ -5921,11 +5921,20 @@ export interface components {
              * @default self
              */
             subject: string;
-            /** Event At */
+            /**
+             * Event At
+             * @description 事件发生日期或带时区的 ISO 8601 时间；null 表示未说明
+             */
             event_at?: string | null;
-            /** Valid From */
+            /**
+             * Valid From
+             * @description 事实适用期间起点；不作为保留或授权开关
+             */
             valid_from?: string | null;
-            /** Valid To */
+            /**
+             * Valid To
+             * @description 事实适用期间终点；不是自动删除时间
+             */
             valid_to?: string | null;
             /**
              * Version
@@ -5966,11 +5975,20 @@ export interface components {
              * @default self
              */
             subject: string;
-            /** Event At */
+            /**
+             * Event At
+             * @description 事件发生日期或带时区的 ISO 8601 时间；null 表示未说明
+             */
             event_at?: string | null;
-            /** Valid From */
+            /**
+             * Valid From
+             * @description 事实适用期间起点；不作为保留或授权开关
+             */
             valid_from?: string | null;
-            /** Valid To */
+            /**
+             * Valid To
+             * @description 事实适用期间终点；不是自动删除时间
+             */
             valid_to?: string | null;
             /**
              * Version

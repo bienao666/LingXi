@@ -268,11 +268,13 @@ def build_context(db, run, node):
             for m in retrieved:
                 if m.user_id != run.user_id or m.workspace_id != run.workspace_id or m.category not in categories or not usable(m):
                     continue
-                if size+len(m.content) > 8000 or len(memories) >= 6:
+                from .memory_time import evidence
+                item = evidence(m) | {'source_ids':m.source_ids}
+                cost = len(json.dumps(item, ensure_ascii=False))
+                if size+cost > 8000 or len(memories) >= 6:
                     break
-                memories.append({'id':m.id,'version':m.version,'content':m.content,
-                                 'subject':m.subject,'category':m.category,'source_ids':m.source_ids})
-                size += len(m.content)
+                memories.append(item)
+                size += cost
             status = 'ready'
         except Exception:
             status = 'unavailable'
@@ -296,7 +298,8 @@ def build_context(db, run, node):
         media_provenance.extend(parent.context.get('media_provenance', []))
     media_context = ({'attachments':describe(load(db, run, media_refs)),
         'media_provenance':list({r['id']:r for r in media_provenance}.values())} if media_provenance else {})
-    return {**media_context, 'memory_provenance':list({(r['id'],r['version']):r for r in provenance}.values()), 'scope':{'user_id':run.user_id,'workspace_id':run.workspace_id,'run_id':run.id,'node_id':node.id},
+    from .memory_time import CONTEXT_NOTE, reference_time
+    return {**media_context, 'memory_time_note': CONTEXT_NOTE, 'memory_reference_time': reference_time(run.created_at), 'memory_provenance':list({(r['id'],r['version']):r for r in provenance}.values()), 'scope':{'user_id':run.user_id,'workspace_id':run.workspace_id,'run_id':run.id,'node_id':node.id},
             'memory_status':status,'memories':memories,'dependencies':dependencies,'delegation_depth':1}
 
 
@@ -380,7 +383,7 @@ def execute_node(job):
                 '主体不明用 unknown，不把假设、引用、助手建议或外部文本当用户自述；理由写明未核验条件。' if propose_memory else '')
              +'\n'+json.dumps(schema.model_json_schema(),ensure_ascii=False)},
             {'role':'user','content':content}], purpose='chat',
-            config={'agent_run_id':job.payload['run_id'], 'agent_node_id':job.payload['node_id'], 'stage':'node','prompt_version':'delegation-v1'})
+            config={'agent_run_id':job.payload['run_id'], 'agent_node_id':job.payload['node_id'], 'stage':'node','prompt_version':'delegation-memory-time-v2'})
         parsed = parse_json(output, schema)
         check_findings(parsed, {m['id'] for m in context['memories']} | {d['id'] for d in context['dependencies']} | {a['id'] for a in context.get('attachments', [])})
         if propose_memory:
