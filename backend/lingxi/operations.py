@@ -12,6 +12,7 @@ from .config import settings
 from .db import Base, SessionLocal, now
 from .models import Audit, ChatRun, Entity, Job, ModelCall, User
 from .web import Context, audit, owned
+from .trace_graph import TraceGraph, trace_graph
 
 router=APIRouter()
 
@@ -162,6 +163,7 @@ class TraceView(BaseModel):
     truncated:bool
     versions:dict[str,Any]
     note:str
+    graph:TraceGraph
 
 
 class DiagnosticView(BaseModel):
@@ -353,6 +355,7 @@ def trace_detail(kind:Literal['chat','task','agent','plugin'],identity:str,ctx:C
     return {'id':identity,'kind':kind,'created_at':row.created_at,'status':row.status,
         'calls':[call_view(c) for c in calls[:200]],'events':events[:200],'truncated':len(calls)>200 or len(events)>200,
         'versions':{k:v for k,v in row.config.items() if k in SAFE_CONFIG and type(v) in (str,int,float,type(None))},
+        'graph':trace_graph(db,user,kind,row),
         'note':'仅展示实际记录的阶段、配置版本与模型调用；不含提示词正文、用户内容或私有思维。历史任务缺少关联时不推测补全。'}
 
 

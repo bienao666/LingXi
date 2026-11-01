@@ -18856,6 +18856,134 @@
         ],
         "title": "TopicView"
       },
+      "TraceEdge": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "target": {
+            "type": "string",
+            "title": "Target"
+          },
+          "relation": {
+            "type": "string",
+            "title": "Relation"
+          },
+          "recorded_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "target",
+          "relation"
+        ],
+        "title": "TraceEdge"
+      },
+      "TraceGraph": {
+        "properties": {
+          "root": {
+            "type": "string",
+            "title": "Root"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/TraceNode"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEdge"
+            },
+            "type": "array",
+            "title": "Edges"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "root",
+          "nodes",
+          "edges",
+          "truncated",
+          "note"
+        ],
+        "title": "TraceGraph"
+      },
+      "TraceNode": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          },
+          "sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sequence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "kind",
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "TraceNode"
+      },
       "TraceView": {
         "properties": {
           "id": {
@@ -18902,6 +19030,9 @@
           "note": {
             "type": "string",
             "title": "Note"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/TraceGraph"
           }
         },
         "type": "object",
@@ -18914,7 +19045,8 @@
           "events",
           "truncated",
           "versions",
-          "note"
+          "note",
+          "graph"
         ],
         "title": "TraceView"
       },

@@ -48,6 +48,40 @@ test('trace details only render supplied metadata and absent accounting is expli
  await click('查看追踪');assert.match(document.querySelector('dialog').textContent,/未记录独立时刻/);assert.match(document.querySelector('dialog').textContent,/不代表没有费用/);assert.match(document.querySelector('dialog').textContent,/v1/);
 });
 
+const graph={root:'chat:run',nodes:[
+ {key:'chat:run',kind:'chat',id:'run',status:'completed',created_at:1,version:null,sequence:null},
+ {key:'memory:fact',kind:'memory',id:'fact',status:'deleted',created_at:1,version:3,sequence:null},
+ {key:'plugin:tool',kind:'plugin',id:'tool',status:'failed',created_at:1,version:1,sequence:null}
+],edges:[{source:'chat:run',target:'memory:fact',relation:'used_memory',recorded_version:1},
+ {source:'plugin:tool',target:'memory:fact',relation:'used_memory',recorded_version:2}],truncated:false,note:'真实持久关系，不含正文'};
+const traceWithGraph=g=>({id:'run',kind:'chat',status:'completed',versions:{},events:[],calls:[],note:'阶段元数据',truncated:false,graph:g});
+const traceListing={items:[{id:'chat:run',entity_id:'run',kind:'chat',status:'completed',created_at:1}],next_cursor:null};
+
+test('relationship view navigates real nodes and distinguishes recorded and current memory versions',async t=>{
+ await mount(t,OperationsPages,{page:'traces'},u=>response(u.includes('/chat/')?traceWithGraph(graph):traceListing));
+ await click('查看追踪');const section=document.querySelector('section[aria-label="执行关系"]');
+ assert.match(section.textContent,/当前显示 1 条/);assert.match(section.textContent,/当时引用版本：1/);
+ assert.ok(!section.textContent.includes('当时引用版本：2'));
+ await click('#2 长期记忆');assert.match(section.textContent,/当前版本：3/);assert.match(section.textContent,/当前状态：已删除/);
+ assert.match(section.textContent,/当前显示 2 条/);assert.match(section.textContent,/不代表当前仍然有效/);
+ const select=section.querySelector('select');await act(async()=>{select.value='all';select.dispatchEvent(new window.Event('change',{bubbles:true}));});
+ assert.equal(section.querySelector('article'),null);assert.match(section.textContent,/当前显示 2 条/);
+ assert.ok(!section.textContent.includes('undefined'));
+});
+
+test('relationship limits and missing associations remain explicit',async t=>{
+ await mount(t,OperationsPages,{page:'traces'},u=>response(u.includes('/chat/')?traceWithGraph({...graph,edges:[],truncated:true}):traceListing));
+ await click('查看追踪');assert.match(document.querySelector('dialog').textContent,/暂无已记录的直接关联/);
+ assert.match(document.querySelector('dialog').textContent,/当前关系不完整/);
+});
+
+test('failed trace lookup can retry without closing the dialog or posting mutations',async t=>{
+ let tries=0;const methods=[];
+ await mount(t,OperationsPages,{page:'traces'},(u,o)=>{methods.push(o.method);if(!u.includes('/chat/'))return response(traceListing);return ++tries===1?response({detail:'暂时无法读取'},503):response(traceWithGraph(graph));});
+ await click('查看追踪');assert.match(document.querySelector('dialog').textContent,/暂时无法读取/);
+ await click('重试加载');assert.match(document.querySelector('dialog').textContent,/执行关系/);assert.equal(tries,2);assert.ok(methods.every(v=>v==='GET'));
+});
+
 test('diagnostics require explicit preview approval and exact server digest',async t=>{
  const calls=[];await mount(t,OperationsPages,{page:'diagnostics'},(u,o)=>{calls.push({u,o});return response(u.endsWith('/preview')?bundle:u.endsWith('/confirm')?{...bundle,status:'confirmed'}:[]);});
  await submit();const dialog=document.querySelector('dialog');assert.match(dialog.textContent,/lingxi-diagnostics-v1/);

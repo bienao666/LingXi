@@ -7144,6 +7144,47 @@ export interface components {
             created_at: number;
             generation?: components["schemas"]["DraftView"] | null;
         };
+        /** TraceEdge */
+        TraceEdge: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+            /** Relation */
+            relation: string;
+            /** Recorded Version */
+            recorded_version?: number | null;
+        };
+        /** TraceGraph */
+        TraceGraph: {
+            /** Root */
+            root: string;
+            /** Nodes */
+            nodes: components["schemas"]["TraceNode"][];
+            /** Edges */
+            edges: components["schemas"]["TraceEdge"][];
+            /** Truncated */
+            truncated: boolean;
+            /** Note */
+            note: string;
+        };
+        /** TraceNode */
+        TraceNode: {
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Created At */
+            created_at: number;
+            /** Version */
+            version?: number | null;
+            /** Sequence */
+            sequence?: number | null;
+        };
         /** TraceView */
         TraceView: {
             /** Id */
@@ -7170,6 +7211,7 @@ export interface components {
             };
             /** Note */
             note: string;
+            graph: components["schemas"]["TraceGraph"];
         };
         /** TranscriptView */
         TranscriptView: {
