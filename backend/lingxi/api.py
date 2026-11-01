@@ -27,6 +27,7 @@ from .security import authenticate, encrypt, hasher, safe_error, token_hash, val
 from .media import (MediaChatInput, MediaMessageView, attach_message, media_for_message,
                     validate_attachments)
 from .auth_totp import LoginInput, lock_owner, verify_login_factor
+from .memory_review import CandidateReviewInput, CandidateReviewPreview, DialogueCandidateSource
 
 
 @asynccontextmanager
@@ -698,16 +699,27 @@ def candidates(ctx: Context):
         Candidate.workspace_id==user.workspace_id,Candidate.status != 'invalidated').order_by(Candidate.created_at.desc()).limit(200))]
 
 
-@app.get('/api/memory-candidates/{candidate_id}/sources')
-def candidate_sources(candidate_id: str, ctx: Context):
+@app.get('/api/memory-candidates/{candidate_id}/sources', response_model=DialogueCandidateSource | dict)
+def candidate_sources(candidate_id: str, ctx: Context, q: str = Query('', max_length=200)):
     db,user,_=ctx
+    candidate = owned(db,Candidate,candidate_id,user)
+    if candidate.origin.get('kind') != 'agent':
+        from .memory_review import sources
+        return sources(db,candidate,user,q)
     from .agent_memory import sources_for
-    return sources_for(db,owned(db,Candidate,candidate_id,user),user)
+    return sources_for(db,candidate,user)
+
+
+@app.post('/api/memory-candidates/{candidate_id}/review', response_model=CandidateReviewPreview)
+def review_dialogue_candidate(candidate_id: str, body: CandidateReviewInput, ctx: Context):
+    db,user,session=ctx
+    from .memory_review import preview
+    return preview(db,owned(db,Candidate,candidate_id,user),user,session,body)
 
 
 @app.post('/api/memory-candidates/{candidate_id}/actions', response_model=CandidateView)
 def candidate_action(candidate_id: str, body: CandidateAction, ctx: Context):
-    db, user, _ = ctx
+    db, user, session = ctx
     candidate = owned(db, Candidate, candidate_id, user)
     if candidate.origin.get('kind')=='agent':
         if candidate.status!='pending':
@@ -731,6 +743,12 @@ def candidate_action(candidate_id: str, body: CandidateAction, ctx: Context):
             candidate.status='rejected'
         audit(db,user,'candidate_'+body.action,candidate_id)
         return view(candidate)
+    if body.action == 'confirm':
+        from .memory_review import confirm
+        result=confirm(db,candidate,user,session,body.review_token)
+        if result.status == 'confirmed':
+            audit(db,user,'candidate_confirm',candidate_id)
+        return view(result)
     candidate = owned(db, Candidate, candidate_id, user, lock=True)
     source = db.get(Message, candidate.source_id)
     conversation = db.get(Conversation, source.conversation_id) if source else None
@@ -738,12 +756,7 @@ def candidate_action(candidate_id: str, body: CandidateAction, ctx: Context):
         raise HTTPException(409, '候选来源已失效')
     if candidate.status != 'pending':
         return view(candidate)
-    if body.action == 'confirm':
-        memory = MemoryService().remember(db, user.id, candidate.content, candidate.category,
-                                          [candidate.source_id], subject=candidate.subject, evidence='explicit')
-        candidate.memory_id, candidate.status = memory.id, 'confirmed'
-    else:
-        candidate.status = 'rejected'
+    candidate.status = 'rejected'
     audit(db, user, 'candidate_'+body.action, candidate_id)
     return view(candidate)
 

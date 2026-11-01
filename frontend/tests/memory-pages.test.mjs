@@ -17,8 +17,11 @@ const window=new Window({url:'http://localhost/#/memory/list'});
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,IS_REACT_ACT_ENVIRONMENT:true});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts');
+const ui=compile('../src/ui.tsx',{'./api':api});
 const paging=compile('../src/MemoryPaging.tsx',{'./api':api});
-const {MemoryPage}=await import(compile('../src/pages.tsx',{
+const times=compile('../src/MemoryTimes.tsx');
+const review=compile('../src/MemoryReview.tsx',{'./api':api,'./ui':ui,'./MemoryTimes':times});
+const {MemoryPage}=await import(compile('../src/pages.tsx',{'./MemoryTimes':times,'./MemoryReview':review,
   './api':api,'./MemoryPaging':paging,'react-markdown':pathToFileURL(require.resolve('react-markdown')).href,
   './MediaPages':stub(['AttachmentList','ChatAttachments','VisionControl','MediaPreview']),
   './VoicePages':stub(['VoicePanel']),'./AgentTools':stub(['AgentToolScope']),
@@ -29,7 +32,7 @@ const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 const memory=(id,content=id)=>({id,content,category:'preferences',subject:'self',status:'active',index_status:'ready',version:1,created_at:1793400000,revisions:[],source_ids:[]});
 const page=(items=[],next_cursor=null)=>({items,next_cursor,as_of:1793400010});
 async function mount(t,fetcher,initialPage='list'){
-  document.body.innerHTML='<div id="root"></div>';globalThis.fetch=fetcher;
+  document.body.innerHTML='<main id="main-content" tabindex="-1"><div id="root"></div></main>';globalThis.fetch=fetcher;
   const root=createRoot(document.getElementById('root'));
   const render=async page=>act(async()=>root.render(createElement(MemoryPage,{page,session:{auto_memory:false},onSession:()=>{}})));
   t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});
@@ -96,10 +99,59 @@ test('search changes hide old facts immediately and reset the cursor',async t=>{
 
 test('confirmed candidate mutation refreshes the current page and preserves review controls',async t=>{
   const calls=[];let confirmed=false;
-  const candidate={id:'c1',content:'用户原文',subject:'self',category:'profile',reason:'核对',source_id:'source',status:'pending'};
-  await mount(t,async(url,options)=>{calls.push([url,options.method]);if(options.method==='POST'){confirmed=true;return response({...candidate,status:'confirmed'});}return response(page([{...candidate,status:confirmed?'confirmed':'pending'}]));},'candidates');
-  await click('确认保存');assert.ok(calls.some(([url,method])=>url==='/api/memory-candidates/c1/actions'&&method==='POST'));
+  const candidate={id:'c1',content:'用户原文',subject:'self',category:'profile',reason:'核对',source_id:'source',status:'pending',origin:{}};
+  await mount(t,async(url,options)=>{calls.push([url,options.method]);
+    if(url.includes('/sources'))return response({candidate,source:{content:'这是用户原文',created_at:1},related:[],related_count:0,matched_count:0,truncated:false,warning:'请核对'});
+    if(url.endsWith('/review'))return response({before:null,after:candidate,resolution:'keep',token:'review-token',expires_at:2000000000,warning:'不会覆盖'});
+    if(url.endsWith('/actions')){confirmed=true;assert.equal(JSON.parse(options.body).review_token,'review-token');return response({...candidate,status:'confirmed'});}
+    return response(page([{...candidate,status:confirmed?'confirmed':'pending'}]));},'candidates');
+  assert.equal(buttons('确认保存').length,0);await click('核对保存');await click('预览保存');
+  assert.equal(buttons('确认保存')[0].disabled,true);
+  await act(async()=>document.querySelector('dialog input[type=checkbox]').click());await click('确认保存');assert.ok(calls.some(([url,method])=>url==='/api/memory-candidates/c1/actions'&&method==='POST'));
   assert.match(document.body.textContent,/已确认/);assert.equal(buttons('确认保存').length,0);
+  assert.equal(document.activeElement.id,'main-content');
+});
+
+test('candidate review compares a chosen old item but never inherits its dates',async t=>{
+  const prior={...memory('old-fact'),source_ids:[],event_at:'2020-01-01',version:4};
+  const candidate={id:'c1',content:'新的用户原文',subject:'self',category:'preferences',reason:'可能相关',source_id:'new-source',status:'pending',origin:{}};
+  let submitted;
+  await mount(t,async(url,options)=>{
+    if(url.includes('/sources'))return response({candidate,source:{content:'新的用户原文，请记住',created_at:1},related:[prior],related_count:1,matched_count:1,truncated:false,warning:'同类不代表矛盾'});
+    if(url.endsWith('/review')){submitted=JSON.parse(options.body);return response({before:prior,after:{...candidate,event_at:null},resolution:'replace',token:'token',expires_at:2000000000,warning:'旧版本保留'});}
+    return response(page([candidate]));},'candidates');
+  await click('核对保存');assert.match(document.body.textContent,/不代表矛盾/);
+  await act(async()=>document.querySelectorAll('dialog input[type=radio]')[1].click());await click('预览保存');
+  assert.equal(document.activeElement.textContent,'纠正旧项');
+  assert.equal(submitted.resolution,'replace');assert.equal(submitted.target_version,4);assert.equal(submitted.event_at,null);
+  assert.match(document.querySelector('[aria-label="保存预览"]').textContent,/2020-01-01/);assert.match(document.querySelector('[aria-label="保存预览"]').textContent,/时间未说明/);
+  await click('返回修改');assert.equal(buttons('确认保存').length,0);assert.equal(document.querySelector('[name=event_at]').value,'');
+  assert.equal(document.activeElement.textContent,'待存内容');
+});
+
+test('stale preview stops confirmation, focuses error and requires source reread',async t=>{
+  const candidate={id:'c1',content:'用户原文',subject:'self',category:'profile',reason:'核对',source_id:'source',status:'pending',origin:{}};
+  await mount(t,async(url,options)=>{
+    if(url.includes('/sources'))return response({candidate,source:{content:'用户原文',created_at:1},related:[],related_count:0,matched_count:0,warning:'核对'});
+    if(url.endsWith('/review'))return response({before:null,after:candidate,resolution:'keep',token:'token',expires_at:2000000000,warning:'核对'});
+    if(url.endsWith('/actions'))return response({detail:'原文已变化'},409);
+    return response(page([candidate]));},'candidates');
+  await click('核对保存');await click('预览保存');await act(async()=>document.querySelector('dialog input[type=checkbox]').click());await click('确认保存');
+  assert.match(document.querySelector('dialog [role=alert]').textContent,/原文已变化/);assert.equal(document.activeElement,document.querySelector('dialog [role=alert]'));
+  assert.equal(buttons('确认保存').length,0);await click('重读来源');assert.equal(buttons('预览保存').length,1);
+});
+
+test('save response lost retries the same preview without duplicate submissions',async t=>{
+  const candidate={id:'c1',content:'用户原文',subject:'self',category:'profile',reason:'核对',source_id:'source',status:'pending',origin:{}};
+  let finish,attempts=0;const tokens=[];
+  await mount(t,async(url,options)=>{
+    if(url.includes('/sources'))return response({candidate,source:{content:'用户原文',created_at:1},related:[],related_count:0,matched_count:0,warning:'核对'});
+    if(url.endsWith('/review'))return response({before:null,after:candidate,resolution:'keep',token:'fixed-token',expires_at:2000000000,warning:'核对'});
+    if(url.endsWith('/actions')){tokens.push(JSON.parse(options.body).review_token);attempts++;if(attempts===1)return await new Promise(resolve=>finish=resolve);return response({...candidate,status:'confirmed'});}
+    return response(page([candidate]));},'candidates');
+  await click('核对保存');await click('预览保存');await act(async()=>document.querySelector('dialog input[type=checkbox]').click());await click('确认保存');
+  assert.equal(buttons('正在保存')[0].disabled,true);assert.equal(document.querySelector('dialog button[aria-label=关闭核对记忆]').disabled,true);
+  await act(async()=>finish(response({detail:'暂时无法连接'},503)));await click('确认保存');assert.deepEqual(tokens,['fixed-token','fixed-token']);
 });
 
 async function setInput(selector,value){

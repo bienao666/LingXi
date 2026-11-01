@@ -12,7 +12,9 @@ const window=new Window({url:'http://localhost/#/chat/conversation?c=conversatio
 Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTMLElement,FormData:window.FormData,location:window.location,IS_REACT_ACT_ENVIRONMENT:true});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api}),setup=compile('../src/ModelSetup.tsx');
-const {ChatPage,ChatActionCard,MessageFork,HistoryBrowser,ContextEvidence,AgentCandidateReview}=await import(compile('../src/pages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),
+const times=compile('../src/MemoryTimes.tsx');
+const review=compile('../src/MemoryReview.tsx',{'./api':api,'./ui':ui,'./MemoryTimes':times});
+const {ChatPage,ChatActionCard,MessageFork,HistoryBrowser,ContextEvidence,AgentCandidateReview}=await import(compile('../src/pages.tsx',{'./MemoryTimes':times,'./MemoryReview':review,'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),
  './api':api,'./ModelSetup':setup,'./AddModelForm':compile('../src/AddModelForm.tsx',{'./api':api,'./ModelSetup':setup}),
  './ModelCalls':compile('../src/ModelCalls.tsx',{'./api':api,'./ui':ui}),'./ConversationPersona':compile('../src/ConversationPersona.tsx',{'./api':api,'./ui':ui}),
  './VoicePages':compile('../src/VoicePages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':api,'./ui':ui}),'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),'./api':api,'./ui':ui,'./voiceAudio':compile('../src/voiceAudio.ts')}),

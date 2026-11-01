@@ -31,7 +31,9 @@ const {AddModelForm}=await import(formUrl);
 const {ModelSetup,RoutingControls}=await import(setupUrl);
 const uiUrl=compile('../src/ui.tsx',{'./api':apiUrl});
 const personaUrl=compile('../src/ConversationPersona.tsx',{'./api':apiUrl,'./ui':uiUrl});
-const {ModelsPage,ProviderForm}=await import(compile('../src/pages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':apiUrl,'./ui':uiUrl}),
+const times=compile('../src/MemoryTimes.tsx');
+const review=compile('../src/MemoryReview.tsx',{'./api':apiUrl,'./ui':uiUrl,'./MemoryTimes':times});
+const {ModelsPage,ProviderForm}=await import(compile('../src/pages.tsx',{'./MemoryTimes':times,'./MemoryReview':review,'./AgentTools':compile('../src/AgentTools.tsx',{'./api':apiUrl,'./ui':uiUrl}),
   './VoicePages':compile('../src/VoicePages.tsx',{'./AgentTools':compile('../src/AgentTools.tsx',{'./api':apiUrl,'./ui':uiUrl}),'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':apiUrl,'./ui':uiUrl,'./voiceAudio':compile('../src/voiceAudio.ts')}),'./api':apiUrl,'./ui':uiUrl,'./voiceAudio':compile('../src/voiceAudio.ts')}),'./MediaPages':compile('../src/MediaPages.tsx',{'./api':apiUrl,'./ui':uiUrl,'./MediaStorage':compile('../src/MediaStorage.tsx',{'./api':apiUrl,'./ui':uiUrl})}),'./ModelSetup':setupUrl,'./api':apiUrl,'./AddModelForm':formUrl,'./ModelCalls':compile('../src/ModelCalls.tsx',{'./api':apiUrl,'./ui':uiUrl}),'./ConversationPersona':personaUrl,
   './MemoryPaging':compile('../src/MemoryPaging.tsx',{'./api':apiUrl}),
   'react-markdown':pathToFileURL(require.resolve('react-markdown')).href

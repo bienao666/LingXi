@@ -1420,6 +1420,17 @@
               "type": "string",
               "title": "Candidate Id"
             }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "default": "",
+              "title": "Q"
+            }
           }
         ],
         "responses": {
@@ -1427,7 +1438,67 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DialogueCandidateSource"
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": true
+                    }
+                  ],
+                  "title": "Response Candidate Sources Api Memory Candidates  Candidate Id  Sources Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memory-candidates/{candidate_id}/review": {
+      "post": {
+        "summary": "Review Dialogue Candidate",
+        "operationId": "review_dialogue_candidate_api_memory_candidates__candidate_id__review_post",
+        "parameters": [
+          {
+            "name": "candidate_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Candidate Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CandidateReviewInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateReviewPreview"
+                }
               }
             }
           },
@@ -12330,6 +12401,18 @@
               }
             ],
             "title": "Review Digest"
+          },
+          "review_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Token"
           }
         },
         "type": "object",
@@ -12337,6 +12420,137 @@
           "action"
         ],
         "title": "CandidateAction"
+      },
+      "CandidateReviewInput": {
+        "properties": {
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "keep",
+              "replace"
+            ],
+            "title": "Resolution"
+          },
+          "target_memory_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Memory Id"
+          },
+          "target_version": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Version"
+          },
+          "event_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event At"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "resolution"
+        ],
+        "title": "CandidateReviewInput"
+      },
+      "CandidateReviewPreview": {
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "Candidate Id"
+          },
+          "resolution": {
+            "type": "string",
+            "enum": [
+              "keep",
+              "replace"
+            ],
+            "title": "Resolution"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MemoryView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after": {
+            "$ref": "#/components/schemas/MemoryInput"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          },
+          "expires_at": {
+            "type": "number",
+            "title": "Expires At"
+          },
+          "warning": {
+            "type": "string",
+            "title": "Warning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate_id",
+          "resolution",
+          "before",
+          "after",
+          "token",
+          "expires_at",
+          "warning"
+        ],
+        "title": "CandidateReviewPreview"
       },
       "CandidateView": {
         "properties": {
@@ -14112,6 +14326,52 @@
           "download_url"
         ],
         "title": "DiagnosticView"
+      },
+      "DialogueCandidateSource": {
+        "properties": {
+          "candidate": {
+            "$ref": "#/components/schemas/CandidateView"
+          },
+          "source": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Source"
+          },
+          "related": {
+            "items": {
+              "$ref": "#/components/schemas/MemoryView"
+            },
+            "type": "array",
+            "title": "Related"
+          },
+          "related_count": {
+            "type": "integer",
+            "title": "Related Count"
+          },
+          "matched_count": {
+            "type": "integer",
+            "title": "Matched Count"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated"
+          },
+          "warning": {
+            "type": "string",
+            "title": "Warning"
+          }
+        },
+        "type": "object",
+        "required": [
+          "candidate",
+          "source",
+          "related",
+          "related_count",
+          "matched_count",
+          "truncated",
+          "warning"
+        ],
+        "title": "DialogueCandidateSource"
       },
       "DiscoveredModel": {
         "properties": {

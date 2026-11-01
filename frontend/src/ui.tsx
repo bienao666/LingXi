@@ -16,10 +16,10 @@ export function useResource<T>(url: string) {
   return {data,error,reload};
 }
 
-export function Modal({title,close,children,dismissible=true,returnFocus}:{title:string;close():void;children:React.ReactNode;dismissible?:boolean;returnFocus?:HTMLElement|null}) {
+export function Modal({title,close,children,dismissible=true,returnFocus}:{title:string;close():void;children:React.ReactNode;dismissible?:boolean;returnFocus?:HTMLElement|null|(()=>HTMLElement|null)}) {
   const ref=useRef<HTMLDialogElement>(null);
   useEffect(()=>{const dialog=ref.current;const prior=returnFocus===undefined?document.activeElement as HTMLElement|null:returnFocus;
-    dialog?.showModal();return ()=>{dialog?.close();prior?.focus();};},[]);
+    dialog?.showModal();return ()=>{dialog?.close();const target=typeof returnFocus==='function'?returnFocus():prior;if(target instanceof HTMLElement&&target.isConnected)target.focus();};},[]);
   return <dialog ref={ref} className="business-dialog" onClose={e=>{if(e.target===e.currentTarget)close();}} onCancel={e=>{e.stopPropagation();if(!dismissible)e.preventDefault();}} onKeyDown={e=>{
     if(e.key!=='Tab'||(e.target as Element).closest('dialog')!==e.currentTarget)return;
     const controls=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])'))

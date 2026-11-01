@@ -539,6 +539,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/memory-candidates/{candidate_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Dialogue Candidate */
+        post: operations["review_dialogue_candidate_api_memory_candidates__candidate_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/memory-candidates/{candidate_id}/actions": {
         parameters: {
             query?: never;
@@ -4591,6 +4608,44 @@ export interface components {
             action: "confirm" | "reject";
             /** Review Digest */
             review_digest?: string | null;
+            /** Review Token */
+            review_token?: string | null;
+        };
+        /** CandidateReviewInput */
+        CandidateReviewInput: {
+            /**
+             * Resolution
+             * @enum {string}
+             */
+            resolution: "keep" | "replace";
+            /** Target Memory Id */
+            target_memory_id?: string | null;
+            /** Target Version */
+            target_version?: number | null;
+            /** Event At */
+            event_at?: string | null;
+            /** Valid From */
+            valid_from?: string | null;
+            /** Valid To */
+            valid_to?: string | null;
+        };
+        /** CandidateReviewPreview */
+        CandidateReviewPreview: {
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * Resolution
+             * @enum {string}
+             */
+            resolution: "keep" | "replace";
+            before: components["schemas"]["MemoryView"] | null;
+            after: components["schemas"]["MemoryInput"];
+            /** Token */
+            token: string;
+            /** Expires At */
+            expires_at: number;
+            /** Warning */
+            warning: string;
         };
         /** CandidateView */
         CandidateView: {
@@ -5289,6 +5344,24 @@ export interface components {
             preview?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** DialogueCandidateSource */
+        DialogueCandidateSource: {
+            candidate: components["schemas"]["CandidateView"];
+            /** Source */
+            source: {
+                [key: string]: unknown;
+            };
+            /** Related */
+            related: components["schemas"]["MemoryView"][];
+            /** Related Count */
+            related_count: number;
+            /** Matched Count */
+            matched_count: number;
+            /** Truncated */
+            truncated: boolean;
+            /** Warning */
+            warning: string;
         };
         /** DiscoveredModel */
         DiscoveredModel: {
@@ -10097,7 +10170,9 @@ export interface operations {
     };
     candidate_sources_api_memory_candidates__candidate_id__sources_get: {
         parameters: {
-            query?: never;
+            query?: {
+                q?: string;
+            };
             header?: never;
             path: {
                 candidate_id: string;
@@ -10112,7 +10187,44 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["DialogueCandidateSource"] | {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_dialogue_candidate_api_memory_candidates__candidate_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                candidate_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateReviewInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateReviewPreview"];
                 };
             };
             /** @description Validation Error */

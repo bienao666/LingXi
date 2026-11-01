@@ -71,6 +71,7 @@ class MemoryInput(MemoryFields):
 class CandidateAction(BaseModel):
     action: Literal['confirm', 'reject']
     review_digest: str | None = Field(default=None, pattern=r'^[a-f0-9]{64}$')
+    review_token: str | None = Field(default=None, max_length=16000)
 
 
 class PreferenceInput(BaseModel):
