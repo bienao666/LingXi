@@ -19,6 +19,7 @@ from .db import Base, SessionLocal, now, uid
 from .models import ChatRun, Provider
 from .security import decrypt, encrypt
 from .web import Context, audit
+from .configuration_history import tracked
 
 router = APIRouter()
 
@@ -151,6 +152,7 @@ def preview(body: BudgetPreview, ctx: Context):
 
 
 @router.put('/api/admin/model-budgets', response_model=BudgetView)
+@tracked
 def confirm(body: BudgetConfirm, ctx: Context):
     db,user,session=ctx
     try:

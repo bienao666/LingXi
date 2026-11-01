@@ -32,6 +32,7 @@ async function mount(t,handler=()=>undefined){
     if(url==='/api/admin/system-settings/revisions')return response({items:[],next_before:null});
     if(url==='/api/admin/proxy')return response({enabled:false,http_proxy:'',https_proxy:'',all_proxy:'',no_proxy:[],protected_no_proxy:[],version:0});
     if(url==='/api/admin/configuration-bundles')return response({versions:{workspace:0,media:1,operations:0,model_budget:0}});
+    if(url==='/api/admin/configuration-revisions')return response({items:[],next_before:null});
     throw new Error('unexpected '+url);
   };
   const root=createRoot(document.getElementById('root'));

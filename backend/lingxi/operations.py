@@ -12,6 +12,7 @@ from .config import settings
 from .db import Base, SessionLocal, now
 from .models import Audit, ChatRun, Entity, Job, ModelCall, User
 from .web import Context, audit, owned
+from .configuration_history import tracked
 from .trace_graph import TraceGraph, trace_graph
 from .audio_costs import AudioUsageView, summary as audio_summary
 
@@ -187,6 +188,7 @@ def preferences(ctx:Context):
 
 
 @router.put('/api/admin/operations/preferences',response_model=OpsPreferenceView)
+@tracked
 def save_preferences(body:OpsPreferenceInput,ctx:Context):
     db,user,_=ctx
     db.scalar(select(User).where(User.id==user.id).with_for_update())

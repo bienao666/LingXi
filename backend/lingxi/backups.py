@@ -192,6 +192,7 @@ def finish(data):
 
 
 def checkpoint():
+    from .configuration_history import checkpoint as history_checkpoint
     from .workspace_migrations import checkpoint as migration_checkpoint
     from .system_settings import checkpoint as settings_checkpoint
     from .resources import checkpoint as resources_checkpoint
@@ -221,6 +222,7 @@ def checkpoint():
         if len(users)!=1:raise ValueError('Only single-owner restore supported')
         ledger=settings().runtime_dir/'deletions.jsonl'
         return {'format':1,'key_fingerprint':hashlib.sha256(settings().encryption_key.encode()).hexdigest(),
+            'configuration_history':history_checkpoint(db, restore_owners(db)[0]),
             'migrations':migration_checkpoint(db),
             'users':users,'factors':factors,'ledger':ledger.read_text(encoding='utf-8') if ledger.exists() else '',
             'media_policies':[view(row) for row in db.scalars(select(MediaPolicy))],
@@ -289,6 +291,8 @@ def quarantine(data):
     if len(data['users'])!=1:raise ValueError('Invalid owner checkpoint')
     from .system_settings import validate_checkpoint as validate_settings, restore as restore_settings
     validate_settings(data['system_settings'], data['users'][0])
+    from .configuration_history import validate_checkpoint as validate_history, restore as restore_history
+    validate_history(data['configuration_history'], data['users'][0], data)
     from .resources import ResourceScope
     for record in data.get('resource_policies', []):
         if (record['user_id'] != data['users'][0]['id'] or record['workspace_id'] != data['users'][0]['workspace_id']
@@ -444,7 +448,9 @@ def quarantine(data):
             elif memory.status=='active':
                 memory.index_status='pending'
                 enqueue(db,f'restore-index:{restored}:{memory.id}','index',{'memory_id':memory.id,'version':memory.version})
-        user=existing[0];audit(db,user,'backup_restore_quarantine')
+        user=existing[0]
+        restore_history(db, data['configuration_history'], db.get(User,user.id))
+        audit(db,user,'backup_restore_quarantine')
 
 
 def main():

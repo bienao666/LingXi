@@ -4105,6 +4105,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/configuration-revisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_api_admin_configuration_revisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/configuration-revisions/{identity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Detail */
+        get: operations["detail_api_admin_configuration_revisions__identity__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/configuration-revisions/{identity}/previews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview */
+        post: operations["preview_api_admin_configuration_revisions__identity__previews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -5096,6 +5147,71 @@ export interface components {
             expires_at: number;
             /** Note */
             note: string;
+            /**
+             * Action
+             * @default import
+             * @enum {string}
+             */
+            action: "import" | "rollback";
+            /** Source Id */
+            source_id?: string | null;
+            /** Source Point */
+            source_point?: ("before" | "after") | null;
+        };
+        /** ConfigurationRevisionDetail */
+        ConfigurationRevisionDetail: {
+            /** Id */
+            id: string;
+            /** Number */
+            number: number;
+            /** Created At */
+            created_at: number;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "edit" | "import" | "rollback" | "restore";
+            /** Modules */
+            modules: ("workspace" | "media" | "operations" | "model_budget")[];
+            /** Source Id */
+            source_id: string | null;
+            /** Source Point */
+            source_point: ("before" | "after") | null;
+            /** Before Snapshot */
+            before_snapshot: {
+                [key: string]: unknown;
+            };
+            /** After Snapshot */
+            after_snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        /** ConfigurationRevisionPage */
+        ConfigurationRevisionPage: {
+            /** Items */
+            items: components["schemas"]["ConfigurationRevisionView"][];
+            /** Next Before */
+            next_before: number | null;
+        };
+        /** ConfigurationRevisionView */
+        ConfigurationRevisionView: {
+            /** Id */
+            id: string;
+            /** Number */
+            number: number;
+            /** Created At */
+            created_at: number;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "edit" | "import" | "rollback" | "restore";
+            /** Modules */
+            modules: ("workspace" | "media" | "operations" | "model_budget")[];
+            /** Source Id */
+            source_id: string | null;
+            /** Source Point */
+            source_point: ("before" | "after") | null;
         };
         /** ConfigurationState */
         ConfigurationState: {
@@ -7615,6 +7731,20 @@ export interface components {
              * @default
              */
             completion: string;
+        };
+        /** RollbackInput */
+        RollbackInput: {
+            /**
+             * Point
+             * @enum {string}
+             */
+            point: "before" | "after";
+            /** Modules */
+            modules: ("workspace" | "media" | "operations" | "model_budget")[];
+            /** Versions */
+            versions: {
+                [key: string]: number;
+            };
         };
         /** RoutingConfirm */
         RoutingConfirm: {
@@ -17556,6 +17686,103 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ConfigurationImport"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    history_api_admin_configuration_revisions_get: {
+        parameters: {
+            query?: {
+                before?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationRevisionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detail_api_admin_configuration_revisions__identity__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigurationRevisionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_admin_configuration_revisions__identity__previews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollbackInput"];
             };
         };
         responses: {

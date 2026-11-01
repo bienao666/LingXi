@@ -11141,6 +11141,141 @@
           }
         }
       }
+    },
+    "/api/admin/configuration-revisions": {
+      "get": {
+        "summary": "History",
+        "operationId": "history_api_admin_configuration_revisions_get",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationRevisionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/configuration-revisions/{identity}": {
+      "get": {
+        "summary": "Detail",
+        "operationId": "detail_api_admin_configuration_revisions__identity__get",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationRevisionDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/configuration-revisions/{identity}/previews": {
+      "post": {
+        "summary": "Preview",
+        "operationId": "preview_api_admin_configuration_revisions__identity__previews_post",
+        "parameters": [
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationPreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -13711,6 +13846,41 @@
           "note": {
             "type": "string",
             "title": "Note"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "import",
+              "rollback"
+            ],
+            "title": "Action",
+            "default": "import"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_point": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Point"
           }
         },
         "type": "object",
@@ -13722,6 +13892,198 @@
           "note"
         ],
         "title": "ConfigurationPreview"
+      },
+      "ConfigurationRevisionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "edit",
+              "import",
+              "rollback",
+              "restore"
+            ],
+            "title": "Action"
+          },
+          "modules": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "array",
+            "title": "Modules"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_point": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Point"
+          },
+          "before_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Before Snapshot"
+          },
+          "after_snapshot": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "After Snapshot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "created_at",
+          "action",
+          "modules",
+          "source_id",
+          "source_point",
+          "before_snapshot",
+          "after_snapshot"
+        ],
+        "title": "ConfigurationRevisionDetail"
+      },
+      "ConfigurationRevisionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConfigurationRevisionView"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next_before"
+        ],
+        "title": "ConfigurationRevisionPage"
+      },
+      "ConfigurationRevisionView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "created_at": {
+            "type": "number",
+            "title": "Created At"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "edit",
+              "import",
+              "rollback",
+              "restore"
+            ],
+            "title": "Action"
+          },
+          "modules": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "array",
+            "title": "Modules"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_point": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "before",
+                  "after"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Point"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "created_at",
+          "action",
+          "modules",
+          "source_id",
+          "source_point"
+        ],
+        "title": "ConfigurationRevisionView"
       },
       "ConfigurationState": {
         "properties": {
@@ -20011,6 +20373,58 @@
           "name"
         ],
         "title": "RoleInput"
+      },
+      "RollbackInput": {
+        "properties": {
+          "point": {
+            "type": "string",
+            "enum": [
+              "before",
+              "after"
+            ],
+            "title": "Point"
+          },
+          "modules": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Modules"
+          },
+          "versions": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "propertyNames": {
+              "enum": [
+                "workspace",
+                "media",
+                "operations",
+                "model_budget"
+              ]
+            },
+            "type": "object",
+            "maxProperties": 4,
+            "minProperties": 1,
+            "title": "Versions"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "point",
+          "modules",
+          "versions"
+        ],
+        "title": "RollbackInput"
       },
       "RoutingConfirm": {
         "properties": {

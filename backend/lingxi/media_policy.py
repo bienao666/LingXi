@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base, now
 from .models import User
+from .configuration_history import tracked
 from .security import decrypt, encrypt
 from .web import Context, audit
 
@@ -137,6 +138,7 @@ def preview(body: MediaPolicyInput, ctx: Context):
 
 
 @router.put('/api/admin/media-policy', response_model=MediaPolicyView)
+@tracked
 def save(body: MediaPolicyConfirm, ctx: Context):
     db, user, session = ctx
     try:

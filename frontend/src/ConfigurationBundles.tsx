@@ -84,6 +84,7 @@ export function ConfigurationBundles({onApplied}:{onApplied():void}) {
     <p className="muted">统一管理空间默认、媒体限制、运维偏好和调用限额。可选择导入范围；先核对差异，确认后同时生效。保留导出文件可再次导入以恢复配置值，版本仍递增。</p>
     <ErrorNotice error={current.error||(!step?error:'')}/>{message&&<p role="status">{message}</p>}
     {!current.data?<p role="status">{current.error?'版本读取失败，请刷新版本。':'正在读取模块版本…'}</p>:<dl className="config-values">{names.map(n=><React.Fragment key={n}><dt>{modules[n]}</dt><dd>v{current.data!.versions[n]}{current.error?' · 上次快照':''}</dd></React.Fragment>)}</dl>}
+    <ConfigurationHistory onApplied={()=>{current.reload();onApplied();}}/>
     {step&&<Modal title={step==='review'?'核对整包':'导入整包'} dismissible={!loading} returnFocus={()=>success.current?(document.getElementById('main-content')||trigger.current):trigger.current} close={close}>
       <h3 ref={heading} tabIndex={-1}>{step==='review'?'差异总览':'配置来源'}</h3>
       {error&&<p ref={dialogError} role="alert" tabIndex={-1} className="error">{error}</p>}
@@ -98,6 +99,90 @@ export function ConfigurationBundles({onApplied}:{onApplied():void}) {
         <p className="muted">{preview.note}</p><p role="status">{clock>=preview.expires_at?'预览已过期，请返回修改后重新预览。':`预览有效至 ${formatTime(preview.expires_at)}`}</p>
         <label className="checkbox"><input type="checkbox" checked={ack} disabled={loading} onChange={e=>setAck(e.target.checked)}/>已核对全部差异，了解缩短日志保留期及调整限额的影响</label>
         <div className="actions"><button className="button" disabled={loading} onClick={()=>{setStep('import');setPreview(undefined);setAck(false);setError('');current.reload();}}>返回修改</button><button className="button primary" disabled={loading||!ack||clock>=preview.expires_at} onClick={()=>void confirm()}>{busy==='confirm'?'正在应用':'确认整包'}</button></div>
+      </div>}
+    </Modal>}
+  </section>;
+}
+
+type Revision = components['schemas']['ConfigurationRevisionView'];
+type HistoryPage = components['schemas']['ConfigurationRevisionPage'];
+type RevisionDetail = Revision & {before_snapshot:State;after_snapshot:State};
+const historyActions:Record<string,string>={edit:'独立修改',import:'整包导入',rollback:'历史回退',restore:'恢复隔离'};
+
+function ConfigurationHistory({onApplied}:{onApplied():void}) {
+  const [records,setRecords]=useState<Revision[]>([]),[next,setNext]=useState<number|null>(null),[loaded,setLoaded]=useState(false);
+  const [detail,setDetail]=useState<RevisionDetail>(),[current,setCurrent]=useState<State>(),[point,setPoint]=useState<'before'|'after'>('before');
+  const [selected,setSelected]=useState<Name[]>([]),[step,setStep]=useState<'select'|'review'>(),[preview,setPreview]=useState<Preview>();
+  const [busy,setBusy]=useState(''),[listing,setListing]=useState(false),[error,setError]=useState(''),[listError,setListError]=useState(''),[message,setMessage]=useState('');
+  const [ack,setAck]=useState(false),[clock,setClock]=useState(Date.now()/1000);
+  const alive=useRef(true),trigger=useRef<HTMLButtonElement|null>(null),success=useRef(false),epoch=useRef(0),listEpoch=useRef(0);
+  const heading=useRef<HTMLHeadingElement>(null),dialogError=useRef<HTMLParagraphElement>(null);
+  async function load(before?:number){
+    const request=++listEpoch.current;setListing(true);setListError('');
+    try {const result=await api<HistoryPage>(`/api/admin/configuration-revisions${before?`?before=${before}`:''}`);
+      if(!Array.isArray(result.items))throw new Error('历史响应无效，请刷新历史重试。');
+      if(alive.current&&request===listEpoch.current){setRecords(old=>before?[...old,...result.items.filter(r=>!old.some(o=>o.id===r.id))]:result.items);setNext(result.next_before);setLoaded(true);}}
+    catch(e){if(alive.current&&request===listEpoch.current)setListError((e as Error).message);}
+    finally{if(alive.current&&request===listEpoch.current)setListing(false);}
+  }
+  useEffect(()=>{alive.current=true;void load();const refresh=()=>void load();window.addEventListener('lingxi:system-settings',refresh);
+    return()=>{alive.current=false;epoch.current++;listEpoch.current++;window.removeEventListener('lingxi:system-settings',refresh);};},[]);
+  useEffect(()=>{if(step)heading.current?.focus();},[step]);
+  useEffect(()=>{if(step&&error)dialogError.current?.focus();},[step,error]);
+  useEffect(()=>{if(step!=='review')return;setClock(Date.now()/1000);const timer=setInterval(()=>setClock(Date.now()/1000),1000);return()=>clearInterval(timer);},[step]);
+  function close(){epoch.current++;setStep(undefined);setDetail(undefined);setPreview(undefined);setError('');setAck(false);}
+  async function open(row:Revision,button:HTMLButtonElement){
+    if(busy)return;trigger.current=button;success.current=false;setBusy('detail');setError('');setMessage('');const request=++epoch.current;
+    try {const [record,state]=await Promise.all([api<RevisionDetail>(`/api/admin/configuration-revisions/${row.id}`),api<State>('/api/admin/configuration-bundles')]);
+      if(alive.current&&request===epoch.current){setDetail(record);setCurrent(state);setPoint('before');setSelected([...record.modules]);setStep('select');}}
+    catch(e){if(alive.current&&request===epoch.current)setError((e as Error).message);}
+    finally{if(alive.current&&request===epoch.current)setBusy('');}
+  }
+  async function refreshVersions(){
+    if(busy)return;setBusy('versions');setError('');
+    try {const result=await api<State>('/api/admin/configuration-bundles');if(alive.current)setCurrent(result);}
+    catch(e){if(alive.current)setError((e as Error).message);}finally{if(alive.current)setBusy('');}
+  }
+  async function makePreview(){
+    if(busy||!detail||!current)return;setError('');if(!selected.length){setError('至少选择一个回退模块。');return;}setBusy('preview');
+    try {const versions=Object.fromEntries(selected.map(n=>[n,current.versions[n]]));
+      const result=await api<Preview>(`/api/admin/configuration-revisions/${detail.id}/previews`,'POST',{point,modules:selected,versions});
+      if(alive.current){setPreview(result);setAck(false);setStep('review');}}
+    catch(e){if(alive.current)setError((e as Error).message);}finally{if(alive.current)setBusy('');}
+  }
+  async function apply(){
+    if(busy||!preview||!ack||clock>=preview.expires_at)return;setBusy('confirm');setError('');
+    try {await api<State>('/api/admin/configuration-bundles','PUT',{token:preview.token,acknowledgement:'atomic_configuration_changes'});
+      if(!alive.current)return;success.current=true;close();setMessage('历史配置已创建新版本；未选模块与已计调用次数保留。');onApplied();
+      window.dispatchEvent(new window.Event('lingxi:system-settings'));
+    }catch(e){if(alive.current)setError((e as Error).message);}finally{if(alive.current)setBusy('');}
+  }
+  const target=detail?.[point==='before'?'before_snapshot':'after_snapshot'];
+  return <section className="form-stack" aria-label="统一历史">
+    <div className="pane-toolbar"><h3>统一历史</h3><button className="button" disabled={!!busy||listing} onClick={()=>void load()}>刷新历史</button></div>
+    <p className="muted">记录升级后的四类配置修改。可恢复每次变更前或变更后的值，需选择范围并再次确认；回退创建新版本，不能撤销已清理日志或已发请求。升级前的变更不补造记录。</p>
+    <ErrorNotice error={listError||(!step?error:'')}/>{message&&<p role="status">{message}</p>}
+    {busy==='detail'&&<p role="status">正在读取历史快照与当前版本…</p>}
+    {!loaded&&!listError?<p role="status">正在读取统一历史…</p>:loaded&&!records.length?<p className="muted">尚无统一变更记录；首次修改将保存完整的变更前后配置。</p>:records.map(row=><article className="revision-record" key={row.id}>
+      <div className="pane-toolbar"><strong>#{row.number} · {historyActions[row.action]||row.action}</strong><button className="button" disabled={!!busy} onClick={e=>void open(row,e.currentTarget)} aria-label={`核对第 ${row.number} 次配置回退`}>核对回退</button></div>
+      <p>{row.modules.map(n=>modules[n]).join('、')}</p><small className="muted">{formatTime(row.created_at)}{row.source_id?` · ${row.source_point==='before'?'取自更改前':'取自更改后'}`:''}</small>
+    </article>)}
+    {next!==null&&<button className="button" disabled={listing||!!busy} onClick={()=>void load(next)}>更多历史</button>}
+    {step&&detail&&current&&target&&<Modal title={step==='review'?'确认回退':'历史回退'} dismissible={!busy} returnFocus={()=>success.current?(document.getElementById('main-content')||trigger.current):trigger.current} close={close}>
+      <h3 ref={heading} tabIndex={-1}>{step==='review'?'回退差异':'选择范围'}</h3>
+      {error&&<p ref={dialogError} role="alert" tabIndex={-1} className="error">{error}</p>}
+      <p>历史 #{detail.number} · {historyActions[detail.action]} · {formatTime(detail.created_at)}</p>
+      {step==='select'?<form className="form-stack" onSubmit={e=>{e.preventDefault();void makePreview();}}>
+        <label>恢复时点<select value={point} disabled={!!busy} onChange={e=>setPoint(e.target.value as 'before'|'after')}><option value="before">本次更改前</option><option value="after">本次更改后</option></select></label>
+        <fieldset disabled={!!busy}><legend>回退范围</legend>{names.map(n=><label className="checkbox" key={n}><input type="checkbox" checked={selected.includes(n)} onChange={e=>setSelected(old=>e.target.checked?[...old,n]:old.filter(v=>v!==n))}/>{modules[n]} · 当前 v{current.versions[n]}</label>)}</fieldset>
+        {selected.map(n=><details key={n}><summary>{modules[n]} · 历史 v{target.versions[n]}</summary><dl className="config-values">{Object.entries(target.document.modules[n]!).map(([field,value])=><React.Fragment key={field}><dt>{fields[field]||field}</dt><dd>{display(field,value as string|number|string[]|null)}</dd></React.Fragment>)}</dl></details>)}
+        <p className="muted">人格引用须仍可用且属于当前账号；当前版本变化时整批停止。回退不包含模型、代理、账号、插件或执行授权。</p>
+        <div className="actions"><button type="button" className="button" disabled={!!busy} onClick={()=>void refreshVersions()}>刷新版本</button><button className="button primary" disabled={!!busy}>{busy?'正在校验':'预览回退'}</button></div>
+      </form>:preview&&<div className="form-stack">
+        {names.filter(n=>preview.changes.some(c=>c.module===n)).map(n=><section key={n} aria-label={modules[n]}><h3>{modules[n]} · 当前 v{preview.versions[n]}</h3><dl className="config-values">{preview.changes.filter(c=>c.module===n).map(c=><React.Fragment key={c.field}><dt>{fields[c.field]||c.field}</dt><dd><span className="muted">{display(c.field,c.before)}</span><span aria-hidden="true"> → </span><span className="sr-only">更改为</span>{display(c.field,c.after)}</dd></React.Fragment>)}</dl></section>)}
+        <p className="muted">{preview.note}</p><p role="status">{clock>=preview.expires_at?'预览已过期，请返回后重新预览。':`预览有效至 ${formatTime(preview.expires_at)}`}</p>
+        <label className="checkbox"><input type="checkbox" checked={ack} disabled={!!busy} onChange={e=>setAck(e.target.checked)}/>已核对回退范围与全部差异，了解日志保留及调用限额的影响</label>
+        <div className="actions"><button className="button" disabled={!!busy} onClick={()=>{setStep('select');setPreview(undefined);setAck(false);setError('');void refreshVersions();}}>返回选择</button><button className="button primary" disabled={!!busy||!ack||clock>=preview.expires_at} onClick={()=>void apply()}>{busy==='confirm'?'正在应用':'确认回退'}</button></div>
       </div>}
     </Modal>}
   </section>;

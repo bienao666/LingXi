@@ -89,6 +89,9 @@ class ConfigurationPreview(BaseModel):
     token: str
     expires_at: float
     note: str
+    action: Literal['import', 'rollback'] = 'import'
+    source_id: str | None = None
+    source_point: Literal['before', 'after'] | None = None
 
 
 class ConfigurationConfirm(BaseModel):
@@ -131,6 +134,10 @@ def check_versions(actual, requested):
 
 @router.post('/api/admin/configuration-bundles/previews', response_model=ConfigurationPreview)
 def preview(body: ConfigurationImport, ctx: Context):
+    return make_preview(body, ctx)
+
+
+def make_preview(body, ctx, history=None):
     db, user, session = ctx
     previous = state(db, user)
     check_versions(previous.versions, body.versions)
@@ -146,15 +153,17 @@ def preview(body: ConfigurationImport, ctx: Context):
             if getattr(before, field) != getattr(after, field):
                 changes.append(dict(module=name, field=field, before=getattr(before, field), after=getattr(after, field)))
     if not changes:
-        raise HTTPException(422, '所选配置没有变化，无需导入')
+        raise HTTPException(422, '所选配置没有变化，无需应用')
     expires = now()+300
     # Preserve intentional null persona references in the nested document.
     data = body.model_dump()
     data['document']['modules'] = {name: getattr(modules, name).model_dump() for name in body.versions}
     token = encrypt(json.dumps({'purpose': 'configuration-bundle', 'user': user.id,
         'workspace': user.workspace_id, 'session': session.id, 'expires_at': expires,
-        'input': data, 'persona': persona}, sort_keys=True))
-    return dict(versions=body.versions, changes=changes, token=token, expires_at=expires, note=NOTE)
+        'input': data, 'persona': persona, 'history': history}, sort_keys=True))
+    return dict(versions=body.versions, changes=changes, token=token, expires_at=expires, note=NOTE,
+        action='rollback' if history else 'import', source_id=history['id'] if history else None,
+        source_point=history['point'] if history else None)
 
 
 @router.put('/api/admin/configuration-bundles', response_model=ConfigurationState)
@@ -169,6 +178,18 @@ def confirm(body: ConfigurationConfirm, ctx: Context):
         request = ConfigurationImport.model_validate(data['input'])
     except Exception:
         raise HTTPException(409, '配置包预览已失效或不属于当前登录，请重新预览') from None
+    from .configuration_history import changing
+    history = data.get('history')
+    if history is not None and (not isinstance(history, dict) or set(history) != {'id', 'point', 'digest'}
+            or history['point'] not in ('before', 'after') or not isinstance(history['id'], str)):
+        raise HTTPException(409, '历史配置预览无效，请重新预览')
+    with changing(ctx, 'rollback' if history else 'import',
+            history['id'] if history else None, history['point'] if history else None):
+        return apply_configuration(request, ctx, data)
+
+
+def apply_configuration(request, ctx, data):
+    db, user, session = ctx
     # Same lock order as individual configuration edits. Budget admission can
     # happen without the owner lock; hold its own row before checking versions.
     from .auth_totp import lock_owner
@@ -180,6 +201,13 @@ def confirm(body: ConfigurationConfirm, ctx: Context):
     previous = state(db, user)
     check_versions(previous.versions, request.versions)
     modules = request.document.modules
+    history = data.get('history')
+    if history:
+        from .configuration_history import source
+        original, digest = source(ctx, history['id'], history['point'])
+        if digest != history['digest'] or any(getattr(modules, n) != getattr(original.document.modules, n)
+                for n in request.versions):
+            raise HTTPException(409, '历史来源已变化，请重新预览；未应用任何更改')
     if modules.workspace and system_settings.persona_reference(db, modules.workspace, user, lock=True) != data['persona']:
         raise HTTPException(409, '默认人格已变化，请重新预览；未应用任何更改')
     # Keep each module's own validations, revisions and audits. There are no
@@ -205,6 +233,7 @@ def confirm(body: ConfigurationConfirm, ctx: Context):
             checked = model_budgets.preview(model_budgets.BudgetPreview(version=version, **value.model_dump()), ctx)
             model_budgets.confirm(model_budgets.BudgetConfirm(token=checked['token'],
                 acknowledgement='request_attempts_not_money'), ctx)
-    audit(db, user, 'configuration_bundle_import')
+    audit(db, user, 'configuration_bundle_rollback' if history else 'configuration_bundle_import',
+        history['id'] if history else None)
     db.flush()
     return state(db, user)

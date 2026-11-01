@@ -13,6 +13,7 @@ from .db import Base, now
 from .models import Entity, User
 from .security import decrypt, encrypt
 from .web import Context, audit, view
+from .configuration_history import tracked
 
 router = APIRouter()
 
@@ -264,6 +265,7 @@ def preview(body: SystemSettingsInput, ctx: Context):
 
 
 @router.put('/api/admin/system-settings', response_model=SettingsView)
+@tracked
 def confirm(body: SettingsConfirm, ctx: Context):
     db, user, session = ctx
     try:

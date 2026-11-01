@@ -13,6 +13,7 @@ from lingxi import model_budgets
 from lingxi import media_policy, media_retention
 from lingxi import system_settings, resources
 from lingxi import workspace_migrations, voice_realtime, voice_native_output
+from lingxi import configuration_history
 
 def run_migrations():
     with engine.connect() as connection:

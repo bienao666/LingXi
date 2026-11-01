@@ -25,7 +25,7 @@ const response=(data,status=200)=>new Response(JSON.stringify(data),{status});
 async function mount(t,handler=()=>undefined){
   const requests=[];let applied=0;
   document.body.innerHTML='<main id="main-content" tabindex="-1"><div id="root"></div></main>';
-  globalThis.fetch=async(url,options)=>{requests.push({url,...options});return await handler(url,options)||response(current);};
+  globalThis.fetch=async(url,options)=>{requests.push({url,...options});return await handler(url,options)||response(url.startsWith('/api/admin/configuration-revisions')?{items:[],next_before:null}:current);};
   const root=createRoot(document.getElementById('root'));
   t.after(async()=>{await act(async()=>root.unmount());await window.happyDOM.abort();});
   await act(async()=>root.render(createElement(ConfigurationBundles,{onApplied:()=>applied++})));
@@ -35,6 +35,69 @@ async function click(text){const button=[...document.querySelectorAll('button')]
 async function input(value){await act(async()=>{const el=document.querySelector('dialog textarea');el.value=value;el.dispatchEvent(new window.Event('input',{bubbles:true}));el.dispatchEvent(new window.Event('change',{bubbles:true}));});}
 async function open(value=documentValue){await click('导入整包');await input(JSON.stringify(value));}
 async function acknowledge(){await act(async()=>document.querySelector('dialog input[type=checkbox]').click());}
+
+const historyRow={id:'revision-one',number:1,action:'import',modules:['workspace','media'],created_at:1700000000,source_id:null,source_point:null};
+const historyDetail={...historyRow,before_snapshot:current,after_snapshot:current};
+function historical(handler=()=>undefined){return (url,options)=>{
+  const supplied=handler(url,options);if(supplied)return supplied;
+  if(url==='/api/admin/configuration-revisions')return response({items:[historyRow],next_before:null});
+  if(url==='/api/admin/configuration-revisions/revision-one')return response(historyDetail);
+};}
+
+test('history preview binds selected scope, point and current versions before consent',async t=>{
+  const state=await mount(t,historical(url=>url.endsWith('/previews')?response({...checked,action:'rollback',source_id:historyRow.id,source_point:'before'}):undefined));
+  const trigger=[...document.querySelectorAll('button')].find(b=>b.textContent==='核对回退');trigger.focus();
+  await click('核对回退');assert.equal(document.activeElement.textContent,'选择范围');
+  assert.match(document.querySelector('dialog').textContent,/历史 #1/);
+  await act(async()=>document.querySelector('dialog fieldset input').click());
+  await click('预览回退');
+  assert.deepEqual(JSON.parse(state.requests.find(r=>r.method==='POST').body),{point:'before',modules:['media'],versions:{media:2}});
+  assert.equal(document.activeElement.textContent,'回退差异');
+  assert.ok([...document.querySelectorAll('button')].find(b=>b.textContent==='确认回退').disabled);
+  await click('确认回退');assert.equal(state.requests.filter(r=>r.method==='PUT').length,0);
+  await click('关闭');assert.equal(document.activeElement,trigger);
+});
+
+test('history rollback records only reviewed token, refreshes history and focuses main content',async t=>{
+  const state=await mount(t,historical(url=>url.endsWith('/previews')?response(checked):undefined));
+  await click('核对回退');await click('预览回退');await acknowledge();await click('确认回退');
+  assert.deepEqual(JSON.parse(state.requests.find(r=>r.method==='PUT').body),{token:checked.token,acknowledgement:'atomic_configuration_changes'});
+  assert.equal(state.applied(),1);assert.equal(document.activeElement.id,'main-content');
+  assert.match(document.body.textContent,/历史配置已创建新版本/);
+  assert.ok(state.requests.filter(r=>r.url==='/api/admin/configuration-revisions').length>=2);
+});
+
+test('history conflict retains source and diff, does not automatically resubmit',async t=>{
+  const state=await mount(t,historical((url,o)=>url.endsWith('/previews')?response(checked):o.method==='PUT'?response({detail:'配置已变化，未应用任何更改'},409):undefined));
+  await click('核对回退');await click('预览回退');await acknowledge();await click('确认回退');
+  assert.equal(document.activeElement.getAttribute('role'),'alert');assert.match(document.querySelector('dialog').textContent,/未应用任何更改/);
+  assert.equal(state.requests.filter(r=>r.method==='PUT').length,1);
+  await click('返回选择');assert.equal(document.querySelector('dialog select').value,'before');
+});
+
+test('history expired preview never submits a rollback',async t=>{
+  const state=await mount(t,historical(url=>url.endsWith('/previews')?response({...checked,expires_at:1}):undefined));
+  await click('核对回退');await click('预览回退');await acknowledge();await click('确认回退');
+  assert.match(document.querySelector('dialog').textContent,/预览已过期/);
+  assert.equal(state.requests.filter(r=>r.method==='PUT').length,0);
+});
+
+test('history source can select after snapshot and rejects an empty module selection locally',async t=>{
+  const state=await mount(t,historical(url=>url.endsWith('/previews')?response(checked):undefined));
+  await click('核对回退');
+  await act(async()=>{const el=document.querySelector('dialog select');el.value='after';el.dispatchEvent(new window.Event('change',{bubbles:true}));for(const box of document.querySelectorAll('dialog fieldset input'))if(box.checked)box.click();});
+  await click('预览回退');assert.match(document.querySelector('dialog [role=alert]').textContent,/至少选择一个/);
+  assert.equal(state.requests.filter(r=>r.method==='POST').length,0);
+  await act(async()=>document.querySelectorAll('dialog fieldset input')[2].click());await click('预览回退');
+  assert.deepEqual(JSON.parse(state.requests.find(r=>r.method==='POST').body),{point:'after',modules:['operations'],versions:{operations:3}});
+});
+
+test('history failures remain retryable and do not invent an empty history',async t=>{
+  let failed=true;
+  await mount(t,historical(url=>url==='/api/admin/configuration-revisions'&&failed?response({detail:'历史读取失败'},503):undefined));
+  assert.match(document.body.textContent,/历史读取失败/);assert.doesNotMatch(document.body.textContent,/尚无统一变更记录/);
+  failed=false;await click('刷新历史');assert.match(document.body.textContent,/整包导入/);
+});
 
 test('renders four real module versions and requires reviewed explicit consent',async t=>{
   const state=await mount(t,url=>url.endsWith('/previews')?response(checked):undefined);
@@ -103,7 +166,7 @@ test('partial packages allow only supplied modules, unknown keys still go to str
 });
 
 test('failed state read offers retry and cannot enable import with guessed versions',async t=>{
-  let count=0;await mount(t,()=>++count===1?response({detail:'状态不可用'},503):undefined);
+  let count=0;await mount(t,url=>url==='/api/admin/configuration-bundles'&&++count===1?response({detail:'状态不可用'},503):undefined);
   assert.match(document.querySelector('[role=alert]').textContent,/状态不可用/);
   assert.ok([...document.querySelectorAll('button')].find(v=>v.textContent==='导入整包').disabled);
   await click('刷新版本');assert.equal([...document.querySelectorAll('button')].find(v=>v.textContent==='导入整包').disabled,false);
