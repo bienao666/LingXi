@@ -13,7 +13,7 @@ Object.assign(globalThis,{window,document:window.document,HTMLElement:window.HTM
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api}),actualAudio=compile('../src/voiceAudio.ts');
 const {pcmWav}=await import(actualAudio);
-const fakeAudio=url(`export class Microphone{async start(){globalThis.micStarts++;}async listen(device,callbacks){globalThis.micStarts++;globalThis.listeningCallbacks=callbacks;if(globalThis.listenGate)await globalThis.listenGate;}setDetection(mode){globalThis.detectionModes.push(mode);}async finish(){return new Blob(['test']);}discard(){globalThis.micDiscards++;}} export async function audioDevices(){return [];}`);
+const fakeAudio=url(`export {Pcm24Encoder} from '${actualAudio}';export class Microphone{async start(){globalThis.micStarts++;}async listen(device,callbacks){globalThis.micStarts++;globalThis.listeningCallbacks=callbacks;if(globalThis.listenGate)await globalThis.listenGate;}setDetection(mode){globalThis.detectionModes.push(mode);}async finish(){return new Blob(['test']);}discard(){globalThis.micDiscards++;}} export async function audioDevices(){return [];}`);
 const {VoiceSettings,VoicePanel}=await import(compile('../src/VoicePages.tsx',{'./VoiceRealtime':compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}),'./api':api,'./ui':ui,'./voiceAudio':fakeAudio}));
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 const config={enabled:true,version:1,asr:{provider_id:'p',model:'asr'},tts:{provider_id:'p',model:'tts'},language:'zh',voice:'alloy',speed:1,checks:{asr:true,tts:true}};
@@ -165,10 +165,53 @@ test('native output failure stays visible and never falls back to ordinary TTS',
 
 const continuousSession={...session,mode:'continuous',automatic_turns:0};
 const voiceProps={conversationId:'conversation',messages:[],runs:[],reload:async()=>{}};
+class NativeSocket{
+ static OPEN=1;readyState=0;bufferedAmount=0;sent=[];closed=0;
+ constructor(){globalThis.nativeSockets.push(this);}
+ send(value){this.sent.push(value);}close(){this.closed++;this.readyState=3;this.onclose?.();}
+ open(){this.readyState=1;this.onopen?.();this.emit({type:'ready',sample_rate:24000});}
+ emit(value){this.onmessage?.({data:JSON.stringify(value)});}
+}
+async function nativeHarness(t,handler){
+ const writes=[];globalThis.nativeSockets=[];const previous=globalThis.WebSocket;globalThis.WebSocket=NativeSocket;t.after(()=>{globalThis.WebSocket=previous;});
+ const root=await mount(t,VoicePanel,voiceProps,(u,o)=>{writes.push({u,o});if(handler){const result=handler(u,o);if(result)return result;}return response(u==='/api/voice/config'?{...config,checks:{...config.checks,realtime_asr:true}}:u.endsWith('realtime-tickets')?{token:'one-use',path:'/api/voice/realtime'}:u.endsWith('/messages')?{id:'auto-run'}:continuousSession);});
+ await act(async()=>[...document.querySelectorAll('input')].find(e=>e.closest('label')?.textContent==='连续对话').click());
+ const choice=[...document.querySelectorAll('input')].find(e=>e.closest('label')?.textContent==='实时字幕');assert.equal(choice.checked,false);await act(async()=>choice.click());await click('开启语音');assert.equal(choice.disabled,true);
+ return {root,writes};
+}
+async function nativeSamples(){await act(async()=>{listeningCallbacks.start();listeningCallbacks.samples([new Float32Array(2400).fill(.1)],24000);});}
 async function enableContinuous(){
  const checkbox=[...document.querySelectorAll('input[type=checkbox]')].find(e=>e.closest('label').textContent==='连续对话');
  assert.ok(checkbox);await act(async()=>checkbox.click());await click('开启语音');
 }
+
+test('continuous native input is explicit and does not connect for silence or submit partial captions',async t=>{
+ const {writes}=await nativeHarness(t);assert.equal(micStarts,0);assert.equal(nativeSockets.length,0);await click('开始聆听');assert.equal(micStarts,1);assert.equal(nativeSockets.length,0);
+ await nativeSamples();assert.equal(nativeSockets.length,1);await act(async()=>nativeSockets[0].open());await act(async()=>nativeSockets[0].emit({type:'partial',text:'可能被修改的字幕'}));assert.match(document.body.textContent,/可能被修改的字幕/);assert.ok(!writes.some(w=>w.u.endsWith('/messages')));
+ await act(async()=>listeningCallbacks.utterance(new Blob(['unused'])));assert.equal(nativeSockets[0].sent.at(-1),'{"type":"commit"}');await act(async()=>{nativeSockets[0].emit({type:'completed',text:'最终修订。'});nativeSockets[0].emit({type:'completed',text:'重复。'});});
+ const submissions=writes.filter(w=>w.u.endsWith('/messages'));assert.equal(submissions.length,1);assert.equal(JSON.parse(submissions[0].o.body).content,'最终修订。');assert.equal(JSON.parse(submissions[0].o.body).automatic,true);assert.ok(!writes.some(w=>w.u.endsWith('/transcriptions')));assert.ok(!document.body.textContent.includes('可能被修改的字幕'));
+});
+
+test('unverified native configuration pauses without opening microphone or falling back',async t=>{
+ const {writes}=await nativeHarness(t,u=>u==='/api/voice/config'?response(config):null);await click('开始聆听');assert.equal(micStarts,0);assert.equal(nativeSockets.length,0);assert.match(document.querySelector('[role=alert]').textContent,/验证实时转写/);assert.ok(!writes.some(w=>w.u.endsWith('/transcriptions')||w.u.endsWith('/messages')));
+});
+
+test('pause discards native draft and late final cannot submit',async t=>{
+ const {writes}=await nativeHarness(t);await click('开始聆听');await nativeSamples();await act(async()=>{nativeSockets[0].open();nativeSockets[0].emit({type:'partial',text:'暂存字幕'});});await act(async()=>listeningCallbacks.utterance(new Blob(['unused'])));await click('暂停聆听');await act(async()=>nativeSockets[0].emit({type:'completed',text:'迟到定稿'}));
+ assert.ok(!writes.some(w=>w.u.endsWith('/messages')));assert.ok(!document.body.textContent.includes('暂存字幕'));assert.equal(nativeSockets[0].closed,1);
+});
+
+test('native connection failure never retries or invokes upload ASR',async t=>{
+ const {writes}=await nativeHarness(t);await click('开始聆听');await nativeSamples();await act(async()=>nativeSockets[0].onerror());assert.match(document.querySelector('[role=alert]').textContent,/不会自动重试/);assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='开始聆听'));assert.equal(nativeSockets.length,1);assert.ok(!writes.some(w=>w.u.endsWith('/transcriptions')||w.u.endsWith('/messages')));
+});
+
+test('ending during native ticket request prevents opening websocket or accepting audio',async t=>{
+ let resolve;const {writes}=await nativeHarness(t,u=>u.endsWith('realtime-tickets')?new Promise(r=>resolve=r):null);await click('开始聆听');await nativeSamples();await click('结束语音');await act(async()=>resolve(response({token:'late',path:'/api/voice/realtime'})));assert.equal(nativeSockets.length,0);assert.ok(!writes.some(w=>w.u.endsWith('/messages')));
+});
+
+for(const command of ['先别聊。','结束语音'])test('native stop command uses local controls only: '+command,async t=>{
+ const {writes}=await nativeHarness(t);await click('开始聆听');await nativeSamples();await act(async()=>nativeSockets[0].open());await act(async()=>listeningCallbacks.utterance(new Blob(['unused'])));await act(async()=>nativeSockets[0].emit({type:'completed',text:command}));assert.ok(!writes.some(w=>w.u.endsWith('/messages')||w.u.includes('preferences')||w.u.includes('/cancel')));if(command==='结束语音')assert.ok(writes.some(w=>w.o.method==='DELETE'));else assert.match(document.body.textContent,/未修改长期联系偏好/);
+});
 
 test('continuous mode is opt-in and opening still does not open microphone',async t=>{
  const writes=[];await mount(t,VoicePanel,voiceProps,(u,o)=>{writes.push({u,o});return response(continuousSession);});

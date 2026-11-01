@@ -15,6 +15,19 @@ function signal(rate=16000){
 test('silence and brief noise never create a paid utterance',()=>{
  const {push,events}=signal();push(70);push(.1,.1);push(2);assert.deepEqual(events,[]);
 });
+
+test('native streaming waits for valid speech and preserves preroll without duplicate frames',()=>{
+ const batches=[],events=[];let count=0;
+ const detector=new SpeechSegmenter(16000,{start:()=>events.push('start'),utterance:()=>events.push('end'),error:assert.fail,samples:(frames,rate)=>{assert.equal(rate,16000);batches.push(frames.map(f=>f[0]));}});
+ const push=(frames,volume)=>{for(let i=0;i<frames;i++){count++;const chunk=new Float32Array(320).fill(volume);chunk[0]=count/10000;detector.push(chunk);}};
+ push(25,0);push(12,.04);push(65,0);assert.equal(batches.length,0);
+ push(35,.04);push(65,0);assert.deepEqual(events,['start','start','end']);assert.ok(batches[0].length>=20);assert.ok(batches.slice(1).every(b=>b.length===1));const ids=batches.flat();assert.equal(new Set(ids).size,ids.length);assert.ok(ids.every((id,i)=>!i||id>ids[i-1]));
+});
+
+test('pausing from a streaming callback cannot emit a stale utterance',()=>{
+ let detector,streams=0,ends=0;detector=new SpeechSegmenter(16000,{start:()=>{},utterance:()=>ends++,error:assert.fail,samples:()=>{streams++;detector.setMode('paused');}});
+ for(let i=0;i<150;i++)detector.push(new Float32Array(320).fill(i<35?.04:0));assert.equal(streams,1);assert.equal(ends,0);
+});
 test('pause segments once with a bounded preroll and no repeated silence',async()=>{
  const {push,events}=signal();push(5);push(.7,.04);push(1);assert.deepEqual(events,['start']);push(.3);
  assert.equal(events.length,2);const wav=events[1];assert.ok(wav instanceof Blob);assert.ok(wav.size>16000&&wav.size<16000*2*3+44);

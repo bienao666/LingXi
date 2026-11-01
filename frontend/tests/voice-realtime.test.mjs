@@ -12,8 +12,9 @@ const window=new Window({url:'https://lingxi.test/#/settings/voice'});
 Object.assign(globalThis,{window,document:window.document,location:window.location,Event:window.Event,HTMLElement:window.HTMLElement,IS_REACT_ACT_ENVIRONMENT:true});
 const {createRoot}=await import('react-dom/client');
 const api=compile('../src/api.ts'),ui=compile('../src/ui.tsx',{'./api':api});
-const audio=url(`export class Microphone{discard(){globalThis.discards++;}async streamPCM(device,chunk,limit,error){globalThis.capture={device,chunk,limit,error};globalThis.starts++;}async finishPCM(){globalThis.finished++;}}`);
-const {VoiceRealtime}=await import(compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':audio}));
+const actualAudio=compile('../src/voiceAudio.ts');
+const audio=url(`export {Pcm24Encoder} from '${actualAudio}';export class Microphone{discard(){globalThis.discards++;}async streamPCM(device,chunk,limit,error){globalThis.capture={device,chunk,limit,error};globalThis.starts++;}async finishPCM(){globalThis.finished++;}}`);
+const {VoiceRealtime,RealtimeTranscription}=await import(compile('../src/VoiceRealtime.tsx',{'./api':api,'./ui':ui,'./voiceAudio':audio}));
 const {Pcm24Encoder}=await import(compile('../src/voiceAudio.ts'));
 const response=(v,status=200)=>new Response(JSON.stringify(v),{status});
 class Socket{
@@ -75,7 +76,7 @@ test('unexpected socket close preserves error without automatically reopening',a
 });
 
 test('turn timeout commits existing audio, final received only once',async t=>{
- const {finals}=await mount(t);await click('实时转写');await ready();await act(async()=>capture.limit());assert.equal(finished,1);assert.equal(sockets[0].sent.at(-1),'{"type":"commit"}');await act(async()=>{sockets[0].emit({type:'completed',text:'定稿'});sockets[0].emit({type:'completed',text:'重复'});});assert.deepEqual(finals,['定稿']);
+ const {finals}=await mount(t);await click('实时转写');await ready();capture.chunk(new ArrayBuffer(4800));await act(async()=>capture.limit());assert.equal(finished,1);assert.equal(sockets[0].sent.at(-1),'{"type":"commit"}');await act(async()=>{sockets[0].emit({type:'completed',text:'定稿'});sockets[0].emit({type:'completed',text:'重复'});});assert.deepEqual(finals,['定稿']);
 });
 
 test('PCM24 resampling preserves phase across arbitrary worklet boundaries',()=>{
@@ -89,4 +90,29 @@ test('PCM24 resampling preserves phase across arbitrary worklet boundaries',()=>
 
 test('PCM24 rejects invalid samples, bounds clipping and ignores empty frames',()=>{
  assert.throws(()=>new Pcm24Encoder(0));const encoder=new Pcm24Encoder(24000);assert.deepEqual(encoder.push(new Float32Array()),[]);assert.throws(()=>encoder.push(new Float32Array([NaN])));assert.throws(()=>encoder.push(new Float32Array(24001)));const [part]=encoder.push(new Float32Array([-2,2,0]));const data=new DataView(part);assert.equal(data.getInt16(0,true),-32768);assert.equal(data.getInt16(2,true),32767);
+});
+
+test('shared transport buffers onset until ready and commits exactly once after all PCM',async t=>{
+ await mount(t);const finals=[],errors=[];const turn=new RealtimeTranscription({partial:()=>{},final:v=>finals.push(v),error:v=>errors.push(v)});t.after(()=>turn.cancel());
+ turn.start('continuous');turn.samples([new Float32Array(2400).fill(.1)],24000);turn.commit();turn.commit();
+ await act(async()=>{});const socket=sockets[0];socket.open();assert.equal(socket.sent.length,1);socket.emit({type:'ready',sample_rate:24000});
+ assert.equal(socket.sent[1].byteLength,4798);assert.equal(socket.sent[2],'{"type":"commit"}');assert.equal(socket.sent.length,3);
+ socket.emit({type:'completed',text:'最终修订'});socket.emit({type:'completed',text:'重复'});assert.deepEqual(finals,['最终修订']);assert.deepEqual(errors,[]);
+});
+
+test('shared transport rejects completion before client commit',async t=>{
+ await mount(t);const errors=[],finals=[];const turn=new RealtimeTranscription({partial:()=>{},final:v=>finals.push(v),error:v=>errors.push(v)});t.after(()=>turn.cancel());turn.start('continuous');await act(async()=>{});sockets[0].open();sockets[0].emit({type:'ready',sample_rate:24000});sockets[0].emit({type:'completed',text:'不能先提交'});
+ assert.equal(errors.length,1);assert.deepEqual(finals,[]);assert.equal(sockets[0].closed,1);
+});
+
+test('empty capture does not commit or accept final content',async t=>{
+ const {finals}=await mount(t);await click('实时转写');await ready();await click('结束转写');assert.match(document.body.textContent,/未采集到有效音频/);assert.ok(!sockets[0].sent.includes('{"type":"commit"}'));assert.deepEqual(finals,[]);
+});
+
+test('queued PCM obeys backpressure and cancel drops pending commit',async t=>{
+ await mount(t);const errors=[];const turn=new RealtimeTranscription({partial:()=>{},final:()=>assert.fail('late final'),error:v=>errors.push(v)});t.after(()=>turn.cancel());turn.start('continuous');turn.write(new ArrayBuffer(9600));turn.commit();await act(async()=>{});sockets[0].open();sockets[0].bufferedAmount=96000;sockets[0].emit({type:'ready',sample_rate:24000});assert.equal(sockets[0].sent.length,1);turn.cancel();await new Promise(r=>setTimeout(r,35));assert.equal(sockets[0].sent.length,1);assert.deepEqual(errors,[]);
+});
+
+test('ticket must point to the same authenticated websocket endpoint',async t=>{
+ await mount(t,{},()=>response({token:'private',path:'https://other.example/api/voice/realtime'}));await click('实时转写');assert.equal(sockets.length,0);assert.equal(starts,0);assert.match(document.body.textContent,/地址无效/);
 });

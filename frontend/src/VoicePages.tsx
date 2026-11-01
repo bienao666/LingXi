@@ -4,7 +4,7 @@ import type {Provider,ProviderModelCatalog,Message,Run} from './api';
 import type {components} from './api.generated';
 import {ErrorNotice,useResource} from './ui';
 import {audioDevices,Microphone} from './voiceAudio';
-import {VoiceRealtime} from './VoiceRealtime';
+import {RealtimeTranscription,VoiceRealtime} from './VoiceRealtime';
 type Config=components['schemas']['VoiceSettingsView'];
 type VoiceSession=components['schemas']['VoiceSessionView'];
 type Playback=components['schemas']['PlaybackView'];
@@ -44,6 +44,8 @@ export function VoiceSettings(){
 export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:{conversationId:string;messages:Message[];runs:Run[];reload():Promise<void>;userBusy?:boolean}){
   const [session,setSession]=useState<VoiceSession|null>(null),[busy,setBusy]=useState(false),[recording,setRecording]=useState(false),[draft,setDraft]=useState(''),[error,setError]=useState(''),[status,setStatus]=useState(''),[speaking,setSpeaking]=useState(false),[blocked,setBlocked]=useState(false);
   const [continuous,setContinuous]=useState(false),[listening,setListening]=useState(false),[realtimeBusy,setRealtimeBusy]=useState(false);
+  const [nativeInput,setNativeInput]=useState(false),[liveCaption,setLiveCaption]=useState('');
+  const nativeTurn=useRef<RealtimeTranscription|null>(null);
   const [allowProactive,setAllowProactive]=useState(false),[proactiveBusy,setProactiveBusy]=useState(false);
   const voiceIdle=useRef(Date.now()),activityEpoch=useRef(0),userSpeaking=useRef(false),proactiveRequest=useRef(false),voiceAvailability=useRef(false);
   const voiceClaimController=useRef<AbortController|null>(null);
@@ -60,6 +62,8 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:
   function pauseListening(message?:string){
     voiceActivity();userSpeaking.current=false;
     ++voiceGeneration.current;listeningRef.current=false;continuousMic.current.discard();inputControl.current?.abort();
+    nativeTurn.current?.cancel();nativeTurn.current=null;
+    if(alive.current){setLiveCaption('');setBusy(false);}
     if(alive.current){setListening(false);if(message)setStatus(message);}
   }
   function failListening(message:string){pauseListening('聆听已暂停，检查后手动恢复；不会自动重试。');if(alive.current)setError(message);}
@@ -146,19 +150,29 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:
     try{
       const result=await api<{text:string}>(`/api/voice/sessions/${s.id}/transcriptions`,'POST',undefined,{binary:blob,signal:controller.signal});
       if(sessionRef.current?.id!==s.id||generation!==voiceGeneration.current||!listeningRef.current)return;
-      const text=result.text.trim();if(!text)throw new Error('未识别到有效内容，请手动恢复后重说');
-      if(['暂停聆听','暂停聆听。','结束语音','结束语音。','先别聊','先别聊。'].includes(text)){
-        if(text.startsWith('结束语音'))endSession();else{pauseListening('已按语音指令暂停聆听；未修改长期联系偏好。');if(text.startsWith('先别聊'))await changeProactive(false);}return;
-      }
-      setDraft(text);await sendTranscript(text,true);
+      await automaticText(result.text,generation);
     }catch(e){if(sessionRef.current?.id===s.id&&generation===voiceGeneration.current)failListening((e as Error).message);}
     finally{if(alive.current&&sessionRef.current?.id===s.id)setBusy(false);}
+  }
+  async function automaticText(value:string,generation:number){
+    if(!sessionRef.current||generation!==voiceGeneration.current||!listeningRef.current)return;
+    const text=value.trim();if(!text)throw new Error('未识别到有效内容，请手动恢复后重说');
+    if(['暂停聆听','暂停聆听。','结束语音','结束语音。','先别聊','先别聊。'].includes(text)){
+      if(text.startsWith('结束语音'))endSession();else{pauseListening('已按语音指令暂停聆听；未修改长期联系偏好。');if(text.startsWith('先别聊'))await changeProactive(false);}return;
+    }
+    setDraft(text);await sendTranscript(text,true);
   }
   async function startListening(){
     if(busy||active||draft||awaiting.current||listeningRef.current)return;
     const s=sessionRef.current;if(!s||s.mode!=='continuous')return;
     const generation=++voiceGeneration.current;setBusy(true);setError('');listeningRef.current=true;
     try{
+      if(nativeInput){
+        const config=await api<Config>('/api/voice/config');
+        if(generation!==voiceGeneration.current||sessionRef.current?.id!==s.id||document.hidden)return;
+        if(!config.checks?.realtime_asr)throw new Error('请先在语音配置保存并验证实时转写；本次不改用普通转写');
+      }
+      const valid=()=>generation===voiceGeneration.current&&sessionRef.current?.id===s.id&&listeningRef.current&&!document.hidden;
       await continuousMic.current.listen(inputDevice,{
         start:()=>{
           if(generation!==voiceGeneration.current||sessionRef.current?.id!==s.id)return;
@@ -167,7 +181,26 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:
           void stopPlayback().catch(e=>{if(generation===voiceGeneration.current)failListening(e.message);});
           continuousMic.current.setDetection('listening');setStatus('正在聆听，停顿后自动转写发送…');
         },
-        utterance:blob=>{void automaticTurn(blob,generation);},
+        ...(nativeInput?{samples:(frames:Float32Array[],rate:number)=>{
+          if(!valid())return;
+          if(!nativeTurn.current){
+            const turn=new RealtimeTranscription({
+              partial:text=>{if(valid())setLiveCaption(text);},
+              final:text=>{
+                if(!valid())return;nativeTurn.current=null;setLiveCaption('');
+                void automaticText(text,generation).catch(e=>{if(valid())failListening(e.message);}).finally(()=>{if(alive.current&&sessionRef.current?.id===s.id)setBusy(false);});
+              },
+              error:message=>{if(valid())failListening(message);}
+            });nativeTurn.current=turn;turn.start(s.id);
+          }
+          nativeTurn.current.samples(frames,rate);
+        }}:{}),
+        utterance:blob=>{
+          if(!valid())return;
+          if(!nativeInput){void automaticTurn(blob,generation);return;}
+          voiceActivity();userSpeaking.current=false;continuousMic.current.setDetection('paused');setBusy(true);setStatus('正在等待实时定稿；定稿后自动发送，不自动保存记忆。');
+          if(nativeTurn.current)nativeTurn.current.commit();else failListening('未采集到有效实时音频，请手动恢复聆听');
+        },
         error:message=>{if(generation===voiceGeneration.current&&sessionRef.current?.id===s.id)failListening(message);}
       });
       if(generation!==voiceGeneration.current||sessionRef.current?.id!==s.id||document.hidden){continuousMic.current.discard();return;}
@@ -271,10 +304,13 @@ export function VoicePanel({conversationId,messages,runs,reload,userBusy=false}:
   return <section className="voice-panel" aria-label="浏览器语音">
     <div className="pane-toolbar"><strong>语音会话</strong><div className="actions">{!session?<button type="button" className="button" disabled={busy||!!active} onClick={()=>void startSession()}>{busy?'正在开启':'开启语音'}</button>:<button type="button" className="button" onClick={endSession}>结束语音</button>}<a href="#/settings/voice">语音配置</a></div></div>
     <label className="checkbox"><input type="checkbox" checked={session?session.mode==='continuous':continuous} disabled={!!session||busy} onChange={e=>setContinuous(e.target.checked)}/>连续对话</label>
+    {(continuous||session?.mode==='continuous')&&<label className="checkbox"><input type="checkbox" checked={nativeInput} disabled={!!session||busy} onChange={e=>setNativeInput(e.target.checked)}/>实时字幕</label>}
     <label className="checkbox"><input type="checkbox" checked={session?!!session.allow_proactive:allowProactive} disabled={proactiveBusy||busy} onChange={e=>void changeProactive(e.target.checked)}/>主动开口</label>
     <p className="muted">默认关闭，仅对当前语音会话生效。开启后可在自然停顿分享有效话题；不会因沉默反复开口，不补播旧联系。遵守联系偏好与安静时段；隐藏页面、结束或关闭后停止。合成可能计费。</p>
     {(continuous||session?.mode==='continuous')&&<p className="muted">开启聆听后，停顿自动转写发送（可能计费），不设固定聊天次数。未经逐句核对的转写不自动保存记忆，不执行工具或修改联系偏好。建议佩戴耳机；本地音量检测不能保证区分人声与回声。单段最长 25 秒，静候 60 秒关闭麦克风。</p>}
+    {nativeInput&&(continuous||session?.mode==='continuous')&&<p className="muted">实时字幕须先在语音配置验证。仅检测到有效语音才连接，每段独立转写；临时字幕可能修订，服务也可能在停顿后才返回。故障会暂停聆听，不自动重试或切换计费服务。</p>}
     <ErrorNotice error={error}/>{status&&<p className="muted" role="status">{status}</p>}
+    {liveCaption&&<div className="data-card"><strong>临时字幕</strong><p className="voice-live-caption">{liveCaption}</p></div>}
     {session&&<>
       <p className="muted">人工智能合成语音 · 逐段播报 · 页面隐藏或离线时结束 · 最长 15 分钟</p>
       {speechLabel&&<p className="muted">{speechLabel}</p>}

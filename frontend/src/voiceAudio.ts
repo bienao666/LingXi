@@ -12,7 +12,7 @@ export function pcmWav(chunks: Float32Array[], sampleRate: number): Blob {
 }
 
 export type DetectionMode='listening'|'playback'|'paused';
-export type ListeningCallbacks={start():void;utterance(blob:Blob):void;error(message:string):void};
+export type ListeningCallbacks={start():void;utterance(blob:Blob):void;error(message:string):void;samples?(frames:Float32Array[],rate:number):void};
 
 /** Local amplitude gate, not a speech/speaker/emotion classifier. No network. */
 export class SpeechSegmenter {
@@ -24,11 +24,12 @@ export class SpeechSegmenter {
   private quiet=0;
   private size=0;
   private active=false;
+  private streaming=false;
   private mode:DetectionMode='listening';
   constructor(private rate:number,private callbacks:ListeningCallbacks){
     if(!Number.isFinite(rate)||rate<8000||rate>96000)throw new Error('输入采样率不受支持');
   }
-  reset(){this.pre=[];this.frames=[];this.preSize=0;this.onset=0;this.voiced=0;this.quiet=0;this.size=0;this.active=false;}
+  reset(){this.pre=[];this.frames=[];this.preSize=0;this.onset=0;this.voiced=0;this.quiet=0;this.size=0;this.active=false;this.streaming=false;}
   setMode(mode:DetectionMode){if(mode==='paused'||this.mode==='paused')this.reset();this.mode=mode;}
   push(frame:Float32Array){
     if(this.mode==='paused'||!frame.length)return;
@@ -47,6 +48,12 @@ export class SpeechSegmenter {
     this.frames.push(chunk);this.size+=chunk.length;
     this.voiced+=loud?seconds:0;this.quiet=loud?0:this.quiet+seconds;
     if(this.size>=this.rate*25){this.reset();this.mode='paused';this.callbacks.error('单段超过 25 秒，已丢弃并暂停；请分段表达');return;}
+    // Only stream after a valid speech segment, including its bounded preroll.
+    if(this.callbacks.samples&&this.voiced>=.45){
+      const batch=this.streaming?[chunk]:this.frames.slice();this.streaming=true;
+      this.callbacks.samples(batch,this.rate);
+      if(!this.active)return;
+    }
     if(this.quiet>=1.2){
       const frames=this.frames,valid=this.voiced>=.45;this.reset();
       if(valid){this.mode='paused';this.callbacks.utterance(pcmWav(frames,this.rate));}

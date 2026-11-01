@@ -221,6 +221,38 @@ def test_disconnection_releases_upstream_and_does_not_verify(configured, upstrea
     assert not configured.get('/api/voice/config').json()['checks']['realtime_asr']
 
 
+def test_continuous_native_final_uses_ordinary_unconfirmed_idempotent_submission(configured, upstream):
+    from lingxi.models import Candidate, Memory
+    setup(configured)
+    with SessionLocal.begin() as db:
+        config, provider = db.get(VoiceConfig, 'owner'), db.get(Provider, 'provider')
+        config.checks = config.checks | {'realtime_asr': audio_signature(config, provider, 'realtime_asr')}
+    conversation = configured.post('/api/conversations', json={'title': '连续实时转写'}).json()
+    response = configured.post('/api/voice/sessions', json={'conversation_id': conversation['id'], 'mode': 'continuous'})
+    assert response.status_code == 200, response.text
+    session = response.json()
+    token = ticket(configured, session['id'])
+    with configured.websocket_connect('/api/voice/realtime', headers={'Origin': 'http://testserver'}) as ws:
+        ws.send_json({'token': token})
+        assert ws.receive_json()['type'] == 'ready'
+        ws.send_bytes(b'\x01\x00' * 2400)
+        assert ws.receive_json()['type'] == 'partial'
+        with SessionLocal() as db:
+            assert not db.scalar(select(Message)) and not db.scalar(select(Job))
+        ws.send_json({'type': 'commit'})
+        final = ws.receive_json()
+    assert finish_worker(token) == 'completed'
+    body = {'content': final['text'], 'request_id': 'native-continuous-turn', 'automatic': True}
+    result = configured.post(f"/api/voice/sessions/{session['id']}/messages", json=body)
+    assert result.status_code == 200, result.text
+    assert configured.post(f"/api/voice/sessions/{session['id']}/messages", json=body).json()['id'] == result.json()['id']
+    with SessionLocal() as db:
+        assert db.get(ChatRun, result.json()['id']).config['voice_input'] == {'automatic': True, 'confirmed': False}
+        assert len(list(db.scalars(select(Message)))) == 1
+        assert [job.kind for job in db.scalars(select(Job))] == ['chat']
+        assert not db.scalar(select(Candidate)) and not db.scalar(select(Memory))
+
+
 def test_backup_restore_cancels_unused_and_active_authorization(configured):
     from test_backups import schema
     from lingxi.backups import checkpoint, quarantine
