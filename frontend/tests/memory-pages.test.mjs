@@ -51,6 +51,62 @@ test('memory page loads only its own collection and traverses cursor history',as
   await click('上一页');assert.match(document.body.textContent,/newer/);
 });
 
+const indexState=(extra={})=>({version:1,epoch:3,status:'failed',attempts:5,retry_at:null,can_retry:true,...extra});
+test('index retry previews current generation and submits the exact version once',async t=>{
+  const writes=[];let resolve;
+  await mount(t,async(u,o)=>{
+    if(u.endsWith('/index'))return response(indexState());
+    if(u.endsWith('/retry')){writes.push(JSON.parse(o.body));return new Promise(r=>resolve=r);}
+    return response(page([{...memory('retry-item','待重建记忆'),index_status:'failed'}]));
+  });
+  await click('索引状态');assert.equal(writes.length,0);
+  const dialog=document.querySelector('dialog');assert.match(dialog.textContent,/第 3 代索引.*已尝试 5 次/);
+  assert.match(dialog.textContent,/可能产生模型费用/);
+  await click('确认重试');assert.deepEqual(writes,[{version:1,epoch:3}]);
+  assert.equal(buttons('正在提交')[0].disabled,true);
+  await act(async()=>buttons('正在提交')[0].click());assert.equal(writes.length,1);
+  await act(async()=>resolve(response(indexState({status:'pending',attempts:0,can_retry:false}))));
+  assert.match(document.querySelector('dialog').textContent,/等待处理/);
+  assert.equal(document.activeElement,document.querySelector('dialog [role=status]'));
+  assert.equal(buttons('确认重试').length,0);
+});
+
+test('running index shows backoff and never offers a duplicate submission',async t=>{
+  await mount(t,async u=>response(u.endsWith('/index')?indexState({status:'pending',can_retry:false,retry_at:1793400100,attempts:2}):page([memory('waiting')])));
+  await click('索引状态');assert.match(document.querySelector('dialog').textContent,/下次自动尝试/);
+  assert.match(document.querySelector('dialog').textContent,/断开浏览器不会取消作业/);
+  assert.equal(buttons('确认重试').length,0);
+});
+
+test('corrected memory cannot be retried from an old card',async t=>{
+  await mount(t,async u=>response(u.endsWith('/index')?indexState({version:2}):page([memory('changed')])));
+  await click('索引状态');assert.match(document.querySelector('dialog').textContent,/已被纠正/);
+  assert.equal(buttons('确认重试').length,0);
+});
+
+test('failed status lookup blocks stale confirmation and offers refresh',async t=>{
+  let reads=0;
+  await mount(t,async u=>u.endsWith('/index')?(++reads===1?response({detail:'记忆服务连接失败'},503):response(indexState({status:'missing',attempts:0}))):response(page([memory('missing')])));
+  await click('索引状态');assert.match(document.querySelector('[role=alert]').textContent,/连接失败/);
+  assert.equal(buttons('确认重试').length,0);
+  await click('更新状态');assert.match(document.querySelector('dialog').textContent,/等待恢复/);
+  assert.equal(buttons('确认重试').length,1);
+});
+
+test('retry conflict remains visible without resubmitting and escapes memory text',async t=>{
+  const writes=[];
+  await mount(t,async(u,o)=>{
+    if(u.endsWith('/index'))return response(indexState());
+    if(u.endsWith('/retry')){writes.push(o);return response({detail:'记忆或索引配置已变化，请刷新状态后重试'},409);}
+    return response(page([memory('unsafe','<img src=x onerror=alert(1)> 原文')]));
+  });
+  await click('索引状态');assert.equal(document.querySelector('dialog img'),null);
+  await click('确认重试');assert.equal(writes.length,1);
+  assert.match(document.querySelector('dialog [role=alert]').textContent,/已变化/);
+  assert.equal(document.activeElement,document.querySelector('dialog [role=alert]'));
+  assert.equal(buttons('确认重试')[0].disabled,true);
+});
+
 test('candidate filter resets cursor and requests old pending records on the server',async t=>{
   const urls=[];const candidate={id:'candidate',content:'待核对',subject:'self',category:'projects',reason:'来源待核',source_id:'source',status:'pending'};
   await mount(t,async url=>{urls.push(url);return response(page([candidate],'next'));},'candidates');

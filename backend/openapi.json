@@ -1348,10 +1348,10 @@
         }
       }
     },
-    "/api/memories/{memory_id}/retry": {
-      "post": {
-        "summary": "Retry Index",
-        "operationId": "retry_index_api_memories__memory_id__retry_post",
+    "/api/memories/{memory_id}/index": {
+      "get": {
+        "summary": "Memory Index State",
+        "operationId": "memory_index_state_api_memories__memory_id__index_get",
         "parameters": [
           {
             "name": "memory_id",
@@ -1368,7 +1368,58 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/IndexState"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/memories/{memory_id}/retry": {
+      "post": {
+        "summary": "Retry Index",
+        "operationId": "retry_index_api_memories__memory_id__retry_post",
+        "parameters": [
+          {
+            "name": "memory_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Memory Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexRetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexState"
+                }
               }
             }
           },
@@ -15799,6 +15850,79 @@
           "attachments"
         ],
         "title": "InboundView"
+      },
+      "IndexRetry": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "epoch": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Epoch"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "epoch"
+        ],
+        "title": "IndexRetry"
+      },
+      "IndexState": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "epoch": {
+            "type": "integer",
+            "title": "Epoch"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "pending",
+              "running",
+              "failed",
+              "missing",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "retry_at": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry At"
+          },
+          "can_retry": {
+            "type": "boolean",
+            "title": "Can Retry"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "epoch",
+          "status",
+          "attempts",
+          "retry_at",
+          "can_retry"
+        ],
+        "title": "IndexState"
       },
       "InstallationView": {
         "properties": {

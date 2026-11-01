@@ -15,7 +15,12 @@ CATEGORIES = {'profile', 'preferences', 'experiences', 'projects', 'relationship
 
 def enqueue(db, key: str, kind: str, payload: dict):
     if not db.scalar(select(Job).where(Job.key == key)):
-        db.add(Job(key=key, kind=kind, payload=payload))
+        if kind == 'index':
+            payload = {'epoch': index_epoch(db)} | payload
+            memory = db.get(Memory, payload['memory_id'])
+            db.add(Job(key=key, kind=kind, payload=payload, workspace_id=memory.workspace_id))
+        else:
+            db.add(Job(key=key, kind=kind, payload=payload))
 
 
 class HindsightAdapter:

@@ -18,6 +18,7 @@ export type Vision = components['schemas']['VisionView'];
 export type Run = components['schemas']['ChatRunView'];
 export type ChatAction = components['schemas']['ChatActionView'];
 export type Memory = components['schemas']['MemoryView'];
+export type MemoryIndexState = components['schemas']['IndexState'];
 export type Candidate = components['schemas']['CandidateView'];
 export type Operation = components['schemas']['OperationView'];
 export type AssistantProfile = components['schemas']['ProfileView'];

@@ -340,12 +340,21 @@ def extract(job):
 
 
 def index(job):
-    with SessionLocal() as db:
-        memory = db.get(Memory, job.payload['memory_id'])
-        if not usable(memory) or memory.version != job.payload['version']:
+    from .memory_index import job_epoch
+    with SessionLocal.begin() as db:
+        owns(db, job)
+        memory = db.scalar(select(Memory).where(Memory.id == job.payload['memory_id']).with_for_update())
+        epoch = job_epoch(job, index_epoch(db))
+        if (not usable(memory) or memory.workspace_id != job.workspace_id
+                or memory.version != job.payload['version'] or epoch != index_epoch(db)):
+            return
+        if memory.index_status == 'ready' and memory.index_epoch == epoch:
             return
         from .memory_time import index_text
-        content, user_id, document, epoch = index_text(memory), memory.user_id, doc_id(memory), index_epoch(db)
+        content, user_id, document = index_text(memory), memory.user_id, doc_id(memory)
+        # Persist legacy jobs' generation before any network request or retry.
+        db.get(Job, job.id).payload = job.payload | {'epoch': epoch}
+        job.payload = job.payload | {'epoch': epoch}
     HindsightAdapter().retain(user_id, document, content, epoch)
     with SessionLocal.begin() as db:
         owns(db, job)
@@ -432,8 +441,12 @@ def finish_failed(db, job, error):
                 message.status = run.status
             add_event(db, run, 'done', {'status': run.status, 'error': run.error})
     if job.kind == 'index':
-        memory = db.get(Memory, job.payload['memory_id'])
-        if usable(memory) and memory.version == job.payload['version']:
+        from .memory_index import job_epoch
+        memory = db.scalar(select(Memory).where(Memory.id == job.payload['memory_id']).with_for_update()
+            .execution_options(populate_existing=True))
+        if (usable(memory) and memory.workspace_id == job.workspace_id and memory.version == job.payload['version']
+                and job_epoch(job, index_epoch(db)) == index_epoch(db)
+                and not (memory.index_status == 'ready' and memory.index_epoch == index_epoch(db))):
             memory.index_status = 'failed'
     if operation_id := job.payload.get('operation_id'):
         operation = db.get(Operation, operation_id)

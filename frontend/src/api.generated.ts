@@ -488,6 +488,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/memories/{memory_id}/index": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memory Index State */
+        get: operations["memory_index_state_api_memories__memory_id__index_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/memories/{memory_id}/retry": {
         parameters: {
             query?: never;
@@ -5853,6 +5870,31 @@ export interface components {
             /** Attachments */
             attachments: components["schemas"]["ChannelAttachmentView"][];
         };
+        /** IndexRetry */
+        IndexRetry: {
+            /** Version */
+            version: number;
+            /** Epoch */
+            epoch: number;
+        };
+        /** IndexState */
+        IndexState: {
+            /** Version */
+            version: number;
+            /** Epoch */
+            epoch: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ready" | "pending" | "running" | "failed" | "missing" | "unavailable";
+            /** Attempts */
+            attempts: number;
+            /** Retry At */
+            retry_at: number | null;
+            /** Can Retry */
+            can_retry: boolean;
+        };
         /** InstallationView */
         InstallationView: {
             /** Id */
@@ -10459,7 +10501,7 @@ export interface operations {
             };
         };
     };
-    retry_index_api_memories__memory_id__retry_post: {
+    memory_index_state_api_memories__memory_id__index_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -10476,7 +10518,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IndexState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_index_api_memories__memory_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                memory_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndexRetry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndexState"];
                 };
             };
             /** @description Validation Error */

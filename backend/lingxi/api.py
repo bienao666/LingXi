@@ -30,6 +30,7 @@ from .media import (MediaChatInput, MediaMessageView, attach_message, media_for_
                     validate_attachments)
 from .auth_totp import LoginInput, lock_owner, verify_login_factor
 from .memory_review import CandidateReviewInput, CandidateReviewPreview, DialogueCandidateSource
+from .memory_index import IndexRetry, IndexState
 
 
 @asynccontextmanager
@@ -695,17 +696,21 @@ def forget_memory(memory_id: str, ctx: Context):
     return view(operation)
 
 
-@app.post('/api/memories/{memory_id}/retry')
-def retry_index(memory_id: str, ctx: Context):
+@app.get('/api/memories/{memory_id}/index', response_model=IndexState)
+def memory_index_state(memory_id: str, ctx: Context):
+    from .memory_index import state
+    db, user, _ = ctx
+    return state(db, owned(db, Memory, memory_id, user))
+
+
+@app.post('/api/memories/{memory_id}/retry', response_model=IndexState)
+def retry_index(memory_id: str, body: IndexRetry, ctx: Context):
+    from .memory_index import retry
     db, user, _ = ctx
     memory = owned(db, Memory, memory_id, user, lock=True)
-    if not usable(memory):
-        raise HTTPException(409, '记忆已不可用')
-    job = db.scalar(select(Job).where(Job.key == f'index:{memory.id}:{memory.version}').with_for_update())
-    if job and job.status == 'failed':
-        job.status, job.attempts, job.available_at = 'pending', 0, now()
-        memory.index_status = 'pending'
-    return {'status': memory.index_status}
+    result = retry(db, memory, body)
+    audit(db, user, 'memory_index_retry', memory.id)
+    return result
 
 
 @app.get('/api/memory-candidates', response_model=list[CandidateView])
